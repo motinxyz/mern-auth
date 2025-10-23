@@ -1,0 +1,33 @@
+{
+  "system": {
+    "serverStarted": "Server is running on port {{port}}",
+    "healthCheck": "Server is healthy and running",
+    "dbConnected": "Database got connected..."
+  },
+  "auth": {
+    "register": {
+      "success": "User registered successfully.",
+      "emailInUse": "This email address is already in use."
+    }
+  }, 
+  "errors": {
+    "conflict":"Conflicting details.",
+    "notFound": "The requested resource was not found on this server.",
+    "unexpected": "An unexpected error occurred. Please try again later.",
+    "duplicate": "The field '{{field}}' with value '{{value}}' already exists.",
+    "duplicate_unknown": "A resource with this value already exists.",
+    "db": {
+      "invalidData": "Invalid database input: {{details}}",
+      "duplicateField": "This {{field}} is already in use",
+      "invalidId": "Invalid {{value}} for {{kind}}"
+    },
+    "validation": "Invalid input data. Please check the errors for details.",
+    "required": "{{field}} is a required field.",
+    "invalid": "{{field}} is not a valid value.",
+    "length": {
+      "name": "Name must be at least {{count}} characters long",
+      "password": "Password must be at least {{count}} characters long"
+    },
+    "email": "Invalid email format"
+  }
+}

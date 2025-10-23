@@ -1,0 +1,88 @@
+components:
+  schemas:
+    UserRegister:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          type: string
+          format: password
+          example: Pa$$w0rd!
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "60d0fe4f5311236168a109ca"
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        statusCode:
+          type: integer
+          example: 409
+        message:
+          type: string
+          example: "This email address is already in use."
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "email"
+              message:
+                type: string
+                example: "This email address is already in use."
+              value:
+                type: string
+                example: "test@example.com"
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Invalid input data. Please check the errors for details."
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "password"
+              message:
+                type: string
+                example: "Password must be at least 8 characters long"
+              value:
+                type: string
+                example: "pass"

@@ -1,0 +1,38 @@
+[ Request ]
+     |
+     v
+[ Controller / Service ]
+     |
+     |-----> [ Success ] -> ApiResponse -> JSON
+     |
+     '-----> [ Error Occurs ]
+               |
+               |  (404, Validation, Duplicate User, Bug, etc.)
+               |
+               v
+         [ next(error) ]
+               |
+               v
+[ Global errorHandler.js ]
+     |
+     '--> Is it a DB error (code 11000)? -> Convert to ApiError
+     |
+     '--> Is it a validation error?      -> Convert to ApiError (with details)
+     |
+     '--> Is it already an ApiError?     -> Keep it
+     |
+     '--> Is it something else (a bug)?  -> Wrap in ApiError (isOperational: false)
+               |
+               v
+[ All errors are now normalized ApiError objects ]
+               |
+     +-------------------------------------------------+
+     |                                                 |
+     v (isOperational: true)                           v (isOperational: false)
+[ Send Detailed User-Facing Error ]             [ Log Full Error Internally ]
+[ (e.g., "Email taken", validation list) ]      [ Send Generic "Something went wrong" Error ]
+     |                                                 |
+     '---------------------+---------------------------'
+                           |
+                           v
+                     [ JSON Response ]

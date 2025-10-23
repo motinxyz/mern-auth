@@ -1,0 +1,49 @@
+{
+  "name": "back",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/app.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "dev": "nodemon src/server.js",
+    "start": "node dist/server.js",
+    "docs": "jsdoc -c jsdoc.json",
+    "lint": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,json,md}\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@exortek/express-mongo-sanitize": "^1.1.1",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.1.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.1",
+    "pino": "^10.0.0",
+    "pino-http": "^11.0.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "jest": "^30.2.0",
+    "jsdoc": "^4.0.5",
+    "nodemon": "^3.1.10",
+    "pino-pretty": "^13.1.2",
+    "prettier": "^3.6.2",
+    "supertest": "^7.1.4"
+  }
+}
