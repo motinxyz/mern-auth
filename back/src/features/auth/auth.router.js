@@ -1,8 +1,8 @@
 import express from "express";
 
 import { registerUser } from "./auth.controller.js";
-import { validateRegistrationForm as validateRegistrationFormRules } from "./auth.validation.js";
-import validate from "../../middleware/validate.js";
+import { validate } from "../../middleware/validate.js";
+import { registerSchema } from "./auth.schema.js";
 
 const authRouter = express.Router();
 /**
@@ -50,11 +50,6 @@ const authRouter = express.Router();
  *       500:
  *         description: Internal Server Error
  */
-authRouter.post(
-  "/register",
-  validateRegistrationFormRules,
-  validate,
-  registerUser
-);
+authRouter.post("/register", validate(registerSchema), registerUser);
 
 export default authRouter;

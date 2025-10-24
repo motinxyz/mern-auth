@@ -1,6 +1,6 @@
 import { registerNewUser as registerNewUserService } from "./auth.service.js";
 import { HTTP_STATUS_CODES } from "../../constants/httpStatusCodes.js";
-import ApiResponse from "../../utils/ApiResponse.js";
+import ApiResponse from "../../core/api/ApiResponse.js";
 
 
 /**
@@ -34,7 +34,7 @@ export const registerUser = async (req, res, next) => {
     res.locals.data = new ApiResponse(
       HTTP_STATUS_CODES.CREATED,
       user,
-      "auth.register.success"
+      "auth:register.success"
     );
 
     return next();

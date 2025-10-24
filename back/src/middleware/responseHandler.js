@@ -1,4 +1,4 @@
-import ApiResponse from "../utils/ApiResponse.js";
+import ApiResponse from "../core/api/ApiResponse.js";
 import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
 
 /**

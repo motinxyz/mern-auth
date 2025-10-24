@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
 import request from "supertest";
-import { app } from "@/app.js";
+import app from "@/app.js";
 import User from "@/features/auth/user.model.js";
 import { HTTP_STATUS_CODES } from "@/constants/httpStatusCodes.js";
 
@@ -48,7 +48,7 @@ describe("Auth Integration Tests", () => {
         .expect(HTTP_STATUS_CODES.CREATED);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.message).toBe("auth.register.success");
+      expect(response.body.message).toBe("User registered successfully.");
       expect(response.body.data).toHaveProperty("id");
       expect(response.body.data.name).toBe(validUserData.name);
       expect(response.body.data.email).toBe(validUserData.email);
@@ -64,7 +64,7 @@ describe("Auth Integration Tests", () => {
         .expect(HTTP_STATUS_CODES.CONFLICT);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe("auth.register.emailInUse");
+      expect(response.body.message).toBe("This email address is already in use.");
     });
 
     it("should return 400 BAD REQUEST for invalid data (e.g., short password)", async () => {
@@ -76,11 +76,11 @@ describe("Auth Integration Tests", () => {
       const response = await request(app)
         .post("/api/v1/auth/register")
         .send(invalidUserData)
-        .expect(HTTP_STATUS_CODES.BAD_REQUEST);
+        .expect(HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe("validation.invalid.generic");
-      expect(response.body.errors[0].message).toBe("validation.length.password");
+      expect(response.body.message).toBe("Invalid data format. See details below...");
+      expect(response.body.errors[0].message).toBe("Password must be at least 4 characters long.");
       expect(response.body.errors[0].field).toBe("password");
     });
   });

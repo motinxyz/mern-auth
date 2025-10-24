@@ -17,9 +17,16 @@ const production = {
   ...common,
 };
 
+const test = {
+  ...common,
+  port: process.env.TEST_PORT || 0, // Use a random available port for tests
+  logLevel: 'silent', // Silence logs during tests
+};
+
 const config = {
   development,
   production,
+  test,
 };
 
 export const isDevelopment = () => {

@@ -1,0 +1,14 @@
+{
+    "system": {
+        "serverStarted": "Server is running on port {{port}}",
+        "healthCheck": "Server is healthy and running.",
+        "dbConnected": "Database connection established."
+    },
+    "errors": {
+        "unexpected": "An unexpected error occurred. Please try again later.",
+        "notFound": "The requested resource was not found on this server.",
+        "validation": "Invalid data format. See details below...",
+        "conflict": "Duplicate key informations. See details below...",
+        "serverError": "Server Error....."
+    }
+}

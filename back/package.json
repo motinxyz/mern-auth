@@ -1,10 +1,10 @@
 {
-  "name": "back",
+  "name": "auth-api-backend",
   "version": "1.0.0",
   "description": "",
   "main": "src/app.js",
   "scripts": {
-    "test": "jest",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "dev": "nodemon src/server.js",
@@ -34,9 +34,13 @@
     "pino-http": "^11.0.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "babel-jest": "^30.2.0",
     "eslint": "^9.38.0",
     "eslint-config-prettier": "^10.1.8",
     "jest": "^30.2.0",

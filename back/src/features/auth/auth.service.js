@@ -24,10 +24,10 @@ export const registerNewUser = async (userData, req) => {
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     // Throw a standardized error with a translation key
-    throw new ConflictError("auth.register.emailInUse", [
+    throw new ConflictError("validation:emailInUse", [
       {
         field: "email",
-        message: "auth.register.emailInUse",
+        message: "validation:emailInUse",
         value: email,
       },
     ]);

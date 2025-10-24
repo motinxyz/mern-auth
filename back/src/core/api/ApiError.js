@@ -1,4 +1,4 @@
-import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
+import { HTTP_STATUS_CODES } from "../../constants/httpStatusCodes.js";
 
 /**
  * @class ApiError

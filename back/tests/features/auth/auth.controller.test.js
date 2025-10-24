@@ -22,8 +22,8 @@ describe('Auth Controller', () => {
         t: (key) => key,
       };
       res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
+        // Mock the res.locals object
+        locals: {},
       };
       next = jest.fn();
       jest.clearAllMocks();
@@ -36,11 +36,12 @@ describe('Auth Controller', () => {
       await registerUser(req, res, next);
 
       expect(registerNewUserService).toHaveBeenCalledWith(req.body, req);
-      expect(res.status).toHaveBeenCalledWith(HTTP_STATUS_CODES.CREATED);
-      expect(res.json).toHaveBeenCalledWith(
-        new ApiResponse(HTTP_STATUS_CODES.CREATED, newUser, 'auth.register.success')
+      // Check that the controller correctly sets res.locals.data
+      expect(res.locals.data).toEqual(
+        new ApiResponse(HTTP_STATUS_CODES.CREATED, newUser, 'auth:register.success')
       );
-      expect(next).not.toHaveBeenCalled();
+      // Ensure the controller passes control to the next middleware (the responseHandler)
+      expect(next).toHaveBeenCalled();
     });
 
     it('should call next with the error if registerNewUserService throws an error', async () => {
@@ -50,8 +51,6 @@ describe('Auth Controller', () => {
       await registerUser(req, res, next);
 
       expect(registerNewUserService).toHaveBeenCalledWith(req.body, req);
-      expect(res.status).not.toHaveBeenCalled();
-      expect(res.json).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalledWith(error);
     });
   });

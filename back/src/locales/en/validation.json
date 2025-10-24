@@ -1,0 +1,18 @@
+{
+  "summary": "Invalid input data. Please check the errors for details.",
+  "genericInvalid": "{{field}} is not a valid value.",
+  "required": "{{field}} is a required field.",
+  "emailInUse": "This email address is already in use.",
+  "invalidEmail": "Invalid email format.",
+  "nameTooShort": "Name must be at least {{count}} characters long.",
+  "passwordTooShort": "Password must be at least {{count}} characters long.",
+  "tooShort": "{{field}} must be at least {{count}} characters long.",
+  "db": {
+    "invalidData": "Invalid database input: {{details}}",
+    "invalidId": "Invalid {{value}} for {{kind}}"
+  },
+  "duplicate": {
+    "default": "The field '{{field}}' with value '{{value}}' already exists.",
+    "unknown": "A resource with this value already exists."
+  }
+}

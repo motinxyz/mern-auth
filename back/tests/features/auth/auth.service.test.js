@@ -40,7 +40,9 @@ describe('Auth Service', () => {
 
       User.findOne.mockResolvedValue(userData);
 
-      await expect(registerNewUser(userData, req)).rejects.toThrow(ConflictError);
+      await expect(registerNewUser(userData, req)).rejects.toThrow(
+        new ConflictError('validation:emailInUse')
+      );
       expect(User.findOne).toHaveBeenCalledWith({ email: userData.email });
       expect(User.create).not.toHaveBeenCalled();
     });
