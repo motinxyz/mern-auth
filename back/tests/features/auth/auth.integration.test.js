@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from "vitest";
 import request from "supertest";
 import app from "@/app.js";
 import User from "@/features/auth/user.model.js";
@@ -15,7 +15,7 @@ describe("Auth Integration Tests", () => {
   afterEach(async () => {
     // This would clear your test DB
     // await User.deleteMany({});
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(async () => {
@@ -32,8 +32,8 @@ describe("Auth Integration Tests", () => {
 
     it("should register a new user and return 201 CREATED", async () => {
       // Mock the database interaction for this test
-      jest.spyOn(User, "findOne").mockResolvedValue(null);
-      jest.spyOn(User, "create").mockImplementation((user) =>
+      vi.spyOn(User, "findOne").mockResolvedValue(null);
+      vi.spyOn(User, "create").mockImplementation((user) =>
         Promise.resolve({
           ...user,
           id: "mock-id",
@@ -56,7 +56,7 @@ describe("Auth Integration Tests", () => {
     });
 
     it("should return 409 CONFLICT if email is already in use", async () => {
-      jest.spyOn(User, "findOne").mockResolvedValue(validUserData);
+      vi.spyOn(User, "findOne").mockResolvedValue(validUserData);
 
       const response = await request(app)
         .post("/api/v1/auth/register")
@@ -82,6 +82,54 @@ describe("Auth Integration Tests", () => {
       expect(response.body.message).toBe("Invalid data format. See details below...");
       expect(response.body.errors[0].message).toBe("Password must be at least 4 characters long.");
       expect(response.body.errors[0].field).toBe("password");
+    });
+
+    it("should return 422 UNPROCESSABLE_CONTENT if name is missing", async () => {
+      const { name, ...userDataWithoutName } = validUserData;
+
+      const response = await request(app)
+        .post("/api/v1/auth/register")
+        .send(userDataWithoutName)
+        .expect(HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.errors[0].field).toBe("name");
+    });
+
+    it("should return 422 UNPROCESSABLE_CONTENT if email is missing", async () => {
+      const { email, ...userDataWithoutEmail } = validUserData;
+
+      const response = await request(app)
+        .post("/api/v1/auth/register")
+        .send(userDataWithoutEmail)
+        .expect(HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.errors[0].field).toBe("email");
+    });
+
+    it("should return 422 UNPROCESSABLE_CONTENT if password is missing", async () => {
+      const { password, ...userDataWithoutPassword } = validUserData;
+
+      const response = await request(app)
+        .post("/api/v1/auth/register")
+        .send(userDataWithoutPassword)
+        .expect(HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.errors[0].field).toBe("password");
+    });
+
+    it("should return 422 UNPROCESSABLE_CONTENT if email is invalid", async () => {
+      const invalidEmailUserData = { ...validUserData, email: "invalid-email" };
+
+      const response = await request(app)
+        .post("/api/v1/auth/register")
+        .send(invalidEmailUserData)
+        .expect(HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.errors[0].field).toBe("email");
     });
   });
 });

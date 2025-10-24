@@ -5,8 +5,12 @@ import helmet from "helmet";
 import hpp from "hpp";
 import cors from "cors";
 import expressMongoSanitize from "@exortek/express-mongo-sanitize";
+import { apiLimiter } from "../middleware/rateLimiter.js";
 
 export default function (app) {
+  // Apply the API rate limiter to all requests
+  app.use(apiLimiter);
+
   // Add pino-http middleware for structured request logging
   //   app.use(pinoHttp({ logger }));
   app.use(httpLogger);

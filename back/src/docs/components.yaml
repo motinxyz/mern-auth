@@ -33,32 +33,27 @@ components:
           format: email
           example: john.doe@example.com
 
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "User registered successfully."
+        data:
+          $ref: '#/components/schemas/UserResponse'
+
     ErrorResponse:
       type: object
       properties:
         success:
           type: boolean
           example: false
-        statusCode:
-          type: integer
-          example: 409
         message:
           type: string
-          example: "This email address is already in use."
-        errors:
-          type: array
-          items:
-            type: object
-            properties:
-              field:
-                type: string
-                example: "email"
-              message:
-                type: string
-                example: "This email address is already in use."
-              value:
-                type: string
-                example: "test@example.com"
+          example: "An error occurred."
 
     ValidationErrorResponse:
       type: object
@@ -66,12 +61,9 @@ components:
         success:
           type: boolean
           example: false
-        statusCode:
-          type: integer
-          example: 400
         message:
           type: string
-          example: "Invalid input data. Please check the errors for details."
+          example: "Invalid data format. See details below..."
         errors:
           type: array
           items:
@@ -82,7 +74,7 @@ components:
                 example: "password"
               message:
                 type: string
-                example: "Password must be at least 8 characters long"
+                example: "Password must be at least 4 characters long."
               value:
                 type: string
-                example: "pass"
+                example: "123"

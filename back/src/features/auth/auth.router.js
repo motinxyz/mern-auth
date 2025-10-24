@@ -3,6 +3,7 @@ import express from "express";
 import { registerUser } from "./auth.controller.js";
 import { validate } from "../../middleware/validate.js";
 import { registerSchema } from "./auth.schema.js";
+import { authLimiter } from "../../middleware/rateLimiter.js";
 
 const authRouter = express.Router();
 /**
@@ -25,17 +26,8 @@ const authRouter = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "auth.register.success"
- *                 data:
- *                   $ref: '#/components/schemas/UserResponse'
- *       400:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       422:
  *         description: Validation error (e.g., invalid email, weak password)
  *         content:
  *           application/json:
@@ -47,9 +39,19 @@ const authRouter = express.Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests from this IP, please try again after 15 minutes.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-authRouter.post("/register", validate(registerSchema), registerUser);
+authRouter.post("/register", authLimiter, validate(registerSchema), registerUser);
 
 export default authRouter;
