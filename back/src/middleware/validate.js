@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 import { ValidationError } from "../errors/index.js";
+import logger from "../config/logger.js";
 
 /**
  * Middleware factory to validate requests against a Zod schema.
@@ -17,7 +18,7 @@ export const validate = (schema) => async (req, res, next) => {
   } catch (error) {
     if (error instanceof ZodError) {
       const extractedErrors = error.issues.map((err) => {
-        const field = err.path.slice(1).join('.'); // e.g., 'body.name' -> 'name'
+        const field = err.path.slice(1).join("."); // e.g., 'body.name' -> 'name'
         let message = err.message;
         let context = {};
 

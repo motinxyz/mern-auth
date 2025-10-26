@@ -1,14 +1,32 @@
 {
-    "system": {
-        "serverStarted": "Server is running on port {{port}}",
-        "healthCheck": "Server is healthy and running.",
-        "dbConnected": "Database connection established."
-    },
-    "errors": {
-        "unexpected": "An unexpected error occurred. Please try again later.",
-        "notFound": "The requested resource was not found on this server.",
-        "validation": "Invalid data format. See details below...",
-        "conflict": "Duplicate key informations. See details below...",
-        "serverError": "Server Error....."
+  "system": {
+    "dbConnected": "Database connected successfully.",
+    "redisConnected": "Redis client connected successfully.",
+    "serverStarted": "Server is running on port {{port}}",
+    "shutdownSignal": "Received {{signal}}. Shutting down gracefully...",
+    "httpServerClosed": "HTTP server closed.",
+    "dbConnectionsClosed": "Database and Redis connections closed.",
+    "dbConnectionError": "Failed to connect to the database.",
+    "redisConnectionError": "Failed to connect to Redis.",
+    "redisClientError": "Redis client error"
+  },
+  "errors": {
+    "invalidEnvVars": "Invalid environment variables. The application cannot start.",
+    "serverStartFailed": "Server failed to start.",
+    "shutdownDbError": "Error during database shutdown.",
+    "uncaughtException": "An uncaught exception occurred. The application will now exit.",
+    "unhandledRejection": "An unhandled promise rejection occurred.",
+    "notFound": "The requested resource was not found.",
+    "conflict": "A conflict occurred. The resource may already exist.",
+    "validation": {
+      "required": "{{field}} is a required environment variable.",
+      "invalidUrl": "{{field}} must be a valid URL."
     }
+  },
+  "email": {
+    "smtpConfigured": "SMTP transport configured",
+    "attemptingSend": "Attempting to send email",
+    "sendSuccess": "Email sent successfully",
+    "sendFail": "Failed to send email"
+  }
 }

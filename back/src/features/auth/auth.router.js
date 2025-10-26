@@ -52,6 +52,11 @@ const authRouter = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-authRouter.post("/register", authLimiter, validate(registerSchema), registerUser);
+authRouter.post(
+  "/register",
+  authLimiter,
+  validate(registerSchema),
+  registerUser
+);
 
 export default authRouter;

@@ -1,6 +1,11 @@
 import User from "./user.model.js";
-import { ConflictError } from "../../errors/index.js";
+import { ConflictError, TooManyRequestsError } from "../../errors/index.js";
+import redisClient from "../../startup/redisClient.js";
+import { sendVerificationEmail } from "../email/email.service.js";
+import { createVerificationToken } from "../token/token.service.js";
+import logger from "../../config/logger.js";
 
+const authServiceLogger = logger.child({ module: "auth-service" });
 /**
  * @typedef {object} Request - Express Request object.
  * @property {function} t - The translation function.
@@ -20,6 +25,13 @@ import { ConflictError } from "../../errors/index.js";
 export const registerNewUser = async (userData, req) => {
   const { email } = userData;
 
+  // This rate limit specifically prevents spamming the "send verification email" step.
+  const rateLimitKey = `verify-email-rate-limit:${email}`;
+
+  if (await redisClient.get(rateLimitKey)) {
+    throw new TooManyRequestsError();
+  }
+
   // Check if a user with this email already exists
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -34,8 +46,30 @@ export const registerNewUser = async (userData, req) => {
   }
 
   // Create the user in the database
-  const user = await User.create(userData);
+  const newUser = await User.create(userData);
 
-  // The password will not be returned because of `select: false` in the model.
-  return user;
+  try {
+    // Orchestrate the verification flow by calling the appropriate services.
+    authServiceLogger.info("Creating verification token and sending email.");
+    const verificationToken = await createVerificationToken(newUser);
+
+    // Send email and set the rate limit key in parallel.
+    await Promise.all([
+      sendVerificationEmail({
+        user: newUser,
+        token: verificationToken,
+        t: req.t,
+      }),
+      redisClient.set(rateLimitKey, "true", { EX: 180 }), // Set rate limit after successful token creation
+    ]);
+  } catch (emailOrTokenError) {
+    authServiceLogger.error(
+      { err: emailOrTokenError },
+      "Failed to send verification email or set rate limit. The user was created, but will need to request a new verification email."
+    );
+    // Even if the email fails, we don't want to fail the entire registration.
+  }
+
+  // Return a plain object representation of the user.
+  return newUser.toJSON();
 };

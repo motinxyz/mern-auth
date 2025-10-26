@@ -2,7 +2,6 @@ import { registerNewUser as registerNewUserService } from "./auth.service.js";
 import { HTTP_STATUS_CODES } from "../../constants/httpStatusCodes.js";
 import ApiResponse from "../../core/api/ApiResponse.js";
 
-
 /**
  * @typedef {object} Request - Express Request object.
  * @property {object} body - The request body.
@@ -11,7 +10,6 @@ import ApiResponse from "../../core/api/ApiResponse.js";
 
 /**
  * @typedef {object} Response - Express Response object.
- * @property {object} locals - The locals object.
  */
 
 /**
@@ -29,15 +27,14 @@ import ApiResponse from "../../core/api/ApiResponse.js";
 export const registerUser = async (req, res, next) => {
   try {
     const user = await registerNewUserService(req.body, req);
-
-    // The ApiResponse instance will be picked up by the responseHandler middleware.
-    res.locals.data = new ApiResponse(
-      HTTP_STATUS_CODES.CREATED,
-      user,
-      "auth:register.success"
+    // Directly send the successful response from the controller.
+    return res.status(HTTP_STATUS_CODES.CREATED).json(
+      new ApiResponse(
+        HTTP_STATUS_CODES.CREATED,
+        user,
+        req.t("auth:register.success")
+      )
     );
-
-    return next();
   } catch (error) {
     // Pass all errors to the global error handler
     next(error);

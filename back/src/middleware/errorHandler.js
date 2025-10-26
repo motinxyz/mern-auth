@@ -12,7 +12,7 @@ export const errorHandler = (err, req, res, next) => {
   let apiError = err;
 
   // Log the original error for debugging
-  logger.error(err);
+  logger.error({ err, module: "errorHandler" }, err.message);
 
   // If the error is not a custom ApiError, convert it.
   if (!(err instanceof ApiError)) {
@@ -25,15 +25,7 @@ export const errorHandler = (err, req, res, next) => {
       }));
       apiError = new ValidationError(errors);
     }
-    // Handle Joi validation errors
-    // else if (err.isJoi) {
-    //   const errors = err.details.map((e) => ({
-    //     field: e.path.join('.'),
-    //     message: e.message,
-    //     context: e.context,
-    //   }));
-    //   apiError = new ApiError(HTTP_STATUS_CODES.BAD_REQUEST, 'Validation failed', errors);
-    // }
+
     // Handle all other unexpected errors
     else {
       const statusCode =

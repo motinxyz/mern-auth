@@ -1,33 +1,25 @@
 import pino from "pino";
 import config from "../config/env.js";
 
-const isDev = config.isDevelopment;
-
 const pinoConfig = {
-  // Set the minimum log level.
-  // In production, you might want to set this to 'info' or 'warn'
-  // and control it via environment variables.
   level: config.logLevel || "info",
-  // metadata that appears in every log
-  // base: {
-  //   app: "my-mern-app",
-  //   version: "1.0.0",
-  //   env: config.env || (isDev ? "development" : "production"),
-  // },
+  // In development, use pino-pretty for nicely formatted logs.
+  // In production, this is disabled, and raw JSON logs are produced.
+  transport: config.isDevelopment
+    ? {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          sync: true,
+          // Ignore verbose properties for cleaner development logs
+          ignore: "pid,hostname",
+          // A simple message format for general application logs.
+          messageFormat: "{msg}",
+        },
+      }
+    : undefined,
 };
 
-// In development, we use pino-pretty for nice, human-readable output.
-// In production, we'll stick to standard JSON logs for better performance
-// and machine-readability.
-if (isDev) {
-  pinoConfig.transport = {
-    target: "pino-pretty",
-    options: {
-      colorize: true,
-      translateTime: "SYS:standard",
-      ignore: "pid,hostname",
-    },
-  };
-}
+const logger = pino(pinoConfig);
 
-export default pino(pinoConfig);
+export default logger;
