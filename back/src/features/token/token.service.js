@@ -2,8 +2,13 @@ import config from "../../config/env.js";
 import redisClient from "../../startup/redisClient.js";
 import logger from "../../config/logger.js";
 import crypto from "node:crypto";
+import { getTranslator } from "../../config/i18n.js";
+import { TokenCreationError } from "../../errors/index.js";
 
 const tokenServiceLogger = logger.child({ module: "token-service" });
+
+// Initialize a system translator for token-service logs and messages.
+const systemT = await getTranslator("en");
 /**
  * Creates a verification token for a user and stores it in Redis.
  *redisLogger
@@ -24,11 +29,10 @@ export const createVerificationToken = async (user) => {
       email: user.email,
     });
 
-    tokenServiceLogger.info({
-      msg: "Creating verification token",
-      email: user.email,
-      expiresIn: config.verificationTokenExpiresIn,
-    });
+    tokenServiceLogger.info(
+      { email: user.email, expiresIn: config.verificationTokenExpiresIn },
+      systemT("common:token.creating")
+    );
 
     // Store the token in Redis with expiration
     const result = await redisClient.set(
@@ -40,20 +44,18 @@ export const createVerificationToken = async (user) => {
 
     // Verify the token was stored correctly
     const ttl = await redisClient.ttl(verifyKey);
-    tokenServiceLogger.debug({
-      msg: "Verification token stored in Redis",
-      key: verifyKey,
-      ttl,
-      redisResponse: result,
-    });
+    tokenServiceLogger.debug(
+      { key: verifyKey, ttl, redisResponse: result },
+      systemT("common:token.stored")
+    );
 
     return verificationToken;
   } catch (error) {
-    tokenServiceLogger.error({
-      msg: "Failed to create verification token",
-      error: error.message,
-      stack: error.stack,
-    });
-    throw error;
+    tokenServiceLogger.error(
+      { err: error },
+      systemT("common:token.creationFailed")
+    );
+    // Wrap the original error in our custom error class for better context.
+    throw new TokenCreationError(systemT("common:token.creationFailed"), error);
   }
 };

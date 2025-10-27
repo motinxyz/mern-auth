@@ -7,3 +7,6 @@ export { default as UnknownJobTypeError } from "./UnknownJobTypeError.js";
 export { default as InvalidJobDataError } from "./InvalidJobDataError.js";
 export { default as EmailDispatchError } from "./EmailDispatchError.js";
 export { default as JobCreationError } from "./JobCreationError.js";
+export { default as TokenCreationError } from "./TokenCreationError.js";
+export { default as RedisConnectionError } from "./RedisConnectionError.js";
+export { default as QueueError } from "./QueueError.js";

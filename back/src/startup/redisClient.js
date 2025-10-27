@@ -1,5 +1,6 @@
 import Redis from "ioredis";
 import config from "../config/env.js";
+import { RedisConnectionError } from "../errors/index.js";
 import logger, { t as systemT } from "../config/system-logger.js";
 
 const redisLogger = logger.child({ module: "redis" });
@@ -20,7 +21,12 @@ client.on("connect", () => {
 });
 
 client.on("error", (err) => {
+  // Log the specific Redis client error with a translated message for high-level context.
   redisLogger.error({ err }, systemT("common:system.redisClientError"));
+
+  // Throw a structured, non-translated error containing the original error.
+  // This is a critical failure, and the process should exit to be restarted by PM2.
+  throw new RedisConnectionError(err);
 });
 
 // No need for an explicit connect function, ioredis handles it.

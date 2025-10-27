@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import logger from "../../config/logger.js";
 import redisClient from "../../startup/redisClient.js";
 import { sendVerificationEmail } from "../email/email.service.js"; // Assuming this is your email sending function
+import { QUEUE_NAMES, EMAIL_JOB_TYPES } from "./queue.constants.js";
 import {
   UnknownJobTypeError,
   InvalidJobDataError,
@@ -18,7 +19,7 @@ const processor = async (job) => {
   workerLogger.info({ job: { id: job.id, type } }, systemT("worker:processingJob"));
 
   switch (type) {
-    case "sendVerificationEmail": {
+    case EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL: {
       // By wrapping the case in curly braces, we create a new block scope,
       // Basic validation for the job data payload.
       if (!data.user || !data.token || !data.locale) {
@@ -45,7 +46,7 @@ const processor = async (job) => {
   }
 };
 
-const worker = new Worker("emailQueue", processor, {
+const worker = new Worker(QUEUE_NAMES.EMAIL, processor, {
   connection: redisClient,
   concurrency: 5, // Process up to 5 jobs at once
   // Add a custom error handler for the worker to centralize error logging

@@ -68,11 +68,18 @@ export const registerNewUser = async (userData, req) => {
     // Set rate limit after successful token creation and job queuing.
     await redisClient.set(rateLimitKey, "true", "EX", 180);
   } catch (emailOrTokenError) {
+    // This is a "soft failure". We log the error for observability but do not fail the
+    // entire registration process, as the user has been successfully created.
+    // The user can use the "resend verification" feature to recover.
+    const errorContext = {
+      err: emailOrTokenError,
+      errorName: emailOrTokenError.name,
+      userId: newUser.id,
+    };
     authServiceLogger.error(
-      { err: emailOrTokenError },
-      "Failed to send verification email or set rate limit. The user was created, but will need to request a new verification email."
+      errorContext,
+      req.t("common:errors.postRegistrationTaskFailed", { errorName: emailOrTokenError.name })
     );
-    // Even if the email fails, we don't want to fail the entire registration.
   }
 
   // Return a plain object representation of the user.

@@ -11,11 +11,12 @@ import app from "./app.js";
 import baseLogger, { t as systemT } from "./config/system-logger.js";
 import redisClient from "./startup/redisClient.js";
 import { EnvironmentError } from "./errors/index.js";
+// import "./features/queue/email.worker.js"; // Import the worker to start it in the same process
 
 const serverLogger = baseLogger.child({ module: "server" });
 
 let server;
-let emailWorker;
+// let emailWorker;
 
 /**
  * Connects to the primary database (MongoDB).

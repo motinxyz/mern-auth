@@ -17,7 +17,13 @@
     "jobDataMissingFields": "Job data is missing required fields",
     "emailDispatchFailed": "Failed to send verification email",
     "unknownJobType": "Unknown job type: {{type}}",
-    "jobCreationFailed": "Failed to add email job to the queue"
+    "jobCreationFailed": "Failed to add email job to the queue",
+    "postRegistrationTaskFailed": "Post-registration task failed: {{errorName}}. User created, but may need manual intervention or re-request verification."
+  },
+  "token": {
+    "creating": "Creating verification token",
+    "stored": "Verification token stored in Redis",
+    "creationFailed": "Failed to create verification token"
   },
   "email": {
     "smtpConfigured": "SMTP transport configured",
