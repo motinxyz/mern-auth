@@ -1,5 +1,9 @@
 import sendMail from "../../utils/sendMail.js";
 import config from "../../config/env.js";
+import logger from "../../config/logger.js";
+import { EmailDispatchError } from "../../errors/index.js";
+
+const emailServiceLogger = logger.child({ module: "email-service" });
 
 /**
  * Creates the HTML body for a verification email.
@@ -44,7 +48,7 @@ const createVerificationEmailBody = ({ name, verificationUrl, t }) => {
  * @param {string} token - The verification token.
  * @param {function} t - The translation function.
  */
-export const sendVerificationEmail = async ({ user, token, t }) => {
+export const sendVerificationEmail = async (user, token, t) => {
   const verificationUrl = `${config.clientUrl}/verify-email?token=${token}`;
   const subject = t("email:verification.subject");
   const html = createVerificationEmailBody({
@@ -56,5 +60,16 @@ export const sendVerificationEmail = async ({ user, token, t }) => {
   // create a plain text version of the email
   const text = html.replace(/<[^>]*>/g, "");
 
-  await sendMail({ to: user.email, subject, html, text });
+  emailServiceLogger.info(
+    { to: user.email, subject },
+    "Dispatching verification email"
+  );
+
+  try {
+    await sendMail({ to: user.email, subject, html, text });
+  } catch (error) {
+    // Wrap the original error in our custom error class for better context.
+    emailServiceLogger.error({ err: error }, "Email dispatch failed.");
+    throw new EmailDispatchError(t("common:errors.emailDispatchFailed"), error);
+  }
 };

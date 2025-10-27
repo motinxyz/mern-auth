@@ -1,0 +1,5 @@
+{
+  "queueError": "Email queue error",
+  "addingJob": "Adding job to emailQueue",
+  "addJobFailed": "Failed to add job to emailQueue"
+}

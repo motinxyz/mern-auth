@@ -1,32 +1,28 @@
+import Redis from "ioredis";
 import config from "../config/env.js";
-import { createClient } from "redis";
 import logger, { t as systemT } from "../config/system-logger.js";
 
 const redisLogger = logger.child({ module: "redis" });
-// Create a single Redis client instance.
-// The `rediss://` protocol implies a TLS connection.
-// We explicitly define the socket options for clarity.
-// redisLogger.info( config);
 
-const client = createClient({
-  url: config.redisUrl,
-  socket: {
-    tls: config.redisUrl.startsWith("rediss://"),
-    rejectUnauthorized: !config.isDevelopment,
-  },
+// ioredis has a more robust connection handling and is the recommended client for BullMQ.
+// It automatically handles reconnections and provides a more stable experience.
+const client = new Redis(config.redisUrl, {
+  // Add a ready check to ensure the client is connected before processing commands
+  enableReadyCheck: true,
+  // BullMQ requires this setting to be null.
+  // It handles its own command retry logic and does not want ioredis to interfere.
+  // See: https://docs.bullmq.io/guide/connections
+  maxRetriesPerRequest: null,
+});
+
+client.on("connect", () => {
+  redisLogger.info(systemT("common:system.redisConnected"));
 });
 
 client.on("error", (err) => {
-  // Use the application's logger for consistent error handling.
-  // This prevents the app from crashing on Redis connection issues.
   redisLogger.error({ err }, systemT("common:system.redisClientError"));
 });
 
-// We connect the client when the module is first loaded.
-// The `await` here will pause the loading of this module until the connection
-// is established. This is often desirable to ensure Redis is ready before
-// the rest of the app starts trying to use it.
-await client.connect();
-redisLogger.info(systemT("common:system.redisConnected"));
+// No need for an explicit connect function, ioredis handles it.
 
 export default client;

@@ -3,3 +3,7 @@ export { default as NotFoundError } from "./NotFoundError.js";
 export { default as ConflictError } from "./ConflictError.js";
 export { default as TooManyRequestsError } from "./TooManyRequestsError.js";
 export { default as EnvironmentError } from "./EnvironmentError.js";
+export { default as UnknownJobTypeError } from "./UnknownJobTypeError.js";
+export { default as InvalidJobDataError } from "./InvalidJobDataError.js";
+export { default as EmailDispatchError } from "./EmailDispatchError.js";
+export { default as JobCreationError } from "./JobCreationError.js";

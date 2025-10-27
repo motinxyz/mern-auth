@@ -1,0 +1,9 @@
+{
+  "processingJob": "Processing job",
+  "jobCompleted": "Job completed",
+  "jobFailed": "Job failed",
+  "unknownJobType": "Unknown job type: {{type}}",
+  "emailSentSuccess": "Verification email sent",
+  "startingWorker": "Starting email worker process...",
+  "workerReady": "Email worker is connected to Redis and ready to process jobs."
+}

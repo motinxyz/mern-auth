@@ -1,8 +1,9 @@
 import User from "./user.model.js";
 import { ConflictError, TooManyRequestsError } from "../../errors/index.js";
 import redisClient from "../../startup/redisClient.js";
-import { sendVerificationEmail } from "../email/email.service.js";
 import { createVerificationToken } from "../token/token.service.js";
+import { addEmailJob } from "../queue/queue.service.js";
+import { EMAIL_JOB_TYPES } from "../queue/queue.constants.js";
 import logger from "../../config/logger.js";
 
 const authServiceLogger = logger.child({ module: "auth-service" });
@@ -53,15 +54,19 @@ export const registerNewUser = async (userData, req) => {
     authServiceLogger.info("Creating verification token and sending email.");
     const verificationToken = await createVerificationToken(newUser);
 
-    // Send email and set the rate limit key in parallel.
-    await Promise.all([
-      sendVerificationEmail({
-        user: newUser,
-        token: verificationToken,
-        t: req.t,
-      }),
-      redisClient.set(rateLimitKey, "true", { EX: 180 }), // Set rate limit after successful token creation
-    ]);
+    // Add a job to the queue to send the verification email asynchronously.
+    await addEmailJob(EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL, {
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+      },
+      token: verificationToken,
+      locale: req.locale, // Pass user's locale for i18n in the worker
+    });
+
+    // Set rate limit after successful token creation and job queuing.
+    await redisClient.set(rateLimitKey, "true", "EX", 180);
   } catch (emailOrTokenError) {
     authServiceLogger.error(
       { err: emailOrTokenError },

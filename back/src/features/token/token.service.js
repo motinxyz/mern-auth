@@ -31,9 +31,12 @@ export const createVerificationToken = async (user) => {
     });
 
     // Store the token in Redis with expiration
-    const result = await redisClient.set(verifyKey, userDataToStore, {
-      EX: config.verificationTokenExpiresIn,
-    });
+    const result = await redisClient.set(
+      verifyKey,
+      userDataToStore,
+      "EX",
+      config.verificationTokenExpiresIn
+    );
 
     // Verify the token was stored correctly
     const ttl = await redisClient.ttl(verifyKey);

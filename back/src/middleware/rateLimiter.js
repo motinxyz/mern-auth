@@ -1,6 +1,6 @@
 import rateLimit from "express-rate-limit";
 import config from "../config/env.js";
-import logger from "../config/logger.js";
+// import logger from "../config/logger.js";
 
 // Basic rate limiting middleware for all API requests
 export const apiLimiter = rateLimit({
@@ -14,7 +14,7 @@ export const apiLimiter = rateLimit({
 // Stricter rate limiting for authentication routes
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 authentication attempts per `windowMs` (in production)
+  max: 10, 
   standardHeaders: true,
   legacyHeaders: false,
   message:

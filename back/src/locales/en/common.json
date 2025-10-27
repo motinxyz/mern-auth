@@ -1,32 +1,30 @@
 {
   "system": {
-    "dbConnected": "Database connected successfully.",
-    "redisConnected": "Redis client connected successfully.",
-    "serverStarted": "Server is running on port {{port}}",
-    "shutdownSignal": "Received {{signal}}. Shutting down gracefully...",
-    "httpServerClosed": "HTTP server closed.",
-    "dbConnectionsClosed": "Database and Redis connections closed.",
+    "dbConnected": "Successfully connected to the database.",
     "dbConnectionError": "Failed to connect to the database.",
-    "redisConnectionError": "Failed to connect to Redis.",
-    "redisClientError": "Redis client error"
+    "dbConnectionsClosed": "Database and cache connections closed.",
+    "serverStarted": "Server is running on port {{port}}",
+    "shutdownSignal": "Shutdown signal received: {{signal}}. Closing http server.",
+    "httpServerClosed": "HTTP server closed.",
+    "redisConnected": "Successfully connected to Redis.",
+    "redisClientError": "Redis client error."
   },
   "errors": {
-    "invalidEnvVars": "Invalid environment variables. The application cannot start.",
-    "serverStartFailed": "Server failed to start.",
-    "shutdownDbError": "Error during database shutdown.",
-    "uncaughtException": "An uncaught exception occurred. The application will now exit.",
-    "unhandledRejection": "An unhandled promise rejection occurred.",
-    "notFound": "The requested resource was not found.",
-    "conflict": "A conflict occurred. The resource may already exist.",
-    "validation": {
-      "required": "{{field}} is a required environment variable.",
-      "invalidUrl": "{{field}} must be a valid URL."
-    }
+    "uncaughtException": "Uncaught Exception. Shutting down...",
+    "unhandledRejection": "Unhandled Rejection. Shutting down gracefully...",
+    "serverStartFailed": "Failed to start the server.",
+    "shutdownDbError": "Error during database connection shutdown.",
+    "jobDataMissingFields": "Job data is missing required fields",
+    "emailDispatchFailed": "Failed to send verification email",
+    "unknownJobType": "Unknown job type: {{type}}",
+    "jobCreationFailed": "Failed to add email job to the queue"
   },
   "email": {
     "smtpConfigured": "SMTP transport configured",
-    "attemptingSend": "Attempting to send email",
-    "sendSuccess": "Email sent successfully",
-    "sendFail": "Failed to send email"
+    "smtpConnectionVerified": "SMTP connection verified successfully.",
+    "smtpConnectionFailed": "Failed to verify SMTP connection.",
+    "attemptingSend": "Attempting to send email.",
+    "sendSuccess": "Email sent successfully.",
+    "sendFail": "Failed to send email."
   }
 }

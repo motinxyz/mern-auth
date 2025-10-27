@@ -7,7 +7,6 @@ import config from "./config/env.js";
 // =================================================================
 
 import mongoose from "mongoose";
-import http from "node:http";
 import app from "./app.js";
 import baseLogger, { t as systemT } from "./config/system-logger.js";
 import redisClient from "./startup/redisClient.js";
@@ -16,6 +15,7 @@ import { EnvironmentError } from "./errors/index.js";
 const serverLogger = baseLogger.child({ module: "server" });
 
 let server;
+let emailWorker;
 
 /**
  * Connects to the primary database (MongoDB).
@@ -28,7 +28,10 @@ async function connectToDatabase() {
     });
     serverLogger.info(systemT("common:system.dbConnected"));
   } catch (error) {
-    serverLogger.error({ err: error }, systemT("common:system.dbConnectionError"));
+    serverLogger.error(
+      { err: error },
+      systemT("common:system.dbConnectionError")
+    );
     throw error;
   }
 }
@@ -68,7 +71,10 @@ async function gracefulShutdown(signal, exitCode) {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
-  serverLogger.info({ signal }, systemT("common:system.shutdownSignal", { signal }));
+  serverLogger.info(
+    { signal },
+    systemT("common:system.shutdownSignal", { signal })
+  );
 
   // 1. Close the HTTP server to stop accepting new connections.
   if (server) {
@@ -79,7 +85,7 @@ async function gracefulShutdown(signal, exitCode) {
       process.exit(exitCode);
     });
 
-    // Force close server after 10 seconds if connections are still open
+    // Force close server after a timeout if connections are still open
     setTimeout(() => {
       serverLogger.warn(
         "Could not close connections in time, forcefully shutting down."
@@ -101,7 +107,10 @@ async function closeDbConnections() {
     await Promise.all([mongoose.connection.close(false), redisClient.quit()]);
     serverLogger.info(systemT("common:system.dbConnectionsClosed"));
   } catch (error) {
-    serverLogger.error({ err: error }, systemT("common:errors.shutdownDbError"));
+    serverLogger.error(
+      { err: error },
+      systemT("common:errors.shutdownDbError")
+    );
   }
 }
 
@@ -128,7 +137,7 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT", 0));
 // =================================================================
 (async () => {
   try {
-    // The redisClient connects automatically due to top-level await in its module.
+    // ioredis connects automatically, so no explicit connect call is needed here.
     await connectToDatabase();
     await startHttpServer();
   } catch (error) {
@@ -138,7 +147,10 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT", 0));
         systemT(error.message)
       );
     } else {
-      serverLogger.error({ err: error }, systemT("common:errors.serverStartFailed"));
+      serverLogger.error(
+        { err: error },
+        systemT("common:errors.serverStartFailed")
+      );
     }
     process.exit(1);
   }
