@@ -1,7 +1,5 @@
 // =================================================================
 // Load environment variables FIRST.
-// This ensures that all subsequent modules have access to them.
-// The EnvironmentError will be thrown here if config is invalid.
 // =================================================================
 import config from "./config/env.js";
 // =================================================================
