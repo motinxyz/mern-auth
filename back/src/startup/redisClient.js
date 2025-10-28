@@ -17,12 +17,12 @@ const client = new Redis(config.redisUrl, {
 });
 
 client.on("connect", () => {
-  redisLogger.info(systemT("common:system.redisConnected"));
+  redisLogger.info(systemT("system:redis.connectSuccess"));
 });
 
 client.on("error", (err) => {
   // Log the specific Redis client error with a translated message for high-level context.
-  redisLogger.error({ err }, systemT("common:system.redisClientError"));
+  redisLogger.error({ err }, systemT("system:redis.connectError"));
 
   // Throw a structured, non-translated error containing the original error.
   // This is a critical failure, and the process should exit to be restarted by PM2.

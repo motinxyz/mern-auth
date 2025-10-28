@@ -28,7 +28,7 @@ class EnvironmentError extends ApiError {
 
     super(
       HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
-      "common:errors.invalidEnvVars",
+      "system:process.errors.invalidEnvVars",
       formattedErrors
     );
     this.name = "EnvironmentError";

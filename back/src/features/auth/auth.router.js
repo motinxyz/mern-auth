@@ -1,8 +1,8 @@
 import express from "express";
 
-import { registerUser } from "./auth.controller.js";
+import { registerUser, verifyEmail } from "./auth.controller.js";
 import { validate } from "../../middleware/validate.js";
-import { registerSchema } from "./auth.schema.js";
+import { registerSchema, verifyEmailSchema } from "./auth.schema.js";
 import { authLimiter } from "../../middleware/rateLimiter.js";
 
 const authRouter = express.Router();
@@ -58,5 +58,42 @@ authRouter.post(
   validate(registerSchema),
   registerUser
 );
+
+/**
+ * @openapi
+ * /auth/verify-email:
+ *   get:
+ *     tags:
+ *       - Authentication
+ *     summary: Verify user's email address
+ *     description: Verifies a user's email address using a token sent to their email.
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The verification token.
+ *     responses:
+ *       200:
+ *         description: Email verified successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Not Found - The token is invalid or has expired.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+authRouter.get("/verify-email", validate(verifyEmailSchema), verifyEmail);
 
 export default authRouter;

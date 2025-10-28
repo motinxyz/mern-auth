@@ -19,10 +19,11 @@ describe('Auth Controller', () => {
         body: { name: 'Test User', email: 'test@example.com', password: 'password123' },
         t: (key) => key,
       };
-      res = {
-        // Mock the res.locals object
-        locals: {},
-      };
+      // Mock Express response object
+      res = {};
+      res.status = vi.fn().mockReturnValue(res);
+      res.json = vi.fn().mockReturnValue(res);
+
       next = vi.fn();
       vi.clearAllMocks();
     });
@@ -34,12 +35,12 @@ describe('Auth Controller', () => {
       await registerUser(req, res, next);
 
       expect(authService.registerNewUser).toHaveBeenCalledWith(req.body, req);
-      // Check that the controller correctly sets res.locals.data
-      expect(res.locals.data).toEqual(
+      expect(res.status).toHaveBeenCalledWith(HTTP_STATUS_CODES.CREATED);
+      expect(res.json).toHaveBeenCalledWith(
         new ApiResponse(HTTP_STATUS_CODES.CREATED, newUser, 'auth:register.success')
       );
-      // Ensure the controller passes control to the next middleware (the responseHandler)
-      expect(next).toHaveBeenCalled();
+      // Ensure next() is NOT called on success
+      expect(next).not.toHaveBeenCalled();
     });
 
     it('should call next with the error if registerNewUserService throws an error', async () => {
@@ -49,6 +50,9 @@ describe('Auth Controller', () => {
       await registerUser(req, res, next);
 
       expect(authService.registerNewUser).toHaveBeenCalledWith(req.body, req);
+      // Ensure res.status and res.json are NOT called on error
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalledWith(error);
     });
   });

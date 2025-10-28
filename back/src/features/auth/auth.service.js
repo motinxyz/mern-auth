@@ -1,17 +1,27 @@
 import User from "./user.model.js";
-import { ConflictError, TooManyRequestsError } from "../../errors/index.js";
+import {
+  ConflictError,
+  TooManyRequestsError,
+  NotFoundError,
+} from "../../errors/index.js";
+import crypto from "node:crypto";
 import redisClient from "../../startup/redisClient.js";
 import { createVerificationToken } from "../token/token.service.js";
 import { addEmailJob } from "../queue/queue.service.js";
 import { EMAIL_JOB_TYPES } from "../queue/queue.constants.js";
+import {
+  REDIS_KEY_PREFIXES as TOKEN_REDIS_PREFIXES,
+  HASHING_ALGORITHM,
+} from "../token/token.constants.js";
+import {
+  REDIS_KEY_PREFIXES as AUTH_REDIS_PREFIXES,
+  VERIFICATION_STATUS,
+  RATE_LIMIT_DURATIONS,
+} from "./auth.constants.js";
 import logger from "../../config/logger.js";
+import { t as systemT } from "../../config/system-logger.js";
 
 const authServiceLogger = logger.child({ module: "auth-service" });
-/**
- * @typedef {object} Request - Express Request object.
- * @property {function} t - The translation function.
- */
-
 /**
  * Registers a new user.
  *
@@ -20,30 +30,16 @@ const authServiceLogger = logger.child({ module: "auth-service" });
  * @param {string} userData.email - The user's email address.
  * @param {string} userData.password - The user's password.
  * @param {Request} req - The Express request object, used for translations.
- * @throws {ConflictError} If a user with the same email already exists.
- * @returns {Promise<mongoose.Document>} A promise that resolves to the created user document.
+ * @returns {Promise<object>} A promise that resolves to the created user object.
  */
 export const registerNewUser = async (userData, req) => {
   const { email } = userData;
 
   // This rate limit specifically prevents spamming the "send verification email" step.
-  const rateLimitKey = `verify-email-rate-limit:${email}`;
+  const rateLimitKey = `${AUTH_REDIS_PREFIXES.VERIFY_EMAIL_RATE_LIMIT}${email}`;
 
   if (await redisClient.get(rateLimitKey)) {
     throw new TooManyRequestsError();
-  }
-
-  // Check if a user with this email already exists
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    // Throw a standardized error with a translation key
-    throw new ConflictError("validation:emailInUse", [
-      {
-        field: "email",
-        message: "validation:emailInUse",
-        value: email,
-      },
-    ]);
   }
 
   // Create the user in the database
@@ -51,7 +47,7 @@ export const registerNewUser = async (userData, req) => {
 
   try {
     // Orchestrate the verification flow by calling the appropriate services.
-    authServiceLogger.info("Creating verification token and sending email.");
+    authServiceLogger.info(req.t("auth:logs.orchestratingVerification"));
     const verificationToken = await createVerificationToken(newUser);
 
     // Add a job to the queue to send the verification email asynchronously.
@@ -66,7 +62,12 @@ export const registerNewUser = async (userData, req) => {
     });
 
     // Set rate limit after successful token creation and job queuing.
-    await redisClient.set(rateLimitKey, "true", "EX", 180);
+    await redisClient.set(
+      rateLimitKey,
+      "true",
+      "EX",
+      RATE_LIMIT_DURATIONS.VERIFY_EMAIL
+    );
   } catch (emailOrTokenError) {
     // This is a "soft failure". We log the error for observability but do not fail the
     // entire registration process, as the user has been successfully created.
@@ -78,10 +79,64 @@ export const registerNewUser = async (userData, req) => {
     };
     authServiceLogger.error(
       errorContext,
-      req.t("common:errors.postRegistrationTaskFailed", { errorName: emailOrTokenError.name })
+      req.t("auth:register.errors.postRegistrationTaskFailed", {
+        errorName: emailOrTokenError.name,
+      })
     );
   }
 
   // Return a plain object representation of the user.
   return newUser.toJSON();
+};
+
+/**
+ * Verifies a user's email using a token.
+ *
+ * @param {string} token - The verification token from the URL.
+ * @throws {NotFoundError} If the token is invalid or expired.
+ * @returns {Promise<{status: (typeof VERIFICATION_STATUS)[keyof typeof VERIFICATION_STATUS]}>} An object containing the verification status.
+ */
+export const verifyUserEmail = async (token) => {
+  // 1. Hash the incoming token to match the one stored in Redis.
+  const hashedToken = crypto
+    .createHash(HASHING_ALGORITHM)
+    .update(token)
+    .digest("hex");
+  const verifyKey = `${TOKEN_REDIS_PREFIXES.VERIFY_EMAIL}${hashedToken}`;
+
+  // 2. Check if the token exists in Redis
+  const userDataJSON = await redisClient.get(verifyKey);
+  if (!userDataJSON) {
+    throw new NotFoundError("auth:verify.invalidToken");
+  }
+
+  const userData = JSON.parse(userDataJSON);
+
+  // 3. Find the user in the database.
+  const user = await User.findById(userData.userId);
+  if (!user) {
+    // This is an edge case, but good to handle.
+    // It means the token was valid, but the user was deleted.
+    throw new NotFoundError("auth:verify.userNotFound");
+  }
+
+  // 4. (Idempotency Check) If user is already verified, we can stop here.
+  if (user.isVerified) {
+    // Optionally, still delete the token so it can't be used again.
+    await redisClient.del(verifyKey);
+    return { status: VERIFICATION_STATUS.ALREADY_VERIFIED };
+  }
+
+  // 5. Update the user's verification status.
+  user.isVerified = true;
+  await user.save();
+
+  // 6. Delete the token from Redis so it cannot be used again.
+  await redisClient.del(verifyKey);
+
+  authServiceLogger.info(
+    { userId: user.id },
+    systemT("auth:logs.verifySuccess")
+  );
+  return { status: VERIFICATION_STATUS.VERIFIED };
 };

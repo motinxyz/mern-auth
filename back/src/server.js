@@ -2,13 +2,13 @@
 // Load environment variables FIRST.
 // =================================================================
 import config from "./config/env.js";
+import baseLogger, { t as systemT } from "./config/system-logger.js";
+import redisClient from "./startup/redisClient.js";
+import { EnvironmentError } from "./errors/index.js";
 // =================================================================
 
 import mongoose from "mongoose";
 import app from "./app.js";
-import baseLogger, { t as systemT } from "./config/system-logger.js";
-import redisClient from "./startup/redisClient.js";
-import { EnvironmentError } from "./errors/index.js";
 // import "./features/queue/email.worker.js"; // Import the worker to start it in the same process
 
 const serverLogger = baseLogger.child({ module: "server" });
@@ -25,11 +25,11 @@ async function connectToDatabase() {
     await mongoose.connect(config.dbURI, {
       dbName: "MernAuth",
     });
-    serverLogger.info(systemT("common:system.dbConnected"));
+    serverLogger.info(systemT("system:db.connectSuccess"));
   } catch (error) {
     serverLogger.error(
       { err: error },
-      systemT("common:system.dbConnectionError")
+      systemT("system:db.connectError")
     );
     throw error;
   }
@@ -45,7 +45,7 @@ function startHttpServer() {
     server = app.listen(PORT, () => {
       serverLogger.info(
         { port: PORT },
-        systemT("common:system.serverStarted", { port: PORT })
+        systemT("system:server.startSuccess", { port: PORT })
       );
       resolve(server);
     });
@@ -72,13 +72,13 @@ async function gracefulShutdown(signal, exitCode) {
 
   serverLogger.info(
     { signal },
-    systemT("common:system.shutdownSignal", { signal })
+    systemT("system:process.shutdownSignal", { signal })
   );
 
   // 1. Close the HTTP server to stop accepting new connections.
   if (server) {
     server.close(async () => {
-      serverLogger.info(systemT("common:system.httpServerClosed"));
+      serverLogger.info(systemT("system:server.closeSuccess"));
       // 2. Close database connections.
       await closeDbConnections();
       process.exit(exitCode);
@@ -86,9 +86,7 @@ async function gracefulShutdown(signal, exitCode) {
 
     // Force close server after a timeout if connections are still open
     setTimeout(() => {
-      serverLogger.warn(
-        "Could not close connections in time, forcefully shutting down."
-      );
+      serverLogger.warn(systemT("system:process.errors.shutdownTimeout"));
       process.exit(exitCode);
     });
   } else {
@@ -104,11 +102,11 @@ async function gracefulShutdown(signal, exitCode) {
 async function closeDbConnections() {
   try {
     await Promise.all([mongoose.connection.close(false), redisClient.quit()]);
-    serverLogger.info(systemT("common:system.dbConnectionsClosed"));
+    serverLogger.info(systemT("system:db.closeSuccess"));
   } catch (error) {
     serverLogger.error(
       { err: error },
-      systemT("common:errors.shutdownDbError")
+      systemT("system:db.closeError")
     );
   }
 }
@@ -117,13 +115,13 @@ async function closeDbConnections() {
 // Process-wide Error and Signal Handling
 // =================================================================
 process.on("uncaughtException", (error) => {
-  serverLogger.fatal(error, systemT("common:errors.uncaughtException"));
+  serverLogger.fatal(error, systemT("system:process.errors.uncaughtException"));
   // It's not safe to attempt a graceful shutdown here, so exit immediately.
   process.exit(1);
 });
 
 process.on("unhandledRejection", (error) => {
-  serverLogger.fatal(error, systemT("common:errors.unhandledRejection"));
+  serverLogger.fatal(error, systemT("system:process.errors.unhandledRejection"));
   // For unhandled rejections, a graceful shutdown is appropriate.
   gracefulShutdown("unhandledRejection", 1);
 });
@@ -148,7 +146,7 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT", 0));
     } else {
       serverLogger.error(
         { err: error },
-        systemT("common:errors.serverStartFailed")
+        systemT("system:server.startError")
       );
     }
     process.exit(1);

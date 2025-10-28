@@ -1,0 +1,26 @@
+{
+  "db": {
+    "connectSuccess": "Successfully connected to the primary database.",
+    "connectError": "Failed to connect to the primary database.",
+    "closeSuccess": "Database and cache connections closed.",
+    "closeError": "Error during shutdown while closing database connections."
+  },
+  "redis": {
+    "connectSuccess": "Successfully connected to Redis.",
+    "connectError": "Redis client error."
+  },
+  "server": {
+    "startSuccess": "Server is listening on port {{port}}.",
+    "startError": "Server failed to start.",
+    "closeSuccess": "HTTP server closed."
+  },
+  "process": {
+    "shutdownSignal": "Received {{signal}}. Shutting down gracefully.",
+    "errors": {
+      "uncaughtException": "Uncaught Exception. The application will now exit.",
+      "unhandledRejection": "Unhandled Rejection. The application will now exit.",
+      "unexpected": "An unexpected internal server error occurred.",
+      "tooManyRequests": "Too many requests. Please try again later."
+    }
+  }
+}

@@ -5,7 +5,7 @@ class ValidationError extends ApiError {
   constructor(errors = []) {
     super(
       HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT,
-      "common:errors.validation",
+      "validation:default",
       errors
     );
   }

@@ -4,6 +4,7 @@ import logger from "../../config/logger.js";
 import crypto from "node:crypto";
 import { getTranslator } from "../../config/i18n.js";
 import { TokenCreationError } from "../../errors/index.js";
+import { REDIS_KEY_PREFIXES, HASHING_ALGORITHM } from "./token.constants.js";
 
 const tokenServiceLogger = logger.child({ module: "token-service" });
 
@@ -19,9 +20,14 @@ export const createVerificationToken = async (user) => {
   try {
     // Generate a secure, random token.
     const verificationToken = crypto.randomBytes(32).toString("hex");
+    
+    // Create a hash of the token to be stored in Redis.
+    const hashedToken = crypto
+      .createHash(HASHING_ALGORITHM)
+      .update(verificationToken)
+      .digest("hex");
 
-    // Define the Redis key for the token.
-    const verifyKey = `verify:${verificationToken}`;
+    const verifyKey = `${REDIS_KEY_PREFIXES.VERIFY_EMAIL}${hashedToken}`;
 
     // Prepare the data to be stored.
     const userDataToStore = JSON.stringify({
@@ -31,7 +37,7 @@ export const createVerificationToken = async (user) => {
 
     tokenServiceLogger.info(
       { email: user.email, expiresIn: config.verificationTokenExpiresIn },
-      systemT("common:token.creating")
+      systemT("token:creating")
     );
 
     // Store the token in Redis with expiration
@@ -46,16 +52,16 @@ export const createVerificationToken = async (user) => {
     const ttl = await redisClient.ttl(verifyKey);
     tokenServiceLogger.debug(
       { key: verifyKey, ttl, redisResponse: result },
-      systemT("common:token.stored")
+      systemT("token:stored")
     );
 
     return verificationToken;
   } catch (error) {
     tokenServiceLogger.error(
       { err: error },
-      systemT("common:token.creationFailed")
+      systemT("token:creationFailed")
     );
     // Wrap the original error in our custom error class for better context.
-    throw new TokenCreationError(systemT("common:token.creationFailed"), error);
+    throw new TokenCreationError(systemT("token:creationFailed"), error);
   }
 };

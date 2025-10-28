@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from "vitest";
 import request from "supertest";
 import app from "@/app.js";
+import mongoose from "mongoose";
+import { VALIDATION_RULES } from "@/constants/validation.constants.js";
 import User from "@/features/auth/user.model.js";
 import { HTTP_STATUS_CODES } from "@/constants/httpStatusCodes.js";
 
@@ -32,7 +34,6 @@ describe("Auth Integration Tests", () => {
 
     it("should register a new user and return 201 CREATED", async () => {
       // Mock the database interaction for this test
-      vi.spyOn(User, "findOne").mockResolvedValue(null);
       vi.spyOn(User, "create").mockImplementation((user) =>
         Promise.resolve({
           ...user,
@@ -48,7 +49,9 @@ describe("Auth Integration Tests", () => {
         .expect(HTTP_STATUS_CODES.CREATED);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.message).toBe("User registered successfully.");
+      expect(response.body.message).toBe(
+        "User registered successfully. Please check your email to verify your account."
+      );
       expect(response.body.data).toHaveProperty("id");
       expect(response.body.data.name).toBe(validUserData.name);
       expect(response.body.data.email).toBe(validUserData.email);
@@ -56,7 +59,14 @@ describe("Auth Integration Tests", () => {
     });
 
     it("should return 409 CONFLICT if email is already in use", async () => {
-      vi.spyOn(User, "findOne").mockResolvedValue(validUserData);
+      // Simulate a MongoDB duplicate key error (code 11000)
+      const mongoError = new mongoose.Error.MongoServerError({
+        code: 11000,
+        keyPattern: { email: 1 },
+        keyValue: { email: validUserData.email },
+      });
+      mongoError.name = "MongoServerError";
+      vi.spyOn(User, "create").mockRejectedValue(mongoError);
 
       const response = await request(app)
         .post("/api/v1/auth/register")
@@ -80,7 +90,9 @@ describe("Auth Integration Tests", () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe("Invalid data format. See details below...");
-      expect(response.body.errors[0].message).toBe("Password must be at least 4 characters long.");
+      expect(response.body.errors[0].message).toBe(
+        `Password must be at least ${VALIDATION_RULES.PASSWORD.MIN_LENGTH} characters long.`
+      );
       expect(response.body.errors[0].field).toBe("password");
     });
 
@@ -94,6 +106,7 @@ describe("Auth Integration Tests", () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.errors[0].field).toBe("name");
+      expect(response.body.errors[0].message).toBe("Name is required.");
     });
 
     it("should return 422 UNPROCESSABLE_CONTENT if email is missing", async () => {
@@ -106,6 +119,7 @@ describe("Auth Integration Tests", () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.errors[0].field).toBe("email");
+      expect(response.body.errors[0].message).toBe("Email is required.");
     });
 
     it("should return 422 UNPROCESSABLE_CONTENT if password is missing", async () => {
@@ -118,6 +132,7 @@ describe("Auth Integration Tests", () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.errors[0].field).toBe("password");
+      expect(response.body.errors[0].message).toBe("Password is required.");
     });
 
     it("should return 422 UNPROCESSABLE_CONTENT if email is invalid", async () => {
@@ -130,6 +145,7 @@ describe("Auth Integration Tests", () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.errors[0].field).toBe("email");
+      expect(response.body.errors[0].message).toBe("Please enter a valid email address.");
     });
   });
 });

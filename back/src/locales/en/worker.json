@@ -1,9 +1,15 @@
 {
-  "processingJob": "Processing job",
-  "jobCompleted": "Job completed",
-  "jobFailed": "Job failed",
-  "unknownJobType": "Unknown job type: {{type}}",
-  "emailSentSuccess": "Verification email sent",
-  "startingWorker": "Starting email worker process...",
-  "workerReady": "Email worker is connected to Redis and ready to process jobs."
+  "logs": {
+    "starting": "Starting email worker process...",
+    "ready": "Email worker is ready and listening for jobs.",
+    "processing": "Processing job.",
+    "dispatchingEmail": "Dispatching verification email",
+    "emailSentSuccess": "Verification email sent successfully.",
+    "completed": "Job completed.",
+    "failed": "Job failed"
+  },
+  "errors": {
+    "jobDataMissingFields": "Job data is missing required fields.",
+    "unknownJobType": "Unknown job type received: {{type}}."
+  }
 }

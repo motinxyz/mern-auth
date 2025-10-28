@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 // --- Configuration ---
 const defaultLocale = "en";
-const defaultNamespace = "common"; // A default namespace for keys without one.
+const defaultNamespace = "system"; // A default namespace for keys without one.
 
 // --- Path Setup ---
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -75,8 +75,7 @@ const loadLocaleData = async (locale) => {
       const namespace = path.basename(file, ".json");
       const filePath = path.join(localePath, file);
       const fileContent = fs.readFileSync(filePath, "utf8");
-      const data = JSON.parse(fileContent);
-      translations[namespace] = data.default || data;
+      translations[namespace] = JSON.parse(fileContent);
     }
   }
 

@@ -1,15 +1,13 @@
 import { Queue } from "bullmq";
-import logger from "../../config/logger.js";
+import baseLogger from "../../config/logger.js";
 import redisClient from "../../startup/redisClient.js";
-
-import { QUEUE_NAMES } from "./queue.constants.js";
 import { getTranslator } from "../../config/i18n.js";
-import { QueueError } from "../../errors/index.js";
-import { JobCreationError } from "../../errors/index.js";
-const queueLogger = logger.child({ module: "queue-service" });
+import { QueueError, JobCreationError } from "../../errors/index.js";
+import { QUEUE_NAMES } from "./queue.constants.js";
 
 // Initialize a system translator for queue-level logs and messages.
 const systemT = await getTranslator("en");
+const queueLogger = baseLogger.child({ module: "queue-service" }); // This was correct
 
 const emailQueue = new Queue(QUEUE_NAMES.EMAIL, {
   connection: redisClient,
@@ -40,11 +38,11 @@ export const addEmailJob = async (type, data) => {
   } catch (error) {
     queueLogger.error(
       { err: error, jobData: data },
-      systemT("common:errors.jobCreationFailed")
+      systemT("queue:errors.jobCreationFailed")
     );
     // Wrap the original error in our custom error class for better context.
     throw new JobCreationError(
-      systemT("common:errors.jobCreationFailed"),
+      systemT("queue:errors.jobCreationFailed"),
       error
     );
   }
