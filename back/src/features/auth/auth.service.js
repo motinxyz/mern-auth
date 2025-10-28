@@ -1,9 +1,5 @@
 import User from "./user.model.js";
-import {
-  ConflictError,
-  TooManyRequestsError,
-  NotFoundError,
-} from "../../errors/index.js";
+import { TooManyRequestsError, NotFoundError } from "../../errors/index.js";
 import crypto from "node:crypto";
 import redisClient from "../../startup/redisClient.js";
 import { createVerificationToken } from "../token/token.service.js";
