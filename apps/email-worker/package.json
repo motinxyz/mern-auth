@@ -1,0 +1,14 @@
+{
+  "name": "@auth/email-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/worker.js"
+  },
+  "dependencies": {
+    "@auth/core": "workspace:*",
+    "bullmq": "^5.62.0",
+    "nodemailer": "^7.0.10"
+  }
+}
