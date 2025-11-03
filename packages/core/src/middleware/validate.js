@@ -1,6 +1,6 @@
 import { ZodError } from "zod";
-import { ValidationError } from "../errors/index.js";
-import logger from "../config/logger.js";
+import { logger } from "@auth/config";
+import { ValidationError } from "@auth/utils";
 
 /**
  * Safely gets a nested property from an object.

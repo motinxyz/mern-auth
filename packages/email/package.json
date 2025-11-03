@@ -1,0 +1,11 @@
+{
+  "name": "@auth/email",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "dependencies": {
+    "@auth/config": "workspace:*",
+    "@auth/utils": "workspace:*",
+    "nodemailer": "^6.9.9"
+  }
+}

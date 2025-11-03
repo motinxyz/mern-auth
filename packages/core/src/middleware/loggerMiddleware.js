@@ -1,7 +1,6 @@
 import pinoHttp, { stdSerializers } from "pino-http";
 import { v4 as uuidv4 } from "uuid";
-import config from "../config/env.js";
-import logger from "../config/logger.js";
+import { config, logger } from "@auth/config";
 
 // Create a child logger specifically for HTTP requests.
 // This ensures the 'module' property is always present and appears first.

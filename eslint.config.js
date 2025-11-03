@@ -22,7 +22,15 @@ export default [
     plugins: { import: importPlugin },
     rules: {
       "import/no-unresolved": "error",
-      "import/no-extraneous-dependencies": "error",
+      "import/no-extraneous-dependencies": [
+        "error",
+        {
+          // Allow devDependencies to be imported in test files
+          devDependencies: ["**/*.test.js", "**/*.spec.js", "**/tests/**"],
+          // Correctly resolve dependencies in a pnpm monorepo
+          packageDir: ["./", ...getWorkspacePackagePaths()],
+        },
+      ],
     },
   },
 ];

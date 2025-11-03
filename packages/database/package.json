@@ -1,0 +1,12 @@
+{
+  "name": "@auth/database",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "dependencies": {
+    "mongoose": "^8.19.2",
+    "@auth/config": "workspace:*",
+    "@auth/utils": "workspace:*",
+    "bcrypt": "^6.0.0"
+  }
+}

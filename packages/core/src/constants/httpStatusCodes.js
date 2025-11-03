@@ -1,17 +1,14 @@
-export const HTTP_STATUS_CODES = {
-  // Success
+const HTTP_STATUS_CODES = Object.freeze({
   OK: 200,
   CREATED: 201,
-
-  // Client Errors
+  NO_CONTENT: 204,
   BAD_REQUEST: 400,
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   CONFLICT: 409,
-  UNPROCESSABLE_CONTENT: 422,
   TOO_MANY_REQUESTS: 429,
-
-  // Server Errors
   INTERNAL_SERVER_ERROR: 500,
-};
+});
+
+export default HTTP_STATUS_CODES;

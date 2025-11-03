@@ -1,7 +1,5 @@
-import logger from "../config/logger.js";
-import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
-import ApiError from "../core/api/ApiError.js";
-import { ValidationError } from "../errors/index.js";
+import { logger } from "@auth/config";
+import { HTTP_STATUS_CODES, ApiError, ValidationError } from "@auth/utils";
 
 const errorHandlerLogger = logger.child({ module: "errorHandler" });
 /**
@@ -93,11 +91,13 @@ export const errorHandler = (err, req, res, next) => {
   const response = {
     success: false,
     message: req.t(apiError.message), // Translate the main message
-    errors: apiError.errors.map((e) => ({
-      field: e.field,
-      message: req.t(e.message, e.context), // Translate detailed error messages
-      ...(e.context?.value !== undefined && { value: e.context.value }),
-    })),
+    errors: Array.isArray(apiError.errors) 
+      ? apiError.errors.map((e) => ({
+          field: e.field,
+          message: req.t(e.message, e.context), // Translate detailed error messages
+          ...(e.context?.value !== undefined && { value: e.context.value }),
+        }))
+      : [], // Return empty array if errors is not defined or not an array
   };
 
   if (!res.headersSent) {

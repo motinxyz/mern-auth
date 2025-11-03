@@ -1,4 +1,4 @@
-import config from "../../config/env.js";
+import { config, logger, t as systemT } from "@auth/config";
 import redisClient from "../../startup/redisClient.js";
 import logger from "../../config/logger.js";
 import crypto from "node:crypto";

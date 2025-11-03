@@ -1,5 +1,5 @@
 import rateLimit from "express-rate-limit";
-import config from "../config/env.js";
+import { config } from "@auth/config";
 // import logger from "../config/logger.js";
 
 // Basic rate limiting middleware for all API requests
