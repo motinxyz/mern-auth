@@ -2,11 +2,12 @@ import { Worker, Queue } from "bullmq";
 import { redisConnection as connection, QUEUE_NAMES, EMAIL_JOB_TYPES } from "@auth/queues";
 import { logger, i18nInstance, t as systemT } from "@auth/config";
 import { UnknownJobTypeError, InvalidJobDataError, EmailDispatchError } from "@auth/utils";
-import { sendEmail, sendVerificationEmail } from "@auth/email";
+import { sendVerificationEmail } from "@auth/email";
 
 const failedJobsQueue = new Queue(QUEUE_NAMES.EMAIL_DEAD_LETTER, { connection });
 
 const processor = async (job) => {
+  workerLogger.info("Processor function started for job.");
   const { type, data } = job.data;
   workerLogger.info(
     { job: { id: job.id, type } },
@@ -73,6 +74,10 @@ worker.on("completed", (job, result) => {
     { job: { id: job.id }, result },
     systemT("worker:logs.completed")
   );
+});
+
+worker.on("ready", () => {
+  workerLogger.info("BullMQ worker is fully ready to process jobs.");
 });
 
 export default worker;

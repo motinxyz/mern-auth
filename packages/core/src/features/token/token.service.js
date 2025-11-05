@@ -1,10 +1,7 @@
 import { config, logger, t as systemT } from "@auth/config";
-import redisClient from "../../startup/redisClient.js";
-import logger from "../../config/logger.js";
+import { redisConnection } from "@auth/queues";
 import crypto from "node:crypto";
-import { t as systemT } from "../../config/system-logger.js";
-import { TokenCreationError } from "../../errors/index.js";
-import { TOKEN_REDIS_PREFIXES, HASHING_ALGORITHM } from "./token.constants.js";
+import { TokenCreationError, HASHING_ALGORITHM, TOKEN_REDIS_PREFIXES } from "@auth/utils";
 
 const tokenServiceLogger = logger.child({ module: "token-service" });
 
@@ -40,7 +37,7 @@ export const createVerificationToken = async (user) => {
     );
 
     // Store the token in Redis with expiration
-    const result = await redisClient.set(
+    const result = await redisConnection.set(
       verifyKey,
       userDataToStore,
       "EX",
@@ -48,7 +45,7 @@ export const createVerificationToken = async (user) => {
     );
 
     // Verify the token was stored correctly
-    const ttl = await redisClient.ttl(verifyKey);
+    const ttl = await redisConnection.ttl(verifyKey);
     tokenServiceLogger.debug(
       { key: verifyKey, ttl, redisResponse: result },
       systemT("token:stored")

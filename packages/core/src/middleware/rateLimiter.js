@@ -1,5 +1,5 @@
 import rateLimit from "express-rate-limit";
-import { config } from "@auth/config";
+import { config, t } from "@auth/config";
 // import logger from "../config/logger.js";
 
 // Basic rate limiting middleware for all API requests
@@ -8,7 +8,10 @@ export const apiLimiter = rateLimit({
   max: 100, // Limit each IP to 100 requests per windowMs
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  message: "Too many requests from this IP, please try again after 15 minutes",
+  message: (req, res) => {
+    const retryAfterMinutes = Math.ceil(res.getHeader("Retry-After") / 60);
+    return t("rateLimit:apiTooManyRequests", { retryAfterMinutes });
+  },
 });
 
 // Stricter rate limiting for authentication routes
@@ -17,8 +20,10 @@ export const authLimiter = rateLimit({
   max: 10, 
   standardHeaders: true,
   legacyHeaders: false,
-  message:
-    "Too many authentication attempts from this IP, please try again after 15 minutes",
+  message: (req, res) => {
+    const retryAfterMinutes = Math.ceil(res.getHeader("Retry-After") / 60);
+    return t("rateLimit:authTooManyAttempts", { retryAfterMinutes });
+  },
   // `skip` is the recommended way to disable rate limiting.
   skip: (req, res) => {
     const isDev = config.isDevelopment;

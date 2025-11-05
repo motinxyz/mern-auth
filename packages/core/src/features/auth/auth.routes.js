@@ -1,10 +1,14 @@
-import express from "express";
-
+import { Router } from "express";
 import { registerUser, verifyEmail } from "./auth.controller.js";
-import { registerSchema, verifyEmailSchema } from "./auth.schema.js";
-import { validate, authLimiter } from "@auth/core";
+import { validate } from "../../middleware/validate.js";
+import {
+  registerSchema,
+  verifyEmailSchema,
+} from "./auth.validation.js";
+import { authLimiter } from "../../middleware/rateLimiter.js";
 
-const authRouter = express.Router();
+const router = Router();
+
 /**
  * @openapi
  * /auth/register:
@@ -39,7 +43,7 @@ const authRouter = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *       429:
- *         description: Too many requests from this IP, please try again after 15 minutes.
+ *         description: Too many requests from this IP
  *         content:
  *           application/json:
  *             schema:
@@ -51,12 +55,7 @@ const authRouter = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-authRouter.post(
-  "/register",
-  authLimiter,
-  validate(registerSchema),
-  registerUser
-);
+router.post("/register", authLimiter, validate(registerSchema), registerUser);
 
 /**
  * @openapi
@@ -93,6 +92,6 @@ authRouter.post(
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-authRouter.get("/verify-email", validate(verifyEmailSchema), verifyEmail);
+router.get("/verify-email", validate(verifyEmailSchema), verifyEmail);
 
-export default authRouter;
+export default router;

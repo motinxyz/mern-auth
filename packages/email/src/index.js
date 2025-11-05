@@ -60,12 +60,15 @@ export const sendEmail = async ({ to, subject, html, text }) => {
   try {
     const info = await transport.sendMail(mailOptions);
     emailUtilLogger.info(
-      { messageId: info.messageId, accepted: info.accepted },
+      { messageId: info.messageId, accepted: info.accepted, response: info.response },
       systemT("email:logs.sendSuccess")
     );
     return info;
   } catch (error) {
-    emailUtilLogger.error({ err: error }, systemT("email:errors.dispatchFailed"));
+    emailUtilLogger.error(
+      { err: error, mailOptions: mailOptions },
+      systemT("email:errors.dispatchFailed")
+    );
     throw new EmailDispatchError(systemT("email:errors.dispatchFailed"), error);
   }
 };

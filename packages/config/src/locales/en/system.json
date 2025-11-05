@@ -32,5 +32,9 @@
   },
   "health": {
     "healthCheck": "Health check successful."
+  },
+  "rateLimit": {
+    "apiTooManyRequests": "Too many requests from this IP, please try again after {{retryAfterMinutes}} minutes.",
+    "authTooManyAttempts": "Too many authentication attempts from this IP, please try again after {{retryAfterMinutes}} minutes."
   }
 }

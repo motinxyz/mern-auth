@@ -10,7 +10,7 @@ import {
   TOKEN_REDIS_PREFIXES,
   AUTH_REDIS_PREFIXES,
 } from "@auth/utils";
-import { createVerificationToken } from "../../services/token.service.js";
+import { createVerificationToken } from "../token/token.service.js";
 import { addEmailJob, EMAIL_JOB_TYPES, redisConnection } from "@auth/queues";
 
 const authServiceLogger = logger.child({ module: "auth-service" });

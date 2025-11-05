@@ -6,6 +6,6 @@
   "dependencies": {
     "@auth/config": "workspace:*",
     "@auth/utils": "workspace:*",
-    "nodemailer": "^6.9.9"
+    "nodemailer": "^7.0.10"
   }
 }

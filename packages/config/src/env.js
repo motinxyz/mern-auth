@@ -18,6 +18,7 @@ const __dirname = path.dirname(__filename);
 function findMonorepoRoot(startDir) {
   let dir = startDir;
   while (dir !== path.parse(dir).root) {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     if (fs.existsSync(path.join(dir, "pnpm-workspace.yaml"))) {
       return dir;
     }
@@ -104,7 +105,10 @@ const envSchema = z.object({
   LOG_LEVEL: z.string().default(DEFAULTS.LOG_LEVEL),
 });
 
-if (process.env.NODE_ENV !== "test") {
+if (process.env.NODE_ENV === "test") {
+  const root = findMonorepoRoot(__dirname);
+  dotenv.config({ path: path.resolve(root, ".env.test") });
+} else {
   const root = findMonorepoRoot(__dirname);
   dotenv.config({ path: path.resolve(root, ".env") });
 }
@@ -152,3 +156,4 @@ export const TOKEN_REDIS_PREFIXES = finalConfig.TOKEN_REDIS_PREFIXES;
 export const AUTH_REDIS_PREFIXES = finalConfig.AUTH_REDIS_PREFIXES;
 
 export default finalConfig;
+

@@ -1,9 +1,20 @@
-// Core
+// Auth Feature
+export { default as authRouter } from "./features/auth/auth.routes.js";
+export {
+  registerNewUser,
+  verifyUserEmail,
+} from "./features/auth/auth.service.js";
 
 // Middleware
 export { errorHandler } from "./middleware/errorHandler.js";
 export { authLimiter } from "./middleware/rateLimiter.js";
 export { validate } from "./middleware/validate.js";
 
-// Services
-export { createVerificationToken } from "./services/token.service.js";
+// Token Service
+export { createVerificationToken } from "./features/token/token.service.js";
+
+// Setup functions
+export { default as setupMiddleware } from "./startup/middleware.js";
+export { default as setupRoutes } from "./startup/routes.js";
+
+export { default as HTTP_STATUS_CODES } from "./constants/httpStatusCodes.js";

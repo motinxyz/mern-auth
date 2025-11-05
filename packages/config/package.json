@@ -11,6 +11,9 @@
     "./system-logger": "./src/system-logger.js"
   },
   "type": "module",
+  "scripts": {
+    "lint": "eslint ."
+  },
   "dependencies": {
     "dotenv": "^17.2.3",
     "i18next": "^25.6.0",

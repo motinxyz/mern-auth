@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-object-injection */
 import ApiError from "../ApiError.js";
 import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
 
@@ -20,7 +21,7 @@ class EnvironmentError extends ApiError {
           value: process.env[field], // Include the invalid value
           context: parsed.params || {}, // The interpolation params
         };
-      } catch (e) {
+      } catch (_) {
         // Fallback for non-JSON messages
         return { field, message: issue.message, value: process.env[field] };
       }
@@ -36,3 +37,4 @@ class EnvironmentError extends ApiError {
 }
 
 export default EnvironmentError;
+

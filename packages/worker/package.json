@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/index.js"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@auth/config": "workspace:*",
@@ -13,6 +13,6 @@
     "@auth/email": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
-    "bullmq": "^5.10.2"
+    "bullmq": "^5.63.0"
   }
 }

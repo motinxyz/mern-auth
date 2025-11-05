@@ -1,22 +1,9 @@
 import {
   registerNewUser as registerNewUserService,
   verifyUserEmail as verifyUserEmailService,
-} from "@auth/core/features/auth/auth.service.js";
-import { HTTP_STATUS_CODES, ApiResponse, VERIFICATION_STATUS } from "@auth/utils";
-
-/**
- * @typedef {object} Request - Express Request object.
- * @property {object} body - The request body.
- * @property {function} t - The translation function.
- */
-
-/**
- * @typedef {object} Response - Express Response object.
- */
-
-/**
- * @typedef {function} NextFunction - Express Next function.
- */
+} from "./auth.service.js";
+import { HTTP_STATUS_CODES } from "@auth/core";
+import { ApiResponse } from "@auth/utils";
 
 /**
  * Handles new user registration.
@@ -29,8 +16,8 @@ import { HTTP_STATUS_CODES, ApiResponse, VERIFICATION_STATUS } from "@auth/utils
 export const registerUser = async (req, res, next) => {
   try {
     const user = await registerNewUserService(req.body, req);
-    // Directly send the successful response from the controller.
-    return res
+
+    res
       .status(HTTP_STATUS_CODES.CREATED)
       .json(
         new ApiResponse(
@@ -40,7 +27,6 @@ export const registerUser = async (req, res, next) => {
         )
       );
   } catch (error) {
-    // Pass all errors to the global error handler
     next(error);
   }
 };
@@ -56,17 +42,13 @@ export const registerUser = async (req, res, next) => {
 export const verifyEmail = async (req, res, next) => {
   try {
     const { token } = req.query;
- 
-    const result = await verifyUserEmailService(token, req.t);
- 
-    const messageKey =
-      result.status === VERIFICATION_STATUS.ALREADY_VERIFIED
-        ? "system:auth.verify.alreadyVerified"
-        : "system:auth.verify.success";
+    const { status } = await verifyUserEmailService(token);
+    const message =
+      status === "ALREADY_VERIFIED"
+        ? "auth:verify.alreadyVerified"
+        : "auth:verify.success";
 
-    return res
-      .status(HTTP_STATUS_CODES.OK)
-      .json(new ApiResponse(HTTP_STATUS_CODES.OK, null, req.t(messageKey)));
+    res.json(new ApiResponse(HTTP_STATUS_CODES.OK, { status }, req.t(message)));
   } catch (error) {
     next(error);
   }

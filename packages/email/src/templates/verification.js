@@ -16,9 +16,9 @@ export const sendVerificationEmail = async (user, token, t) => {
     systemT("email:logs.preparingVerification")
   );
 
-  const verificationUrl = `${config.clientUrl}/verify-email?token=${token}`;
-  const expiryMinutes = 60;
-  
+  const verificationUrl = `${config.clientUrl}${config.port}/api/v1/verify-email?token=${token}`;
+  const expiryMinutes = config.verificationTokenExpiresIn / 60;
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -57,7 +57,7 @@ export const sendVerificationEmail = async (user, token, t) => {
   const text = t("email:verification.text", {
     name: user.name,
     verificationUrl,
-    count: expiryMinutes
+    count: expiryMinutes,
   });
 
   verificationLogger.debug(
