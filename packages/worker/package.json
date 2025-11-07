@@ -1,0 +1,19 @@
+{
+  "name": "@auth/worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@auth/config": "workspace:*",
+    "@auth/core": "workspace:*",
+    "@auth/database": "workspace:*",
+    "@auth/email": "workspace:*",
+    "@auth/queues": "workspace:*",
+    "@auth/utils": "workspace:*",
+    "bullmq": "^5.63.0"
+  }
+}

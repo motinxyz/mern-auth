@@ -1,0 +1,18 @@
+{
+  "verification": {
+    "subject": "Verify Your Email Address for Mern Auth",
+    "text": "Welcome to Mern Auth!\n\nHello {{name}},\n\nThank you for registering. Please use the following link to verify your email address.\n\n{{verificationUrl}}\n\nThis link will expire in {{count}} minutes."
+  },
+  "logs": {
+    "smtpConfigured": "SMTP transport configured",
+    "smtpConnectionVerified": "SMTP connection verified successfully",
+    "attemptingSend": "Attempting to send email",
+    "sendSuccess": "Email sent successfully",
+    "preparingVerification": "Preparing verification email",
+    "sendingVerification": "Sending verification email"
+  },
+  "errors": {
+    "smtpConnectionFailed": "Failed to verify SMTP connection",
+    "dispatchFailed": "Failed to dispatch email"
+  }
+}

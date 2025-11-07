@@ -1,0 +1,15 @@
+{
+  "name": "@auth/database",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@auth/config": "workspace:*",
+    "@auth/utils": "workspace:*",
+    "bcrypt": "^6.0.0",
+    "mongoose": "^8.19.3"
+  }
+}

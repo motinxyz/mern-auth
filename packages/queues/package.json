@@ -1,0 +1,17 @@
+{
+  "name": "@auth/queues",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./producers": "./src/producers/index.js"
+  },
+  "dependencies": {
+    "@auth/config": "workspace:*",
+    "@auth/utils": "workspace:*",
+    "bullmq": "^5.63.0",
+    "ioredis": "^5.8.2",
+    "nodemailer": "^7.0.10"
+  }
+}
