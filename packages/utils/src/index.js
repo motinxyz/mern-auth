@@ -5,3 +5,4 @@ export * from "./constants/httpStatusCodes.js";
 export * from "./constants/validation.constants.js";
 export * from "./constants/auth.constants.js";
 export * from "./constants/token.constants.js";
+export * from "./constants/email.constants.js";

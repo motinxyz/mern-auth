@@ -2,7 +2,7 @@ import {
   registerNewUser as registerNewUserService,
   verifyUserEmail as verifyUserEmailService,
 } from "./auth.service.js";
-import { HTTP_STATUS_CODES } from "@auth/core";
+import { HTTP_STATUS_CODES } from "@auth/utils";
 import { ApiResponse } from "@auth/utils";
 
 /**

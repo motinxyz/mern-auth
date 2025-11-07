@@ -1,8 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet'; // Good practice for security
-import morgan from 'morgan'; // For request logging
-import { config, logger } from '@auth/config';
+import { httpLogger } from '@auth/core'; // Import httpLogger from @auth/core
 
 const setupMiddleware = (app) => {
   // Set security HTTP headers
@@ -17,12 +16,8 @@ const setupMiddleware = (app) => {
   // Parse urlencoded request body
   app.use(express.urlencoded({ extended: true }));
 
-  // HTTP request logger
-  if (config.env === 'development') {
-    app.use(morgan('dev'));
-  } else {
-    app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
-  }
+  // HTTP request logger using the centralized httpLogger from @auth/core
+  app.use(httpLogger);
 };
 
 export default setupMiddleware;

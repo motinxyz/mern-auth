@@ -1,8 +1,10 @@
-
 import { Queue } from "bullmq";
-import connection from "./connection.js";
-import logger from "../../config/logger.js";
+import { redisConnection as connection } from "@auth/config/redis";
+import { logger as baseLogger, t as systemT } from "@auth/config";
 import { QUEUE_NAMES } from "./queue.constants.js";
+import { QueueError } from "@auth/utils";
+
+const queueLogger = baseLogger.child({ module: "queue-service" });
 
 const emailQueue = new Queue(QUEUE_NAMES.EMAIL, {
   connection,
@@ -16,7 +18,8 @@ const emailQueue = new Queue(QUEUE_NAMES.EMAIL, {
 });
 
 emailQueue.on("error", (err) => {
-  logger.error({ err }, "Email queue error");
+  queueLogger.error({ err }, systemT("queue:queueError"));
+  throw new QueueError(err);
 });
 
 export default emailQueue;

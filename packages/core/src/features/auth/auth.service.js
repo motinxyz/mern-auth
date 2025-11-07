@@ -1,17 +1,18 @@
 import { User, default as mongoose } from "@auth/database";
 import crypto from "node:crypto";
 import { logger, t } from "@auth/config";
+import { AUTH_REDIS_PREFIXES, TOKEN_REDIS_PREFIXES } from "@auth/config";
 import {
   TooManyRequestsError,
   NotFoundError,
   VERIFICATION_STATUS,
   RATE_LIMIT_DURATIONS,
   HASHING_ALGORITHM,
-  TOKEN_REDIS_PREFIXES,
-  AUTH_REDIS_PREFIXES,
 } from "@auth/utils";
 import { createVerificationToken } from "../token/token.service.js";
-import { addEmailJob, EMAIL_JOB_TYPES, redisConnection } from "@auth/queues";
+import { addEmailJob } from "@auth/queues/producers";
+import { redisConnection } from "@auth/queues";
+import { EMAIL_JOB_TYPES } from "@auth/utils";
 
 const authServiceLogger = logger.child({ module: "auth-service" });
 

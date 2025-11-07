@@ -10,10 +10,7 @@ export const registerSchema = z.object({
     name: z
       .string({ required_error: "validation:name.required" })
       .min(VALIDATION_RULES.NAME.MIN_LENGTH, {
-        message: JSON.stringify({
-          message: "validation:name.length",
-          params: { count: VALIDATION_RULES.NAME.MIN_LENGTH },
-        }),
+        message: "validation:name.length",
       }),
     email: z
       .string({ required_error: "validation:email.required" })
@@ -21,12 +18,7 @@ export const registerSchema = z.object({
     password: z
       .string({ required_error: "validation:password.required" })
       .min(VALIDATION_RULES.PASSWORD.MIN_LENGTH, {
-        message: JSON.stringify({
-          message: "validation:password.length",
-          params: {
-            count: VALIDATION_RULES.PASSWORD.MIN_LENGTH,
-          },
-        }),
+        message: "validation:password.length",
       }),
   }),
 });

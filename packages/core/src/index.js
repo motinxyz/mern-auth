@@ -7,6 +7,7 @@ export {
 
 // Middleware
 export { errorHandler } from "./middleware/errorHandler.js";
+export { httpLogger } from "./middleware/loggerMiddleware.js";
 export { authLimiter } from "./middleware/rateLimiter.js";
 export { validate } from "./middleware/validate.js";
 
@@ -17,4 +18,4 @@ export { createVerificationToken } from "./features/token/token.service.js";
 export { default as setupMiddleware } from "./startup/middleware.js";
 export { default as setupRoutes } from "./startup/routes.js";
 
-export { default as HTTP_STATUS_CODES } from "./constants/httpStatusCodes.js";
+

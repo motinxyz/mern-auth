@@ -7,9 +7,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "mongoose": "^8.19.2",
     "@auth/config": "workspace:*",
     "@auth/utils": "workspace:*",
-    "bcrypt": "^6.0.0"
+    "bcrypt": "^6.0.0",
+    "mongoose": "^8.19.3"
   }
 }

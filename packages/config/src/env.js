@@ -2,15 +2,8 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
+import { EnvironmentError } from "@auth/utils";
 import { z } from "zod";
-
-class EnvironmentError extends Error {
-  constructor(issues) {
-    super("Environment validation failed");
-    this.name = "EnvironmentError";
-    this.issues = issues;
-  }
-}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +17,7 @@ function findMonorepoRoot(startDir) {
     }
     dir = path.dirname(dir);
   }
-  throw new Error("Could not find monorepo root.");
+  throw new EnvironmentError("Could not find monorepo root.");
 }
 
 const DEFAULTS = {
@@ -74,6 +67,7 @@ const envSchema = z.object({
     }),
   REDIS_URL: z
     .string()
+    .trim()
     .refine((val) => urlRegex.test(val), {
       message: JSON.stringify({
         message: "validation:invalidUrl",
@@ -156,4 +150,3 @@ export const TOKEN_REDIS_PREFIXES = finalConfig.TOKEN_REDIS_PREFIXES;
 export const AUTH_REDIS_PREFIXES = finalConfig.AUTH_REDIS_PREFIXES;
 
 export default finalConfig;
-

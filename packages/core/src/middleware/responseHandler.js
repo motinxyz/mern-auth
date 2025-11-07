@@ -1,5 +1,5 @@
 import ApiResponse from "../core/api/ApiResponse.js";
-import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
+import { HTTP_STATUS_CODES } from "@auth/utils";
 
 /**
  * Middleware to handle successful responses.

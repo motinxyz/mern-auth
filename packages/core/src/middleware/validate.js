@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { logger } from "@auth/config";
+import { logger, t } from "@auth/config";
 import { ValidationError } from "@auth/utils";
 
 /**
@@ -40,7 +40,7 @@ export const validate = (schema) => async (req, res, next) => {
         };
       });
       // Pass the structured error to the global error handler
-      return next(new ValidationError(extractedErrors));
+      return next(new ValidationError(extractedErrors, t));
     }
     // Pass other errors down the chain
     return next(error);

@@ -10,7 +10,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "uuid": "^13.0.0",
-    "@auth/config": "workspace:*"
+    "uuid": "^13.0.0"
   }
 }

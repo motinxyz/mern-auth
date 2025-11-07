@@ -56,7 +56,8 @@ export const httpLogger = pinoHttp({
           // Ignore verbose properties for cleaner development logs
           ignore: "pid,hostname,req,res",
           // Create a custom, concise log line format for HTTP requests
-          messageFormat: "{msg} [{res.statusCode}] {req.method} {req.url} - {responseTime}ms (ID: {req.id})",
+          messageFormat:
+            "{msg} [{res.statusCode}] {req.method} {req.url} - {responseTime}ms (ID: {req.id})",
         },
       }
     : undefined,

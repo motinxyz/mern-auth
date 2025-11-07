@@ -1,17 +1,6 @@
-import { Redis } from "ioredis";
-import { config, logger } from "@auth/config";
+import { redisConnection } from "@auth/config/redis";
 
-const connection = new Redis(config.redisUrl, {
-  maxRetriesPerRequest: null,
-});
-
-connection.on("connect", () => {
-  logger.info("Redis connected");
-});
-
-connection.on("error", (err) => {
-  logger.error("Redis connection error:", err);
-  process.exit(1);
-});
-
-export default connection;
+// This file acts as a stable internal pointer to the centralized Redis connection.
+// It allows the rest of the `queues` package to have a consistent internal API
+// while allowing the actual connection source to be managed externally.
+export default redisConnection;

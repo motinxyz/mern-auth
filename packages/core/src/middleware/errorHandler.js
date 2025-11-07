@@ -46,6 +46,8 @@ function convertExternalError(err) {
   return null; // Return null if the error is not a known external type.
 }
 
+const SENSITIVE_FIELDS = ['password', 'confirmPassword']; // Define sensitive fields once
+
 /**
  * Express error handling middleware.
  * This middleware centralizes error handling and formats the error response.
@@ -91,12 +93,22 @@ export const errorHandler = (err, req, res, next) => {
   const response = {
     success: false,
     message: req.t(apiError.message), // Translate the main message
-    errors: Array.isArray(apiError.errors) 
-      ? apiError.errors.map((e) => ({
-          field: e.field,
-          message: req.t(e.message, e.context), // Translate detailed error messages
-          ...(e.context?.value !== undefined && { value: e.context.value }),
-        }))
+    errors: Array.isArray(apiError.errors)
+      ? apiError.errors.map((e) => {
+          const errorObject = {
+            field: e.field,
+            message: req.t(e.message, e.context), // Translate detailed error messages
+            ...(e.context?.value !== undefined && { value: e.context.value }),
+          };
+
+          // Add oldValue if req.body exists and the field is not sensitive
+          if (req.body && !SENSITIVE_FIELDS.includes(e.field)) {
+            if (req.body[e.field] !== undefined) {
+              errorObject.oldValue = req.body[e.field];
+            }
+          }
+          return errorObject;
+        })
       : [], // Return empty array if errors is not defined or not an array
   };
 

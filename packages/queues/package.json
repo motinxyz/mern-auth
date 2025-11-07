@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "main": "src/index.js",
   "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./producers": "./src/producers/index.js"
+  },
   "dependencies": {
     "@auth/config": "workspace:*",
     "@auth/utils": "workspace:*",
