@@ -56,8 +56,7 @@ export const registerNewUser = async (userData, req) => {
         },
         token: verificationToken,
         locale: req.locale,
-      },
-      { session } // Pass session to the job if it supports it
+      }
     );
   });
 
