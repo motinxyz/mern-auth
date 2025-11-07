@@ -27,7 +27,8 @@ export const validate = (schema) => async (req, res, next) => {
   } catch (error) {
     if (error instanceof ZodError) {
       const extractedErrors = error.issues.map((err) => {
-        const field = err.path.slice(1).join("."); // e.g., 'body.name' -> 'name'
+        // Zod's err.path is an array (e.g., ['body', 'name']). We want 'name'.
+        const field = err.path.slice(1).join("."); 
         const context = {};
         if (err.code === "too_small") {
           context.count = err.minimum;
@@ -40,7 +41,7 @@ export const validate = (schema) => async (req, res, next) => {
         };
       });
       // Pass the structured error to the global error handler
-      return next(new ValidationError(extractedErrors, t));
+      return next(new ValidationError(extractedErrors, req.t));
     }
     // Pass other errors down the chain
     return next(error);

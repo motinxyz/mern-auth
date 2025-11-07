@@ -1,13 +1,16 @@
 {
   "db": {
-    "connectSuccess": "Successfully connected to the primary database.",
-    "connectError": "Failed to connect to the primary database.",
-    "closeSuccess": "Database and cache connections closed.",
-    "closeError": "Error during shutdown while closing database connections."
+    "connected": "MongoDB connected",
+    "connectionError": "MongoDB connection error:",
+    "disconnected": "MongoDB disconnected",
+    "attemptingConnection": "Attempting MongoDB connection",
+    "connectSuccess": "MongoDB connected successfully",
+    "disconnectError": "Error disconnecting from MongoDB:"
   },
   "redis": {
-    "connectSuccess": "Successfully connected to Redis.",
-    "connectError": "Redis client error."
+    "connected": "Redis connected",
+    "connectionError": "Redis connection error:",
+    "connectionClosed": "Redis connection closed. Attempting to shut down gracefully."
   },
   "server": {
     "startSuccess": "Server is listening on port {{port}}.",

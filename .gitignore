@@ -1,3 +1,6 @@
 node_modules
 .turbo
 .env
+GEMINI_ANALYSIS.md
+**/coverage
+

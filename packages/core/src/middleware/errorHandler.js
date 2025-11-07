@@ -10,7 +10,7 @@ const errorHandlerLogger = logger.child({ module: "errorHandler" });
  * @param {Error} err - The error to convert.
  * @returns {ApiError|null} An ApiError instance if the error is recognized, otherwise null.
  */
-function convertExternalError(err) {
+function convertExternalError(err, req) {
   // Handle Mongoose Validation Errors
   // If the error is a ValidationError from our `validate` middleware, it's already structured correctly.
   if (err instanceof ValidationError) {
@@ -23,7 +23,7 @@ function convertExternalError(err) {
       message: e.message, // The message from the Mongoose schema is our translation key.
       context: e.properties || e.context, // Use `e.context` if `e.properties` is not available
     }));
-    return new ValidationError(errors);
+    return new ValidationError(errors, req.t);
   }
 
   // Handle Mongoose Duplicate Key Errors (e.g., unique index violation)
@@ -46,6 +46,7 @@ function convertExternalError(err) {
   return null; // Return null if the error is not a known external type.
 }
 
+// Fields that should not have their 'oldValue' exposed in error responses for security reasons.
 const SENSITIVE_FIELDS = ['password', 'confirmPassword']; // Define sensitive fields once
 
 /**
@@ -67,7 +68,7 @@ export const errorHandler = (err, req, res, next) => {
 
   // If the error is not a custom ApiError, convert it.
   if (!(apiError instanceof ApiError)) {
-    apiError = convertExternalError(err);
+    apiError = convertExternalError(err, req);
 
     // If it's still not an ApiError, it's an unexpected internal error.
     if (!apiError) {

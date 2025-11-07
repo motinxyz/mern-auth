@@ -8,7 +8,10 @@ export const addEmailJob = async (type, data) => {
   producerLogger.info({ job: { type, data } }, systemT("queue:addingJob"));
   try {
     // The job name is the first argument, data is the second
-    const job = await emailQueue.add(type, { type, data });
+    const job = await emailQueue.add(type, { type, data }, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 1000 },
+    });
     return job;
   } catch (error) {
     producerLogger.error(

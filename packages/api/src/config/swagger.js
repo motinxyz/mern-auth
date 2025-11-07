@@ -6,11 +6,10 @@ const swaggerDefinition = {
   info: {
     title: "Auth API",
     version: "1.0.0",
-    description:
-      "A simple Express-based authentication API with registration.",
+    description: "A robust and scalable authentication API service.",
     contact: {
-      name: "Your Name",
-      email: "your.email@example.com",
+      name: "Auth Service Team",
+      email: "support@authservice.com",
     },
   },
   servers: [

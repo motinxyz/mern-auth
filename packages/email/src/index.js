@@ -6,26 +6,29 @@ import { sendVerificationEmail } from "./templates/verification.js";
 const emailUtilLogger = logger.child({ module: "email-utility" });
 
 // Create a reusable transporter object using the SMTP transport configuration.
-const transport = createTransport({
-  pool: true, // Enable connection pooling for better performance
-  host: config.smtp.host,
-  port: config.smtp.port,
-  secure: config.smtp.port === 465,
-  auth: {
-    user: config.smtp.user,
-    pass: config.smtp.pass,
-  },
-});
+let transport;
 
-emailUtilLogger.info(
-  { host: config.smtp.host, port: config.smtp.port },
-  systemT("email:logs.smtpConfigured")
-);
+export const initEmailService = async () => {
+  // Create a reusable transporter object using the SMTP transport configuration.
+  transport = createTransport({
+    pool: true, // Enable connection pooling for better performance
+    host: config.smtp.host,
+    port: config.smtp.port,
+    secure: config.smtp.port === 465,
+    auth: {
+      user: config.smtp.user,
+      pass: config.smtp.pass,
+    },
+  });
 
-/**
- * Verifies the SMTP connection on startup.
- */
-(async () => {
+  emailUtilLogger.info(
+    { host: config.smtp.host, port: config.smtp.port },
+    systemT("email:logs.smtpConfigured")
+  );
+
+  /**
+   * Verifies the SMTP connection on startup.
+   */
   if (config.env !== 'test') {
     try {
       await transport.verify();
@@ -38,7 +41,7 @@ emailUtilLogger.info(
       process.exit(1);
     }
   }
-})();
+};
 
 /**
  * Sends an email using the configured SMTP transport.

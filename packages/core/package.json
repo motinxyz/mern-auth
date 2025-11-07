@@ -2,25 +2,29 @@
   "name": "@auth/core",
   "version": "1.0.0",
   "main": "src/index.js",
+  "type": "module",
   "exports": {
     ".": "./src/index.js",
     "./features/auth/auth.service.js": "./src/features/auth/auth.service.js"
   },
-  "type": "module",
+  "scripts": {
+    "test": "vitest run --coverage"
+  },
   "dependencies": {
     "@auth/config": "workspace:*",
     "@auth/database": "workspace:*",
     "@auth/email": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
-    "@exortek/express-mongo-sanitize": "^1.1.1",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
-    "hpp": "^0.2.3",
     "pino-http": "^11.0.0",
     "uuid": "^13.0.0",
     "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "ioredis-mock": "^8.13.1"
   }
 }

@@ -28,7 +28,7 @@ const availableNamespaces = fs
   .map((file) => path.basename(file, ".json"));
 
 // Initialize i18next instance
-i18next
+const i18nInitPromise = i18next
   .use(Backend)
   .use(i18nextMiddleware.LanguageDetector)
   .init({
@@ -43,3 +43,7 @@ i18next
 
 export const i18nInstance = i18next;
 export const i18nMiddleware = i18nextMiddleware;
+export const initI18n = async () => {
+  await i18nInitPromise;
+  return i18next;
+};

@@ -14,10 +14,12 @@
     "@auth/database": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
+    "@exortek/express-mongo-sanitize": "^1.1.1",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
     "mongoose": "^8.19.3",
     "pino-pretty": "^13.1.2",
     "swagger-jsdoc": "^6.2.8",
@@ -25,6 +27,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "ioredis-mock": "^8.13.1",
     "supertest": "^7.1.4"
   }
 }

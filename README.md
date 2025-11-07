@@ -4,13 +4,11 @@ This project is a monorepo for a full-stack authentication service, built with a
 
 ## Architecture
 
-The monorepo is structured with a clear separation of concerns:
+This project is a monorepo for a full-stack authentication service, built with a modern, scalable architecture using Node.js, Express, BullMQ, Zod, and Mongoose. The monorepo structure promotes code sharing, maintainability, and scalability by clearly separating concerns:
 
 -   `packages/core`: A central package containing all shared business logic, services, and utilities.
 -   `packages/api`: An Express-based API server that consumes the `core` package to expose authentication endpoints.
 -   `packages/worker`: A background worker process that handles asynchronous tasks like sending emails, also using the `core` package.
-
-This architecture allows for better code sharing, maintainability, and scalability.
 
 ## Getting Started
 
@@ -50,6 +48,50 @@ You can run the different parts of the application using the following commands 
     pnpm dev
     ```
 
+## Development
+
+### Running Tests
+
+To run tests for all packages:
+
+```bash
+pnpm test
+```
+
+To run tests for a specific package (e.g., `@auth/core`):
+
+```bash
+pnpm --filter @auth/core test
+```
+
+### Linting
+
+To lint all packages:
+
+```bash
+pnpm lint
+```
+
+To lint a specific package (e.g., `@auth/api`):
+
+```bash
+pnpm --filter @auth/api lint
+```
+
+### Building
+
+To build all packages:
+
+```bash
+pnpm build
+```
+
+To build a specific package (e.g., `@auth/utils`):
+
+```bash
+pnpm --filter @auth/utils build
+```
+
 ## Packages
 
 ### Core (`@auth/core`)
@@ -81,3 +123,12 @@ Key features:
 -   Graceful shutdown to complete in-progress jobs.
 -   Dead-letter queue for failed jobs.
 -   Concurrency and rate limiting.
+
+## Contributing
+
+We welcome contributions to this project! Please follow these guidelines:
+
+1.  Fork the repository.
+2.  Create a new branch for your feature or bug fix.
+3.  Make your changes and ensure tests pass.
+4.  Submit a pull request with a clear description of your changes.

@@ -1,13 +1,13 @@
 function getWorkspacePackagePaths() {
   return [
-    './packages/api',
-    './packages/config',
-    './packages/core',
-    './packages/database',
-    './packages/email',
-    './packages/queues',
-    './packages/utils',
-    './packages/worker',
+    "./packages/api",
+    "./packages/config",
+    "./packages/core",
+    "./packages/database",
+    "./packages/email",
+    "./packages/queues",
+    "./packages/utils",
+    "./packages/worker",
   ];
 }
 
@@ -20,10 +20,15 @@ import importPlugin from "eslint-plugin-import";
 export default [
   {
     settings: {
-      'import/resolver': {
+      "import/resolver": {
         node: {
-          extensions: ['.js', '.jsx', '.ts', '.tsx', '.d.ts'],
+          extensions: [".js", ".jsx", ".ts", ".tsx", ".d.ts"],
+          moduleDirectory: ["node_modules", "packages"],
         },
+        // typescript: {
+        //   alwaysTryTypes: true, // IMPORTANT - this helps find types even in JS projects
+        //   extensions: ['.js', '.jsx', '.ts', '.tsx', '.d.ts'],
+        // },
       },
     },
   },
@@ -43,7 +48,14 @@ export default [
   {
     plugins: { import: importPlugin },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^', varsIgnorePattern: '^', caughtErrorsIgnorePattern: '^' }],
+      "no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^",
+          varsIgnorePattern: "^",
+          caughtErrorsIgnorePattern: "^",
+        },
+      ],
       "import/no-unresolved": "error",
     },
   },
@@ -61,9 +73,9 @@ export default [
     },
   },
   {
-    files: ['packages/api/src/app.test.js', 'packages/api/vitest.config.js'],
+    files: ["**/*.test.js", "**/vitest.config.js"],
     rules: {
-      'import/no-extraneous-dependencies': 'off',
+      "import/no-extraneous-dependencies": "off",
     },
   },
 ];

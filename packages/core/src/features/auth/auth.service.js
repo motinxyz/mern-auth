@@ -7,15 +7,26 @@ import {
   NotFoundError,
   VERIFICATION_STATUS,
   RATE_LIMIT_DURATIONS,
-  HASHING_ALGORITHM,
+  HASHING_ALGORITHM, // This is used in verifyUserEmail, not registerNewUser
 } from "@auth/utils";
-import { createVerificationToken } from "../token/token.service.js";
+import { createVerificationToken } from "../token/token.service.js"; // Corrected path
 import { addEmailJob } from "@auth/queues/producers";
 import { redisConnection } from "@auth/queues";
 import { EMAIL_JOB_TYPES } from "@auth/utils";
 
 const authServiceLogger = logger.child({ module: "auth-service" });
 
+/**
+ * Registers a new user in the system.
+ * This function handles user creation within a transaction, orchestrates the email verification flow,
+ * and applies a rate limit to prevent abuse.
+ *
+ * @param {object} userData - The data for the new user (e.g., name, email, password).
+ * @param {object} req - The Express request object, used for accessing translation functions and locale.
+ * @returns {Promise<object>} A promise that resolves to the newly created user object (JSON representation).
+ * @throws {TooManyRequestsError} If the email address has exceeded the verification request rate limit.
+ * @throws {Error} For any other unexpected errors during user creation or verification orchestration.
+ */
 export const registerNewUser = async (userData, req) => {
   const { email } = userData;
   const rateLimitKey = `${AUTH_REDIS_PREFIXES.VERIFY_EMAIL_RATE_LIMIT}${email}`;
@@ -61,6 +72,15 @@ export const registerNewUser = async (userData, req) => {
   return newUser.toJSON();
 };
 
+/**
+ * Verifies a user's email address using a provided token.
+ * This function hashes the token, checks its validity in Redis,
+ * updates the user's verification status in the database, and deletes the token from Redis.
+ *
+ * @param {string} token - The verification token received by the user.
+ * @returns {Promise<object>} A promise that resolves to an object containing the verification status.
+ * @throws {NotFoundError} If the token is invalid, expired, or the associated user is not found.
+ */
 export const verifyUserEmail = async (token) => {
   // 1. Hash the incoming token to match the one stored in Redis.
   const hashedToken = crypto

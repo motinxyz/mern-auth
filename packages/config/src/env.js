@@ -29,6 +29,7 @@ const DEFAULTS = {
   DB_NAME: "MernAuth",
   REDIS_PREFIX_VERIFY_EMAIL: "verify:",
   REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT: "verify-email-rate-limit:",
+  BCRYPT_SALT_ROUNDS: 12,
 };
 
 const urlRegex = /^(https?|ftp|redis|rediss):\/\/[^\s/$.?#].*$/i;
@@ -97,6 +98,7 @@ const envSchema = z.object({
     .number()
     .default(DEFAULTS.VERIFICATION_TOKEN_EXPIRES_IN),
   LOG_LEVEL: z.string().default(DEFAULTS.LOG_LEVEL),
+  BCRYPT_SALT_ROUNDS: z.coerce.number().default(DEFAULTS.BCRYPT_SALT_ROUNDS),
 });
 
 if (process.env.NODE_ENV === "test") {
@@ -138,6 +140,7 @@ const finalConfig = {
   emailFrom: envVars.EMAIL_FROM,
   verificationTokenExpiresIn: envVars.VERIFICATION_TOKEN_EXPIRES_IN,
   logLevel: envVars.NODE_ENV === "development" ? "debug" : envVars.LOG_LEVEL,
+  bcryptSaltRounds: envVars.BCRYPT_SALT_ROUNDS,
   TOKEN_REDIS_PREFIXES: {
     VERIFY_EMAIL: envVars.REDIS_PREFIX_VERIFY_EMAIL,
   },

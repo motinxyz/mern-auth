@@ -1,115 +1,178 @@
-# Code Structure and Architecture
+# Code Structure
 
-This document outlines the architecture of the project, explaining the role of each package in the monorepo.
+This document outlines the structure of the codebase, explaining the purpose of each module and the separation of concerns.
 
-## Guiding Principles
+```
+/mnt/shared/codes/web/udemy/fullstack-prac/auth/
+├───.env.test
+├───.gitignore
+├───CODE_STRUCTURE.md
+├───eslint.config.js
+├───package.json
+├───pnpm-lock.yaml
+├───pnpm-workspace.yaml
+├───README.md
+├───turbo.json
+└───packages/
+    ├───api/
+    │   ├───package.json
+    │   ├───vitest.config.js
+    │   └───src/
+    │       ├───app.js
+    │       ├───app.test.js
+    │       ├───index.js
+    │       ├───server.js
+    │       ├───config/
+    │       │   └───swagger.js
+    │       ├───docs/
+    │       │   └───components.yaml
+    │       ├───features/
+    │       │   └───health/
+    │       │       └───health.router.js
+    │       ├───http/
+    │       │   ├───auth.http
+    │       │   └───health.http
+    │       └───startup/
+    │           ├───middleware.js
+    │           └───routes.js
+    ├───config/
+    │   ├───package.json
+    │   └───src/
+    │       ├───env.js
+    │       ├───i18n.js
+    │       ├───index.d.ts
+    │       ├───index.js
+    │       ├───logger.js
+    │       ├───redis.js
+    │       └───locales/
+    │           └───en/
+    │               ├───auth.json
+    │               ├───email.json
+    │               ├───queue.json
+    │               ├───system.json
+    │               ├───token.json
+    │               ├───validation.json
+    │               └───worker.json
+    ├───core/
+    │   ├───package.json
+    │   └───src/
+    │       ├───index.js
+    │       ├───features/
+    │       │   ├───auth/
+    │       │   │   ├───auth.controller.js
+    │       │   │   ├───auth.controller.test.js
+    │       │   │   ├───auth.routes.js
+    │       │   │   ├───auth.service.js
+    │       │   │   ├───auth.service.test.js
+    │       │   │   ├───auth.validation.js
+    │       │   │   └───auth.validation.test.js
+    │       │   └───token/
+    │       │       ├───token.service.js
+    │       │       └───token.service.test.js
+    │       ├───middleware/
+    │       │   ├───errorHandler.js
+    │       │   ├───errorHandler.test.js
+    │       │   ├───index.js
+    │       │   ├───loggerMiddleware.js
+    │       │   ├───rateLimiter.js
+    │       │   ├───responseHandler.js
+    │       │   ├───validate.js
+    │       │   └───validate.test.js
+    │       ├───startup/
+    │       │   ├───middleware.js
+    │       │   └───routes.js
+    │       └───types/
+    │           └───auth.d.ts
+    ├───database/
+    │   ├───package.json
+    │   └───src/
+    │       ├───index.js
+    │       ├───index.test.js
+    │       └───models/
+    │           └───user.model.js
+    ├───email/
+    │   ├───package.json
+    │   └───src/
+    │       ├───index.d.ts
+    │       ├───index.js
+    │       └───templates/
+    │           ├───verification.d.ts
+    │           └───verification.js
+    ├───queues/
+    │   ├───package.json
+    │   └───src/
+    │       ├───connection.js
+    │       ├───email.queue.js
+    │       ├───index.d.ts
+    │       ├───index.js
+    │       ├───queue.constants.js
+    │       └───producers/
+    │           ├───email.producer.js
+    │           └───index.js
+    ├───utils/
+    │   ├───package.json
+    │   └───src/
+    │       ├───ApiError.js
+    │       ├───ApiError.test.js
+    │       ├───ApiResponse.js
+    │       ├───ApiResponse.test.js
+    │       ├───constants/
+    │       │   ├───auth.constants.js
+    │       │   ├───email.constants.js
+    │       │   ├───httpStatusCodes.js
+    │       │   ├───index.js
+    │       │   ├───messages.constants.js
+    │       │   ├───token.constants.js
+    │       │   └───validation.constants.js
+    │       ├───errors/
+    │       │   ├───ConflictError.js
+    │       │   ├───EmailDispatchError.js
+    │       │   ├───EnvironmentError.js
+    │       │   ├───index.js
+    │       │   ├───InvalidJobDataError.js
+    │       │   ├───JobCreationError.js
+    │       │   ├───NotFoundError.js
+    │       │   ├───QueueError.js
+    │       │   ├───RedisConnectionError.js
+    │       │   ├───TokenCreationError.js
+    │       │   ├───TooManyRequestsError.js
+    │       │   ├───UnknownJobTypeError.js
+    │       │   └───ValidationError.js
+    │       └───index.d.ts
+    │       └───index.js
+    └───worker/
+        ├───package.json
+        └───src/
+            ├───consumers/
+            │   ├───email.consumer.js
+            │   └───email.consumer.test.js
+            ├───email.processor.js
+            ├───email.processor.test.js
+            └───index.js
+```
 
-The project follows a layered architecture, emphasizing separation of concerns. This makes the codebase more modular, scalable, and easier to maintain. The main principles are:
+## Module Explanations
 
--   **Single Responsibility**: Each package and module has a single, well-defined responsibility.
--   **Clear Dependencies**: Dependencies between packages should be clear and flow in one direction where possible (e.g., `api` depends on `core`, but `core` does not depend on `api`).
+### `api` (`packages/api`)
+This package serves as the RESTful API layer for the authentication service. Built with Express.js, it handles incoming HTTP requests, routes them to appropriate controllers, and returns structured responses. It integrates business logic primarily from the `@auth/core` package. Key features include a `/healthz` endpoint for monitoring, graceful shutdown, structured logging, and comprehensive error handling.
 
-## Package Overview
+### `config` (`packages/config`)
+This package centralizes all application configurations. It manages environment variables using Zod for validation, handles internationalization (i18n) with `i18next`, and configures service connections like Redis. Its objective is to provide a single, robust source for all settings, ensuring consistency and ease of modification across the monorepo.
 
-The monorepo is organized into the following packages:
+### `core` (`packages/core`)
+The core package encapsulates the main business logic and shared functionalities of the authentication service. It contains services (e.g., `AuthService`, `TokenService`), controllers, and middleware. This separation ensures that the core business rules are reusable, testable, and independent of any specific delivery mechanism (like the API). It leverages Zod for validation and provides common utilities.
 
--   `packages/api`: The entry point for the application's API. It handles incoming HTTP requests, routes them to the appropriate controllers, and returns responses. It should not contain any business logic.
--   `packages/core`: The heart of the application. It contains the core business logic, services, and domain models. This package is where most of the application's functionality is implemented.
--   `packages/database`: Manages the database connection and provides the database models. It acts as a data access layer.
--   `packages/config`: Contains all the application's configuration, such as environment variables, internationalization (i18n), and logger settings.
--   `packages/queues`: Manages background job queues and workers.
--   `packages/utils`: A collection of shared utility functions and classes that can be used across all other packages. This includes things like error classes, API response formatters, etc.
--   `packages/worker`: A dedicated package for running background workers that process jobs from the queues.
+### `database` (`packages/database`)
+This package is dedicated to database interactions. It defines Mongoose models (e.g., `User`), handles database connection setup, and manages migrations. By abstracting the data layer, it allows for easier swapping or updating of the database technology without impacting other parts of the application.
 
-## Current Project Structure
+### `email` (`packages/email`)
+Responsible for all email-related operations, this package includes services for sending various types of emails (e.g., verification emails) and manages email templates. It aims to centralize and streamline email functionalities, making them easy to manage and extend.
 
-To address the duplication and confusion, here is a more streamlined and recommended structure.
+### `queues` (`packages/queues`)
+This package manages background job queues using BullMQ. It defines queues and producers for asynchronous tasks, such as sending emails, to offload time-consuming operations from the main application thread. This improves application performance, responsiveness, and user experience.
 
-### `packages/api`
+### `utils` (`packages/utils`)
+The `utils` package provides a collection of shared utility functions, custom error classes (e.g., `ApiError`, `ValidationError`), API response formatters (`ApiResponse`), and constants. These utilities are designed to be reusable across all packages, promoting consistency and reducing code duplication.
 
--   **`src/`**
-    -   **`app.js`**: Express app setup.
-    -   **`index.js`**: Server entry point.
-    -   **`server.js`**: Server initialization.
-    -   **`config/`**: API-specific configurations.
-        -   `swagger.js`: OpenAPI (Swagger) specification.
-    -   **`docs/`**: API documentation files.
-        -   `components.yaml`: OpenAPI schema components.
-    -   **`features/`**: Feature-based modules.
-        -   **`auth/`**
-            -   `auth.router.js`: Routes for authentication.
-            -   `auth.controller.js`: Controllers for handling auth requests.
-            -   `auth.validation.js`: Request validation schemas.
-        -   **`health/`**
-            -   `health.router.js`: Health check endpoint.
-    -   **`flows/`**: Documentation for code flows.
-        -   `code-flow.md`: Application flow documentation.
-    -   **`http/`**: HTTP client request definitions for testing.
-        -   `auth.http`
-        -   `health.http`
-    -   **`startup/`**: Application startup logic (e.g., setting up routes).
-
-### `packages/core`
-
--   **`src/`**
-    -   **`index.js`**: Main package export.
-    -   **`features/`**: Core business logic for each feature.
-        -   **`auth/`**
-            -   `auth.service.js`: The main service for authentication, containing all the business logic (e.g., user registration, login, token generation). It will use the `UserModel` from the `database` package.
-    -   **`services/`**: Shared services that can be used by multiple features.
-        -   `email.service.js`: Service for sending emails.
-        -   `token.service.js`: Service for handling JWT tokens.
-    -   **`middleware/`**: Custom Express middleware.
-        -   `errorHandler.js`
-        -   `rateLimiter.js`
-        -   `validate.js`
-    -   **`types/`**: Shared TypeScript declaration files.
-        -   `auth.d.ts`: Type definitions for monorepo packages.
-
-### `packages/database`
-
--   **`src/`**
-    -   **`index.js`**: Database connection setup.
-    -   **`models/`**
-        -   `user.model.js`: The single source of truth for the User model.
-
-### `packages/config`
-
--   **`src/`**
-    -   `env.js`: Environment variable configuration.
-    -   `i18n.js`: Internationalization setup.
-    -   `index.js`: Main package export.
-    -   `logger.js`: Logger configuration.
-    -   `redis.js`: Redis configuration.
-    -   `system-logger.js`: Specialized system logger configuration.
-    -   **`locales/`**: Internationalization files.
-        -   `en/`: English locale files.
-
-### `packages/queues`
-
--   **`src/`**
-    -   `connection.js`: Connection to the queueing system (e.g., Redis).
-    -   `emailQueue.js`: Definition of the email queue and job adding function.
-    -   `index.js`: Main package export.
-    -   `queue.constants.js`: Constants for queue names and job types.
-
-### `packages/utils`
-
--   **`src/`**
-    -   `ApiError.js`: Custom error class for API errors.
-    -   `ApiResponse.js`: Custom class for formatting API responses.
-    -   **`constants/`**: Shared constants.
-        -   `auth.constants.js`
-        -   `httpStatusCodes.js`
-        -   `index.js`
-        -   `messages.constants.js`
-        -   `token.constants.js`
-        -   `validation.constants.js`
-    -   **`errors/`**: Directory for specific error types.
-    -   `index.js`: Main package export.
-
-### `packages/worker`
-
--   **`src/`**
-    -   `index.js`: Worker entry point.
-    -   `emailWorker.js`: Worker to process jobs from the email queue.
+### `worker` (`packages/worker`)
+The `worker` package runs background processes that consume and process jobs from the queues defined in `@auth/queues`. It ensures that long-running or resource-intensive tasks are handled asynchronously, preventing them from blocking the main API server. It includes features like graceful shutdown, dead-letter queues for failed jobs, and configurable concurrency/rate limiting.

@@ -9,7 +9,7 @@ import { logger, t as systemT } from "@auth/config";
 import { emailJobConsumer } from "./consumers/email.consumer.js";
 
 const failedJobsQueue = new Queue(QUEUE_NAMES.EMAIL_DEAD_LETTER, { connection });
-const workerLogger = logger.child({ module: "email-processor" }); // Changed module name for logger
+export const workerLogger = logger.child({ module: "email-processor" }); // Changed module name for logger
 
 const processor = async (job) => {
   workerLogger.info(

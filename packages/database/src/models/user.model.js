@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { VALIDATION_RULES } from "@auth/utils";
 import bcrypt from "bcrypt";
+import { config } from "@auth/config";
 
 /**
  * Mongoose schema for the User model.
@@ -74,8 +75,8 @@ userSchema.pre("save", async function (next) {
     return next();
   }
 
-  // Hash the password with a salt round of 12
-  const salt = await bcrypt.genSalt(12);
+  // Hash the password with a salt round from config
+  const salt = await bcrypt.genSalt(config.bcryptSaltRounds);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
