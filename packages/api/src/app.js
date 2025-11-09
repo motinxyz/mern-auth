@@ -1,4 +1,4 @@
-// index.js
+// app.js
 
 // external imports
 import express from "express";

@@ -1,6 +1,7 @@
-import fs from "node:fs";
-import path from "node:path"; // Keep path for Node.js environment
+import fs from "node:fs/promises";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ConfigurationError, I18N_MESSAGES } from "@auth/utils";
 import i18next from "i18next";
 import Backend from "i18next-fs-backend";
 import i18nextMiddleware from "i18next-http-middleware";
@@ -13,19 +14,32 @@ const defaultNamespace = "system"; // A default namespace for keys without one.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const localesDir = path.join(__dirname, "./locales");
 
-// --- Dynamic Discovery ---
-// Discover available locales (e.g., 'en', 'es') by reading subdirectories
-const availableLocales = fs
-  .readdirSync(localesDir, { withFileTypes: true })
-  .filter((dirent) => dirent.isDirectory())
-  .map((dirent) => dirent.name);
+async function discoverI18nResources() {
+  try {
+    const dirents = await fs.readdir(localesDir, { withFileTypes: true });
+    const availableLocales = dirents
+      .filter((dirent) => dirent.isDirectory())
+      .map((dirent) => dirent.name);
 
-// Discover available namespaces (e.g., 'system', 'auth') by reading files
-// from the default locale's directory.
-const availableNamespaces = fs
-  .readdirSync(path.join(localesDir, defaultLocale))
-  .filter((file) => file.endsWith(".json"))
-  .map((file) => path.basename(file, ".json"));
+    if (availableLocales.length === 0) {
+      throw new ConfigurationError(I18N_MESSAGES.NO_LANG_DIR);
+    }
+
+    const namespaceFiles = await fs.readdir(path.join(localesDir, defaultLocale));
+    const availableNamespaces = namespaceFiles
+      .filter((file) => file.endsWith(".json"))
+      .map((file) => path.basename(file, ".json"));
+
+    return { availableLocales, availableNamespaces };
+  } catch (error) {
+    if (error instanceof ConfigurationError) {
+      throw error;
+    }
+    throw new ConfigurationError(`${I18N_MESSAGES.DISCOVERY_FAILED} ${error.message}`);
+  }
+}
+
+const { availableLocales, availableNamespaces } = await discoverI18nResources();
 
 // Initialize i18next instance
 const i18nInitPromise = i18next

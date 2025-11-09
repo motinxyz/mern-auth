@@ -25,10 +25,10 @@ export default [
           extensions: [".js", ".jsx", ".ts", ".tsx", ".d.ts"],
           moduleDirectory: ["node_modules", "packages"],
         },
-        // typescript: {
-        //   alwaysTryTypes: true, // IMPORTANT - this helps find types even in JS projects
-        //   extensions: ['.js', '.jsx', '.ts', '.tsx', '.d.ts'],
-        // },
+        typescript: {
+          alwaysTryTypes: true, // IMPORTANT - this helps find types even in JS projects
+          extensions: [".js", ".jsx", ".ts", ".tsx", ".d.ts"],
+        },
       },
     },
   },
@@ -57,6 +57,13 @@ export default [
         },
       ],
       "import/no-unresolved": "error",
+      "import/no-unused-modules": [
+        "warn",
+        {
+          unusedExports: true,
+          src: ["src/**/*.js"],
+        },
+      ],
     },
   },
   {
@@ -64,8 +71,6 @@ export default [
       "import/no-extraneous-dependencies": [
         "error",
         {
-          // Allow devDependencies to be imported in test files
-          devDependencies: ["packages/**"],
           // Correctly resolve dependencies in a pnpm monorepo
           packageDir: ["./", ...getWorkspacePackagePaths()],
         },

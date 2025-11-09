@@ -1,11 +1,23 @@
 import mongoose from "mongoose";
-import { VALIDATION_RULES } from "@auth/utils";
 import bcrypt from "bcrypt";
 import { config } from "@auth/config";
+import { VALIDATION_RULES } from "@auth/utils";
+
+/**
+ * @typedef {import('mongoose').Document & {
+ *   name: string;
+ *   email: string;
+ *   password?: string;
+ *   role: 'user' | 'admin';
+ *   isVerified: boolean;
+ *   createdAt: Date;
+ *   updatedAt: Date;
+ *   comparePassword: (candidatePassword: string) => Promise<boolean>;
+ * }} IUser
+ */
 
 /**
  * Mongoose schema for the User model.
- * @type {mongoose.Schema}
  */
 const userSchema = new mongoose.Schema(
   {
@@ -90,4 +102,9 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-export default mongoose.model("User", userSchema);
+/**
+ * @type {mongoose.Model<IUser>}
+ */
+const User = mongoose.model("User", userSchema);
+
+export default User;
