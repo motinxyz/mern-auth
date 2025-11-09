@@ -9,13 +9,13 @@ import swaggerSpec from "./config/swagger.js";
 import {
   errorHandler,
 } from "@auth/core";
-import setupMiddleware from "./startup/middleware.js"; // New import
+import { configureMiddleware } from "./startup/middleware.js";
 import { NotFoundError } from "@auth/utils";
 import { i18nInstance, i18nMiddleware } from "@auth/config";
 import mongoose from "@auth/database";
 import { redisConnection } from "@auth/queues";
 
-import setupRoutes from "./startup/routes.js";
+import { configureRoutes } from "./startup/routes.js";
 
 // const
 const app = express();
@@ -24,7 +24,7 @@ const app = express();
 app.use(i18nMiddleware.handle(i18nInstance));
 
 // Setup core middleware (logging, body-parsing, etc.)
-setupMiddleware(app); // New call
+configureMiddleware(app); // New call
 
 // Health check endpoint
 app.get("/healthz", (req, res) => {
@@ -39,7 +39,7 @@ app.get("/healthz", (req, res) => {
 });
 
 // Setup routes
-setupRoutes(app);
+configureRoutes(app);
 
 // Swagger UI
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));

@@ -6,7 +6,7 @@ import { httpLogger, authLimiter } from '@auth/core';
 import { config } from '@auth/config';
 import expressMongoSanitize from '@exortek/express-mongo-sanitize';
 
-const setupMiddleware = (app) => {
+const configureMiddleware = (app) => {
   // Enable CORS with secure options
   app.use(
     cors({
@@ -37,4 +37,4 @@ const setupMiddleware = (app) => {
   app.use('/api/v1/auth', authLimiter);
 };
 
-export default setupMiddleware;
+export { configureMiddleware };

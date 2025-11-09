@@ -49,7 +49,7 @@
  *             schema:
  *               type: object
  *               properties:
- *                 success:
+                 success:
  *                   type: boolean
  *                   example: false
  *                 message:

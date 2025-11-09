@@ -1,16 +1,12 @@
-import { authRouter } from "@auth/core";
-import healthRouter from "../features/health/health.router.js";
+import { v1Routes } from "../routes/v1/index.js";
 
+const apiPrefixV1 = "/api/v1";
 /**
- * Sets up all the routes for the application.
- * @param {import('express').Application} app - The Express application instance.
+ * Configures the application's routes.
+ * @param {import('express').Express} app - The Express application.
  */
-export default function setupRoutes(app) {
-  const apiPrefix = "/api/v1";
+const configureRoutes = (app) => {
+  app.use(apiPrefixV1, v1Routes);
+};
 
-  // Routes from @auth/core package
-  app.use(`${apiPrefix}/auth`, authRouter);
-  
-  // Local routes
-  app.use(`${apiPrefix}/health`, healthRouter);
-}
+export { configureRoutes };
