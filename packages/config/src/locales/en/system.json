@@ -30,7 +30,8 @@
       "uncaughtException": "Uncaught Exception. The application will now exit.",
       "unhandledRejection": "Unhandled Rejection. The application will now exit.",
       "unexpected": "An unexpected internal server error occurred.",
-      "tooManyRequests": "Too many requests. Please try again later."
+      "tooManyRequests": "Too many requests. Please try again later.",
+      "notFound": "The requested resource was not found."
     }
   },
   "health": {
