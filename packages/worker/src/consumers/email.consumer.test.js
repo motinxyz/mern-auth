@@ -45,6 +45,25 @@ describe('Email Job Consumer', () => {
       expect(result).toEqual({ status: "OK", message: "worker:logs.emailSentSuccess" });
     });
 
+    it('should use default locale "en" if locale is not provided', async () => {
+      const jobWithNoLocale = {
+        data: {
+          type: EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL,
+          data: {
+            user: { name: 'Test User', email: 'test@example.com' },
+            token: 'test_token',
+          },
+        },
+      };
+      await emailJobConsumer(jobWithNoLocale);
+      expect(i18nInstance.getFixedT).toHaveBeenCalledWith('en');
+      expect(sendVerificationEmail).toHaveBeenCalledWith(
+        jobWithNoLocale.data.data.user,
+        jobWithNoLocale.data.data.token,
+        expect.any(Function)
+      );
+    });
+
     it('should throw InvalidJobDataError if user is missing', async () => {
       const invalidJob = { ...job, data: { ...job.data, data: { ...job.data.data, user: undefined } } };
       await expect(emailJobConsumer(invalidJob)).rejects.toThrow(InvalidJobDataError);
@@ -58,11 +77,6 @@ describe('Email Job Consumer', () => {
 
     it('should throw InvalidJobDataError if token is missing', async () => {
       const invalidJob = { ...job, data: { ...job.data, data: { ...job.data.data, token: undefined } } };
-      await expect(emailJobConsumer(invalidJob)).rejects.toThrow(InvalidJobDataError);
-    });
-
-    it('should throw InvalidJobDataError if locale is missing', async () => {
-      const invalidJob = { ...job, data: { ...job.data, data: { ...job.data.data, locale: undefined } } };
       await expect(emailJobConsumer(invalidJob)).rejects.toThrow(InvalidJobDataError);
     });
 

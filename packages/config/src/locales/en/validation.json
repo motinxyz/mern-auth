@@ -1,4 +1,5 @@
 {
+  "duplicateKeyError": "Duplicate key value error.",
   "email": {
     "required": "Email is required.",
     "invalid": "Please enter a valid email address.",

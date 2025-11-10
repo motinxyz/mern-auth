@@ -13,13 +13,12 @@ export const emailJobConsumer = async (job) => {
 
   switch (type) {
     case EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL: {
-      if (!data.user || !data.token || !data.locale) {
+      if (!data.user || !data.token) {
         throw new InvalidJobDataError(
           systemT("worker:errors.jobDataMissingFields"),
           [
             !data.user && { field: "user", message: "is required" },
             !data.token && { field: "token", message: "is required" },
-            !data.locale && { field: "locale", message: "is required" },
           ].filter(Boolean)
         );
       }

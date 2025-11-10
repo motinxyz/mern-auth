@@ -2,14 +2,6 @@ import { ZodError } from "zod";
 import { logger, t } from "@auth/config";
 import { ValidationError } from "@auth/utils";
 
-/**
- * Safely gets a nested property from an object.
- * @param {object} obj The object to query.
- * @param {string} path The dot-separated path to the property.
- * @returns {any} The value at the path, or undefined if not found.
- */
-const getNestedValue = (obj, path) =>
-  path.split(".").reduce((acc, part) => acc && acc[part], obj);
 
 /**
  * Middleware factory to validate requests against a Zod schema.

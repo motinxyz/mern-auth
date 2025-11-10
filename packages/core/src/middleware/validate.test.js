@@ -97,6 +97,25 @@ describe('Validate Middleware', () => {
     ]);
   });
 
+  it('should extract correct error details from ZodError with "too_small" code', async () => {
+    const schemaWithMin = z.object({
+      body: z.object({
+        value: z.string().min(5),
+      }),
+    });
+    req.body.value = 'abcd'; // Invalid, too small
+    const middleware = validate(schemaWithMin);
+    await middleware(req, res, next);
+    const validationError = next.mock.calls[0][0];
+    expect(validationError.errors).toEqual([
+      {
+        field: 'value',
+        message: expect.any(String),
+        context: { count: 5 },
+      },
+    ]);
+  });
+
   it('should call next with the original error if it is not a ZodError', async () => {
     const originalError = new Error('Something unexpected happened');
     const schemaWithThrow = z.object({

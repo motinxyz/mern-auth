@@ -21,7 +21,14 @@ import { configureRoutes } from "./startup/routes.js";
 const app = express();
 
 // Apply i18n middleware before any other middleware that might need it.
-app.use(i18nMiddleware.handle(i18nInstance));
+if (process.env.NODE_ENV === "test") {
+  app.use((req, res, next) => {
+    req.t = (key) => key;
+    next();
+  });
+} else {
+  app.use(i18nMiddleware.handle(i18nInstance));
+}
 
 // Setup core middleware (logging, body-parsing, etc.)
 configureMiddleware(app); // New call

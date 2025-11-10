@@ -7,6 +7,13 @@
     "@auth/config": "workspace:*",
     "@auth/utils": "workspace:*",
     "nodemailer": "^7.0.10",
+    "opossum": "^9.0.0",
     "resend": "^6.4.2"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.8"
+  },
+  "scripts": {
+    "test": "vitest run --coverage"
   }
 }

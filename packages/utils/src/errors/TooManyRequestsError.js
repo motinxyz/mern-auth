@@ -5,12 +5,7 @@ class TooManyRequestsError extends ApiError {
   constructor(retryAfter = 300) { // Default to 5 minutes
     super(
       HTTP_STATUS_CODES.TOO_MANY_REQUESTS,
-      "system:process.errors.tooManyRequests",
-      [{
-        field: "request",
-        message: "system:process.errors.tooManyRequests",
-        context: { retryAfter }
-      }]
+      "system:process.errors.tooManyRequests"
     );
   }
 }

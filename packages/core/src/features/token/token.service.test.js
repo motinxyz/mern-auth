@@ -1,14 +1,17 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import Redis from 'ioredis-mock';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import Redis from "ioredis-mock";
 import { Buffer } from "node:buffer";
 import crypto from "node:crypto";
 import { redisConnection } from "@auth/queues";
 import { config, TOKEN_REDIS_PREFIXES } from "@auth/config";
 import { createVerificationToken } from "./token.service.js";
-import { config, TOKEN_REDIS_PREFIXES, mockDebug } from "@auth/config";
-import { config, TOKEN_REDIS_PREFIXES, mockDebug } from "@auth/config";
+import { TokenCreationError, ApiError } from "@auth/utils";
 
 // Mock dependencies
+let mockDebug = vi.fn();
+let mockInfo = vi.fn();
+let mockError = vi.fn();
+
 vi.mock("node:crypto", async () => {
   const actualCrypto = await vi.importActual("node:crypto");
   return {
@@ -25,6 +28,13 @@ vi.mock("node:crypto", async () => {
 vi.mock("@auth/utils", async () => ({
   ...(await vi.importActual("@auth/utils")),
   HASHING_ALGORITHM: "sha256",
+  TokenCreationError: class TokenCreationError extends Error {
+    constructor(message, originalError) {
+      super(message);
+      this.name = "TokenCreationError";
+      this.originalError = originalError;
+    }
+  },
 }));
 
 // Use a high-fidelity mock for Redis
@@ -32,58 +42,30 @@ vi.mock("@auth/queues", () => ({
   redisConnection: new Redis(),
 }));
 
-export const mockDebug = vi.fn();
-export const mockInfo = vi.fn();
-export const mockError = vi.fn();
-
-vi.mock("@auth/config", () => ({
-  config: {
-    verificationTokenExpiresIn: 3600,
-  },
-  logger: {
-    child: vi.fn(() => ({
-      debug: mockDebug,
-      info: mockInfo,
-      error: mockError,
-    })),
-  },
-  TOKEN_REDIS_PREFIXES: {
-    VERIFY_EMAIL: "verify-email:",
-  },
-  t: vi.fn((key) => key),
-}));
-
 vi.mock("@auth/config", () => {
-  const mockDebug = vi.fn();
-  const mockInfo = vi.fn();
-  const mockError = vi.fn();
-
   return {
     config: {
       verificationTokenExpiresIn: 3600,
     },
     logger: {
       child: vi.fn(() => ({
-        debug: mockDebug,
-        info: mockInfo,
-        error: mockError,
+        debug: (...args) => mockDebug(...args),
+        info: (...args) => mockInfo(...args),
+        error: (...args) => mockError(...args),
       })),
     },
     TOKEN_REDIS_PREFIXES: {
       VERIFY_EMAIL: "verify-email:",
     },
     t: vi.fn((key) => key),
-    // Export the mock functions so they can be imported and asserted against
-    mockDebug,
-    mockInfo,
-    mockError,
   };
 });
 
-
-
 describe("Token Service", () => {
   beforeEach(() => {
+    mockDebug = vi.fn();
+    mockInfo = vi.fn();
+    mockError = vi.fn();
     vi.clearAllMocks();
     redisConnection.flushall();
   });
@@ -119,8 +101,28 @@ describe("Token Service", () => {
       expect(ttl).toBe(config.verificationTokenExpiresIn);
 
       expect(mockDebug).toHaveBeenCalledWith(
-        { key: `${TOKEN_REDIS_PREFIXES.VERIFY_EMAIL}${hashedToken}`, ttl: expect.any(Number), redisResponse: "OK" },
+        {
+          key: `${TOKEN_REDIS_PREFIXES.VERIFY_EMAIL}${hashedToken}`,
+          ttl: expect.any(Number),
+          redisResponse: "OK",
+        },
         "token:stored"
+      );
+    });
+
+    it("should throw TokenCreationError if redis fails", async () => {
+      const user = { id: "userId123", email: "test@example.com" };
+      const errorMessage = "Redis connection failed";
+
+      vi.spyOn(redisConnection, "set").mockRejectedValue(new Error(errorMessage));
+
+      await expect(createVerificationToken(user)).rejects.toThrow(
+        TokenCreationError
+      );
+
+      expect(mockError).toHaveBeenCalledWith(
+        { err: new Error(errorMessage) },
+        "token:creationFailed"
       );
     });
   });

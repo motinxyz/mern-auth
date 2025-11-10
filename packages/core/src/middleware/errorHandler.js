@@ -36,7 +36,7 @@ function convertExternalError(err, req) {
     ];
     return new ApiError(
       HTTP_STATUS_CODES.CONFLICT,
-      "validation:email.inUse",
+      "validation:duplicateKeyError", // New message key for duplicate key errors
       errors
     );
   }
@@ -93,6 +93,7 @@ export const errorHandler = (err, req, res, next) => {
   // By now, we always have an ApiError instance in apiError.
   const response = {
     success: false,
+    statusCode: apiError.statusCode, // Include statusCode in the response body
     message: req.t(apiError.message), // Translate the main message
     errors: Array.isArray(apiError.errors)
       ? apiError.errors.map((e) => {
