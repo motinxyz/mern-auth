@@ -6,7 +6,7 @@
     "start-dev": "turbo dev",
     "dev:api": "pnpm --filter @auth/api dev",
     "dev:worker": "pnpm --filter @auth/worker dev",
-    "test": "turbo run test",
+    "test": "pnpm --filter @auth/api test && pnpm --filter @auth/core test && pnpm --filter @auth/email test && pnpm --filter @auth/queues test && pnpm --filter @auth/utils test && pnpm --filter @auth/worker test",
     "lint": "turbo run lint",
     "build": "turbo run build"
   },
@@ -15,6 +15,7 @@
     "@vitest/coverage-v8": "^4.0.8",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-alias": "^1.1.2",
     "eslint-import-resolver-node": "^0.3.9",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-security": "^3.0.1",

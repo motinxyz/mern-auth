@@ -1,9 +1,8 @@
 import { createTransport } from "nodemailer";
 import CircuitBreaker from "opossum";
-import { config, logger, t as systemT } from "@auth/config";
-import { EmailDispatchError } from "@auth/utils";
+import { EmailDispatchError, EmailServiceInitializationError } from "@auth/utils";
 import { sendVerificationEmail } from "./templates/verification.js";
-
+import { config, logger, t as systemT } from "@auth/config";
 const emailUtilLogger = logger.child({ module: "email-utility" });
 
 // Circuit breaker options for email sending
@@ -69,7 +68,10 @@ export const initEmailService = async () => {
         { err: error },
         systemT("email:errors.smtpConnectionFailed")
       );
-      process.exit(1);
+      throw new EmailServiceInitializationError(
+        systemT("email:errors.smtpConnectionFailed"),
+        error
+      );
     }
   }
 };

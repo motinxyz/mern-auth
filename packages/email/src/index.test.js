@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 import CircuitBreaker from 'opossum'; // Import CircuitBreaker
 import { sendEmail, initEmailService } from './index.js';
 import { config, logger, t as systemT } from '@auth/config';
-import { EmailDispatchError } from '@auth/utils';
+import { EmailDispatchError, EmailServiceInitializationError } from '@auth/utils';
 
 // Mock external dependencies
 vi.mock('nodemailer');
@@ -49,6 +49,13 @@ vi.mock('@auth/utils', async () => {
         this.originalError = originalError;
       }
     },
+    EmailServiceInitializationError: class EmailServiceInitializationError extends Error {
+      constructor(message, originalError) {
+        super(message);
+        this.name = 'EmailServiceInitializationError';
+        this.originalError = originalError;
+      }
+    },
   };
 });
 
@@ -59,12 +66,8 @@ describe('Email Service', () => {
   let mockBreakerOn;
   let mockBreakerFire;
   let mockBreakerFallback;
-  let mockProcessExit;
 
-  beforeAll(() => {
-    // Mock process.exit before initEmailService is called
-    mockProcessExit = vi.spyOn(process, 'exit').mockImplementation(() => {});
-  });
+
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -87,7 +90,6 @@ describe('Email Service', () => {
       sendMail: mockSendMail,
     };
     nodemailer.createTransport.mockReturnValue(mockTransport);
-    mockProcessExit.mockClear();
 
     // Ensure logger.child has been called at least once before accessing mock.results
     const { logger } = await import('@auth/config');
@@ -107,31 +109,39 @@ describe('Email Service', () => {
   afterEach(() => {
     vi.clearAllMocks();
     mockSendMail.mockReset();
-    mockProcessExit.mockRestore(); // Restore process.exit
   });
 
-  it('should call process.exit and log fatal error if SMTP connection verification fails', async () => {
-    // Temporarily set env to something other than 'test' to trigger the verification logic
-    const originalEnv = config.env;
-    config.env = 'development'; 
+  describe('initEmailService failure handling', () => {
+    // No beforeEach here, or a minimal one that doesn't call initEmailService
+    // The test itself will call initEmailService
+    it('should call process.exit and log fatal error if SMTP connection verification fails', async () => {
+      // Temporarily set env to something other than 'test' to trigger the verification logic
+      const originalEnv = config.env;
+      config.env = 'development'; 
 
-    const mockFatal = vi.fn();
-    const { logger } = await import('@auth/config');
-    // Get the actual mock object returned by logger.child and set its fatal method
-    const emailUtilLoggerMock = logger.child.mock.results[0].value;
-    emailUtilLoggerMock.fatal = mockFatal; // Assign our specific mockFatal
+      const mockFatal = vi.fn();
+      const { logger } = await import('@auth/config');
+      // Get the actual mock object returned by logger.child and set its fatal method
+      const emailUtilLoggerMock = logger.child.mock.results[0].value;
+      emailUtilLoggerMock.fatal = mockFatal; // Assign our specific mockFatal
 
-    mockTransport.verify.mockRejectedValue(new Error('SMTP verification failed'));
+      mockTransport.verify.mockRejectedValue(new Error('SMTP verification failed'));
 
-    await initEmailService(); // This will now use the mockFatal assigned above
+      try {
+        await initEmailService();
+      } catch (error) {
+        // We expect an EmailServiceInitializationError to be thrown
+        expect(error).toBeInstanceOf(EmailServiceInitializationError);
+      }
 
-    expect(mockFatal).toHaveBeenCalledWith(
-      { err: expect.any(Error) },
-      systemT('email:errors.smtpConnectionFailed')
-    );
-    expect(mockProcessExit).toHaveBeenCalledWith(1);
+      expect(mockFatal).toHaveBeenCalledWith(
+        { err: expect.any(Error) },
+        systemT('email:errors.smtpConnectionFailed')
+      );
 
-    config.env = originalEnv;
+
+      config.env = originalEnv;
+    });
   });
 
   it('should send an email successfully', async () => {

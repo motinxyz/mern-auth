@@ -9,38 +9,114 @@ This document provides a comprehensive explanation of the full-stack application
     - [Tooling](#tooling)
     - [Package Breakdown](#package-breakdown)
 2.  [Application Startup](#application-startup)
+3.  [API Request Lifecycle: User Registration (`/register`)](#api-request-lifecycle-user-registration-register)
+    - [Routing](#routing)
+    - [Validation](#validation)
+    - [Controller Logic](#controller-logic)
+    - [Service Layer](#service-layer)
+    - [Database Interaction](#database-interaction)
+    - [Success Response](#success-response)
+    - [Error Handling](#error-handling)
+4.  [Background Worker & Queue System](#background-worker--queue-system)
+    - [Job Production](#job-production)
+    - [Queue Connection](#queue-connection)
+    - [Job Consumption](#job-consumption)
+    - [Job Processing](#job-processing)
 
-The application's startup sequence is orchestrated to ensure all necessary services (configuration, database, logging, i18n) are initialized before the API server begins listening for requests.
+---
 
-The main entry point for the API application is `packages/api/src/index.js`, which simply imports and executes `packages/api/src/server.js`.
+## 1. High-Level Overview
+
+This project is structured as a monorepo, leveraging `pnpm` for package management and `Turborepo` for optimized build and development workflows. This setup allows for better code organization, reusability, and efficient management of multiple interdependent packages.
+
+### Monorepo Strategy
+
+The project uses `pnpm workspaces` to manage multiple packages within a single repository. The `pnpm-workspace.yaml` file defines the `packages/*` glob, indicating that all subdirectories within the `packages/` directory are considered individual packages. This allows packages to depend on each other using `workspace:*` protocol, ensuring they always use the local version of the dependency.
+
+### Tooling
+
+*   **pnpm:** The package manager used for installing dependencies and managing workspaces. It's known for its efficient disk space usage (hoisting dependencies) and strictness, which helps prevent phantom dependencies.
+*   **Turborepo:** A high-performance build system for JavaScript and TypeScript monorepos. It optimizes the development process by:
+    *   **Caching:** Caches build outputs and logs, so subsequent runs of the same task are instant.
+    *   **Parallel Execution:** Executes tasks across packages in parallel, speeding up operations like `build`, `test`, and `lint`.
+    *   **Task Graph:** Understands the dependencies between tasks and packages, ensuring tasks are run in the correct order.
+    The `turbo.json` file configures how Turborepo handles different tasks (`build`, `lint`, `dev`, `test`), specifying dependencies between tasks and output locations for caching.
+
+### Package Breakdown
+
+The monorepo is composed of several distinct packages, each with a specific responsibility:
+
+*   **`api`**:
+    *   **Purpose:** The main entry point for the RESTful API. It handles HTTP requests, routes them to the appropriate handlers, and manages the overall Express application.
+    *   **Key Dependencies:** `@auth/app-bootstrap`, `@auth/config`, `@auth/core`, `@auth/database`, `@auth/queues`, `@auth/utils`, `express`, `mongoose`, `swagger-jsdoc`, `zod`.
+*   **`app-bootstrap`**:
+    *   **Purpose:** A dedicated orchestration layer responsible for initializing all necessary services (configuration, database, i18n, email) and starting the API server. This centralizes application startup logic and error handling.
+    *   **Key Dependencies:** `@auth/config`, `@auth/database`, `@auth/email`, `@auth/utils`.
+*   **`config`**:
+    *   **Purpose:** Centralized configuration management for the entire application. It provides environment variables, logging setup, internationalization (i18n), and Redis connection configurations.
+    *   **Key Dependencies:** `@auth/utils`, `dotenv`, `i18next`, `pino`, `ioredis`, `zod`.
+*   **`core`**:
+    *   **Purpose:** Contains the core business logic and features, such as authentication, token management, and common middleware. This package is designed to be reusable across different parts of the application.
+    *   **Key Dependencies:** `@auth/config`, `@auth/database`, `@auth/email`, `@auth/queues`, `@auth/utils`, `express`, `express-rate-limit`, `helmet`, `pino-http`, `uuid`, `zod`.
+*   **`database`**:
+    *   **Purpose:** Manages database connections and defines Mongoose schemas and models. It abstracts database interactions from the rest of the application.
+    *   **Key Dependencies:** `@auth/config`, `@auth/utils`, `bcrypt`, `mongoose`.
+*   **`email`**:
+    *   **Purpose:** Provides email sending functionality, integrating with services like Nodemailer or Resend. It defines email templates and handles the actual dispatch of emails.
+    *   **Key Dependencies:** `@auth/config`, `@auth/utils`, `nodemailer`, `resend`.
+*   **`queues`**:
+    *   **Purpose:** Manages the BullMQ queue system. It defines job queues, producers (for adding jobs to queues), and handles the connection to Redis for queue management.
+    *   **Key Dependencies:** `@auth/config`, `@auth/utils`, `bullmq`, `ioredis`, `nodemailer`.
+*   **`utils`**:
+    *   **Purpose:** A collection of shared utility functions, constants, custom error classes, and API response structures used across the monorepo.
+    *   **Key Dependencies:** `uuid`.
+*   **`worker`**:
+    *   **Purpose:** Contains the background worker processes that consume jobs from the BullMQ queues and execute long-running or asynchronous tasks (e.g., sending emails).
+    *   **Key Dependencies:** `@auth/config`, `@auth/core`, `@auth/database`, `@auth/email`, `@auth/queues`, `@auth/utils`, `bullmq`.
+
+## 2. Application Startup
+
+The application's startup sequence is now orchestrated by a dedicated `app-bootstrap` package, ensuring all necessary services are initialized and critical errors are handled centrally before the API server begins listening for requests.
+
+The main entry point for the API application is `packages/api/src/server.js`.
 
 Here's a step-by-step breakdown of the startup process:
 
 1.  **`packages/api/src/server.js`**:
-    *   This file contains the `startServer` asynchronous function, which is immediately invoked.
-    *   It imports `app` from `packages/api/src/app.js`, `config`, `logger`, `initI18n`, and `t` (translation function) from `@auth/config`, and `mongoose`, `connectDB`, `disconnectDB` from `@auth/database`.
-    *   **Environment Loading (`@auth/config/env.js`):**
+    *   This file is now significantly simplified. It imports the Express `app` instance from `packages/api/src/app.js` and then calls `await bootstrapApplication(app)` from the `@auth/app-bootstrap` package. Its primary role is to provide the Express application instance to the bootstrap process.
+
+2.  **`packages/app-bootstrap/src/index.js` (`bootstrapApplication` function)**:
+    *   This asynchronous function is the central orchestrator for application startup.
+    *   **Configuration Loading (`@auth/config/env.js`):**
         *   The `env.js` file is responsible for loading environment variables. It first determines the monorepo root to locate the correct `.env` or `.env.test` file.
         *   It uses `dotenv` to load variables and `zod` to validate them against a predefined schema (`envSchema`). If validation fails, an `EnvironmentError` is thrown, halting the application.
         *   Default values are provided for many variables, and specific refinements (e.g., URL format for `MONGO_URI`, `REDIS_URL`) are applied.
         *   The validated and parsed configuration is then exported as `config`.
     *   **Internationalization Initialization (`@auth/config/i18n.js`):**
         *   `initI18n()` is called to set up the `i18next` instance. It configures `i18next-fs-backend` to load translation files from `packages/config/src/locales` and `i18next-http-middleware` for language detection.
+        *   After `i18next` is initialized, `setT(i18next.t.bind(i18next))` is called to update the globally accessible `t` function (exported from `@auth/config`) with the fully functional translation instance.
         *   It preloads the "en" language and defines various namespaces (e.g., "system", "auth", "validation", "email", "token", "queue").
     *   **Database Connection (`@auth/database/index.js`):**
         *   `connectDB()` is called to establish a connection to MongoDB using Mongoose.
         *   It uses the `dbURI` and `dbName` from the `config` package.
         *   Mongoose connection events (`connected`, `error`, `disconnected`) are logged using the application's logger.
         *   If the connection fails, an error is logged, and the application exits.
+    *   **Email Service Initialization (`@auth/email/index.js`):**
+        *   `initEmailService()` is called to set up the Nodemailer transport and configure the Circuit Breaker for email sending.
+        *   It verifies the SMTP connection on startup (except in test environments). If verification fails, it throws an `EmailServiceInitializationError`.
     *   **Server Start:**
-        *   Once i18n and the database are successfully initialized, the Express `app` (imported from `packages/api/src/app.js`) starts listening on the port defined in `config.port`.
+        *   Once all services (i18n, database, email) are successfully initialized, the Express `app` (passed as an argument) starts listening on the port defined in `config.port`.
         *   A success message is logged using the `logger` (from `@auth/config/logger.js`) and the `t` (translation) function.
     *   **Graceful Shutdown:**
-        *   The `server.js` also sets up listeners for `SIGTERM` and `SIGINT` signals. Upon receiving these signals, the `gracefulShutdown` function is executed.
+        *   Listeners for `SIGTERM` and `SIGINT` signals are set up. Upon receiving these signals, the `gracefulShutdown` function is executed.
         *   This function closes the HTTP server, disconnects from the database (`disconnectDB()`), and then exits the process, ensuring no open connections or pending operations.
+    *   **Centralized Error Handling:**
+        *   The `bootstrapApplication` function includes a `try-catch` block that catches any errors occurring during the initialization of services or server startup.
+        *   It specifically checks for `EmailServiceInitializationError` to provide a more targeted fatal log message.
+        *   For any critical startup error, it logs the error and then calls `process.exit(1)`, ensuring the application fails fast and signals an abnormal termination.
 
-2.  **`packages/api/src/app.js`**:
-    *   This file is responsible for configuring the Express application instance.
+3.  **`packages/api/src/app.js`**:
+    *   This file remains responsible for configuring the Express application instance.
     *   **i18n Middleware:** `i18nMiddleware.handle(i18nInstance)` is applied early to ensure translation capabilities are available for subsequent middleware and route handlers.
     *   **Core Middleware (`packages/api/src/startup/middleware.js`):**
         *   `setupMiddleware(app)` is called to apply essential Express middleware:
@@ -62,7 +138,8 @@ Here's a step-by-step breakdown of the startup process:
     *   **Global Error Handler (`@auth/core/middleware/errorHandler.js`):**
         *   The `errorHandler` middleware is the last middleware applied. It catches all errors (`next(err)`) and formats them into a consistent API error response, handling different types of errors (e.g., `ApiError`, validation errors, generic errors).
 
-In summary, the application initializes its environment, logging, internationalization, and database connection, then configures the Express app with security, parsing, logging, and routing middleware, finally starting the HTTP server and setting up graceful shutdown procedures.
+In summary, the application now uses a dedicated bootstrap layer to initialize its environment, logging, internationalization, database connection, and email service. It then configures the Express app with security, parsing, logging, and routing middleware, finally starting the HTTP server and setting up graceful shutdown procedures.
+
 ## 3. API Request Lifecycle: User Registration (`/register`)
 
 This section details the journey of a user registration request, from the moment it hits the API gateway to the final response, including success, failure, validation, and error handling.
@@ -130,7 +207,7 @@ The `/register` endpoint is defined in `packages/core/src/features/auth/auth.rou
 ### Error Handling
 
 *   **Custom Errors (`packages/utils/src/ApiError.js`, `packages/utils/src/errors/*.js`):**
-    *   The application uses a hierarchy of custom error classes extending `ApiError` (e.g., `ValidationError`, `TooManyRequestsError`, `NotFoundError`).
+    *   The application uses a hierarchy of custom error classes extending `ApiError` (e.g., `ValidationError`, `TooManyRequestsError`, `NotFoundError`, `EmailServiceInitializationError`).
     *   `ApiError` itself is a standardized error class that includes `statusCode`, `message` (translation key), `errors` (for detailed validation errors), and a `success: false` flag.
     *   These custom errors are thrown by the service layer or validation middleware.
 *   **Global Error Handler (`packages/core/src/middleware/errorHandler.js`):**
@@ -143,13 +220,7 @@ The `/register` endpoint is defined in `packages/core/src/features/auth/auth.rou
     *   The response is sent with the appropriate `statusCode` derived from the `ApiError`.
 
 This comprehensive flow ensures that user registration is validated, securely processed, and provides clear feedback (success or detailed error messages) to the client, while offloading non-critical tasks like email sending to background processes.
-    - [Routing](#routing)
-    - [Validation](#validation)
-    - [Controller Logic](#controller-logic)
-    - [Service Layer](#service-layer)
-    - [Database Interaction](#database-interaction)
-    - [Success Response](#success-response)
-    - [Error Handling](#error-handling)
+
 ## 4. Background Worker & Queue System
 
 The application leverages a background worker and a message queue system (BullMQ with Redis) to handle long-running or asynchronous tasks, such as sending emails. This prevents these operations from blocking the main API thread and improves responsiveness.
@@ -205,61 +276,9 @@ The application leverages a background worker and a message queue system (BullMQ
         *   If email dispatch fails, an `EmailDispatchError` is thrown.
     *   **Default Case:** If an unknown job type is encountered, an `UnknownJobTypeError` is thrown.
 *   **`packages/email/src/index.js` (`sendVerificationEmail`, `sendEmail`):**
-    *   The `initEmailService` function initializes the Nodemailer `transport` using SMTP configuration from `config.smtp`.
+    *   The `initEmailService` function initializes the Nodemailer `transport` and configures the Circuit Breaker using SMTP configuration from `config.smtp`.
     *   It also verifies the SMTP connection on startup (except in test environment).
     *   The `sendVerificationEmail` function (imported from `./templates/verification.js`) is responsible for generating the HTML content of the verification email using the provided user data, token, and translation function.
     *   The `sendEmail` function then uses the initialized Nodemailer `transport` to dispatch the email. It handles logging and throws an `EmailDispatchError` if the sending process fails.
 
 This robust queue and worker system ensures that email sending is reliable, scalable, and does not impact the performance of the main API, with built-in retry mechanisms and error handling for failed jobs.
-    - [Job Production](#job-production)
-    - [Queue Connection](#queue-connection)
-    - [Job Consumption](#job-consumption)
-    - [Job Processing](#job-processing)
-
----
-
-## 1. High-Level Overview
-
-This project is structured as a monorepo, leveraging `pnpm` for package management and `Turborepo` for optimized build and development workflows. This setup allows for better code organization, reusability, and efficient management of multiple interdependent packages.
-
-### Monorepo Strategy
-
-The project uses `pnpm workspaces` to manage multiple packages within a single repository. The `pnpm-workspace.yaml` file defines the `packages/*` glob, indicating that all subdirectories within the `packages/` directory are considered individual packages. This allows packages to depend on each other using `workspace:*` protocol, ensuring they always use the local version of the dependency.
-
-### Tooling
-
-*   **pnpm:** The package manager used for installing dependencies and managing workspaces. It's known for its efficient disk space usage (hoisting dependencies) and strictness, which helps prevent phantom dependencies.
-*   **Turborepo:** A high-performance build system for JavaScript and TypeScript monorepos. It optimizes the development process by:
-    *   **Caching:** Caches build outputs and logs, so subsequent runs of the same task are instant.
-    *   **Parallel Execution:** Executes tasks across packages in parallel, speeding up operations like `build`, `test`, and `lint`.
-    *   **Task Graph:** Understands the dependencies between tasks and packages, ensuring tasks are run in the correct order.
-    The `turbo.json` file configures how Turborepo handles different tasks (`build`, `lint`, `dev`, `test`), specifying dependencies between tasks and output locations for caching.
-
-### Package Breakdown
-
-The monorepo is composed of several distinct packages, each with a specific responsibility:
-
-*   **`api`**:
-    *   **Purpose:** The main entry point for the RESTful API. It handles HTTP requests, routes them to the appropriate handlers, and manages the overall Express application.
-    *   **Key Dependencies:** `@auth/config`, `@auth/core`, `@auth/database`, `@auth/queues`, `@auth/utils`, `express`, `mongoose`, `swagger-jsdoc`, `zod`.
-*   **`config`**:
-    *   **Purpose:** Centralized configuration management for the entire application. It provides environment variables, logging setup, internationalization (i18n), and Redis connection configurations.
-    *   **Key Dependencies:** `@auth/utils`, `dotenv`, `i18next`, `pino`, `ioredis`, `zod`.
-*   **`core`**:
-    *   **Purpose:** Contains the core business logic and features, such as authentication, token management, and common middleware. This package is designed to be reusable across different parts of the application.
-    *   **Key Dependencies:** `@auth/config`, `@auth/database`, `@auth/email`, `@auth/queues`, `@auth/utils`, `express`, `express-rate-limit`, `helmet`, `pino-http`, `uuid`, `zod`.
-*   **`database`**:
-    *   **Purpose:** Manages database connections and defines Mongoose schemas and models. It abstracts database interactions from the rest of the application.
-    *   **Key Dependencies:** `@auth/config`, `@auth/utils`, `bcrypt`, `mongoose`.
-*   **`email`**:
-    *   **Purpose:** Provides email sending functionality, integrating with services like Nodemailer or Resend. It defines email templates and handles the actual dispatch of emails.
-    *   **Key Dependencies:** `@auth/config`, `@auth/utils`, `nodemailer`, `resend`.
-*   **`queues`**:
-    *   **Purpose:** Manages the BullMQ queue system. It defines job queues, producers (for adding jobs to queues), and handles the connection to Redis for queue management.
-    *   **Key Dependencies:** `@auth/config`, `@auth/utils`, `bullmq`, `ioredis`, `nodemailer`.
-*   **`utils`**:
-    *   **Purpose:** A collection of shared utility functions, constants, custom error classes, and API response structures used across the monorepo.
-    *   **Key Dependencies:** `uuid`.
-*   **`worker`**:
-    *   **Purpose:** Contains the background worker processes that consume jobs from the BullMQ queues and execute long-running or asynchronous tasks (e.g., sending emails).
-    *   **Key Dependencies:** `@auth/config`, `@auth/core`, `@auth/database`, `@auth/email`, `@auth/queues`, `@auth/utils`, `bullmq`.

@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import Redis from "ioredis-mock";
 import { Buffer } from "node:buffer";
 import crypto from "node:crypto";
-import { redisConnection } from "@auth/queues";
 import { config, TOKEN_REDIS_PREFIXES } from "@auth/config";
 import { createVerificationToken } from "./token.service.js";
 import { TokenCreationError, ApiError } from "@auth/utils";
+import { redisConnection } from "@auth/config/redis"; // Import the mocked redisConnection
 
 // Mock dependencies
 let mockDebug = vi.fn();
@@ -38,7 +38,7 @@ vi.mock("@auth/utils", async () => ({
 }));
 
 // Use a high-fidelity mock for Redis
-vi.mock("@auth/queues", () => ({
+vi.mock("@auth/config/redis", () => ({
   redisConnection: new Redis(),
 }));
 
@@ -67,13 +67,14 @@ describe("Token Service", () => {
     mockInfo = vi.fn();
     mockError = vi.fn();
     vi.clearAllMocks();
+    // Re-import redisConnection to get the mocked instance
     redisConnection.flushall();
   });
 
   describe("createVerificationToken", () => {
     it("should create a token, hash it, and store it in Redis", async () => {
       const user = { id: "userId123", email: "test@example.com" };
-      const token = "72616e646f6d5f746f6b656e5f737472696e67";
+      const token = "72616e646f5f746f6b656e5f737472696e67";
       const hashedToken = "hashed_token_string";
 
       vi.spyOn(crypto, "randomBytes").mockReturnValue(Buffer.from(token, "hex"));

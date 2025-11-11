@@ -2,12 +2,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Redis from 'ioredis-mock';
 import { User, default as mongoose } from '@auth/database';
-import { redisConnection } from '@auth/queues';
 import { addEmailJob } from '@auth/queues/producers';
 import { createVerificationToken } from '../token/token.service.js';
 import { registerNewUser, verifyUserEmail } from './auth.service.js';
 import { TooManyRequestsError, NotFoundError, VERIFICATION_STATUS } from '@auth/utils';
 import crypto from 'node:crypto';
+import { redisConnection } from '@auth/config/redis'; // Import the mocked redisConnection
 
 // Mock dependencies
 vi.mock('mongoose', async () => {
@@ -26,7 +26,7 @@ vi.mock('mongoose', async () => {
 });
 
 // Use a high-fidelity mock for Redis
-vi.mock('@auth/queues', () => ({
+vi.mock('@auth/config/redis', () => ({
   redisConnection: new Redis(),
 }));
 

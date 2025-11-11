@@ -1,10 +1,7 @@
 
 import { Worker, Queue } from "bullmq";
-import {
-  redisConnection as connection,
-  QUEUE_NAMES,
-  WORKER_CONFIG,
-} from "@auth/queues";
+import { redisConnection as connection } from "@auth/config/redis";
+import { QUEUE_NAMES, WORKER_CONFIG } from "@auth/queues";
 import { logger, t as systemT } from "@auth/config";
 import { emailJobConsumer } from "./consumers/email.consumer.js";
 

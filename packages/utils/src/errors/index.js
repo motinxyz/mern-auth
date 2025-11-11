@@ -11,3 +11,4 @@ export { default as JobCreationError } from "./JobCreationError.js";
 export { default as TokenCreationError } from "./TokenCreationError.js";
 export { default as RedisConnectionError } from "./RedisConnectionError.js";
 export { default as QueueError } from "./QueueError.js";
+export { default as EmailServiceInitializationError } from "./EmailServiceInitializationError.js";

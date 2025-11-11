@@ -11,7 +11,7 @@ import {
 } from "@auth/utils";
 import { createVerificationToken } from "../token/token.service.js"; // Corrected path
 import { addEmailJob } from "@auth/queues/producers";
-import { redisConnection } from "@auth/queues";
+import { redisConnection } from "@auth/config/redis";
 import { EMAIL_JOB_TYPES } from "@auth/utils";
 
 const authServiceLogger = logger.child({ module: "auth-service" });
@@ -104,7 +104,7 @@ export const verifyUserEmail = async (token) => {
   authServiceLogger.debug(
     { key: verifyKey, data: userDataJSON },
     "Found verification token in Redis."
-  );
+    );
 
   const userData = JSON.parse(userDataJSON);
 
@@ -141,3 +141,4 @@ export const verifyUserEmail = async (token) => {
   );
   return { status: VERIFICATION_STATUS.VERIFIED };
 };
+

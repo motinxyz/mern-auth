@@ -1,5 +1,5 @@
 import { logger, t, initI18n } from "@auth/config";
-import { redisConnection } from "@auth/queues";
+import { redisConnection } from "@auth/config/redis";
 import { initEmailService } from "@auth/email";
 
 await initI18n(); // Initialize i18n first

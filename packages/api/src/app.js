@@ -13,7 +13,7 @@ import { configureMiddleware } from "./startup/middleware.js";
 import { NotFoundError } from "@auth/utils";
 import { i18nInstance, i18nMiddleware } from "@auth/config";
 import mongoose from "@auth/database";
-import { redisConnection } from "@auth/queues";
+import { redisConnection } from "@auth/config/redis";
 
 import { configureRoutes } from "./startup/routes.js";
 

@@ -8,4 +8,4 @@
 
 export * from "./producers/index.js";
 export * from "./queue.constants.js";
-export { default as redisConnection } from "./connection.js";
+
