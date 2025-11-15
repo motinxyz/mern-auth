@@ -6,18 +6,16 @@ import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
 
 // core imports
-import {
-  errorHandler,
-} from "@auth/core";
+import { errorHandler } from "@auth/core";
 import { configureMiddleware } from "./startup/middleware.js";
 import { NotFoundError } from "@auth/utils";
 import { i18nInstance, i18nMiddleware } from "@auth/config";
 import mongoose from "@auth/database";
-import { redisConnection } from "@auth/config/redis";
+import { redisConnection } from "@auth/config";
 
 import { configureRoutes } from "./startup/routes.js";
 
-// const
+// creates express router
 const app = express();
 
 // Apply i18n middleware before any other middleware that might need it.
@@ -37,7 +35,7 @@ configureMiddleware(app); // New call
 app.get("/healthz", (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? "OK" : "Error";
   const redisStatus = redisConnection.status === "ready" ? "OK" : "Error";
-  
+
   if (dbStatus === "OK" && redisStatus === "OK") {
     res.status(200).json({ status: "OK", db: dbStatus, redis: redisStatus });
   } else {

@@ -12,3 +12,4 @@ export { default as TokenCreationError } from "./TokenCreationError.js";
 export { default as RedisConnectionError } from "./RedisConnectionError.js";
 export { default as QueueError } from "./QueueError.js";
 export { default as EmailServiceInitializationError } from "./EmailServiceInitializationError.js";
+export { default as DatabaseConnectionError } from "./DatabaseConnectionError.js";

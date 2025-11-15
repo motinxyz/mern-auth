@@ -1,5 +1,5 @@
 import { Queue } from "bullmq";
-import { redisConnection as connection } from "@auth/config/redis";
+import { redisConnection as connection } from "@auth/config";
 import { logger as baseLogger, t as systemT } from "@auth/config";
 import { QUEUE_NAMES } from "./queue.constants.js";
 import { QueueError } from "@auth/utils";

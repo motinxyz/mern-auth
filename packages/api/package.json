@@ -4,18 +4,19 @@
   "private": true,
   "type": "module",
   "main": "src/server.js",
+  "types": "src/index.d.ts",
   "scripts": {
     "dev": "node --watch src/server.js",
     "test": "vitest run --coverage",
     "lint": "eslint ."
   },
   "dependencies": {
+    "@auth/app-bootstrap": "workspace:*",
     "@auth/config": "workspace:*",
     "@auth/core": "workspace:*",
     "@auth/database": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
-    "@auth/app-bootstrap": "workspace:*",
     "@exortek/express-mongo-sanitize": "^1.1.1",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
@@ -29,6 +30,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@types/express": "^5.0.5",
     "ioredis-mock": "^8.13.1",
     "supertest": "^7.1.4"
   }

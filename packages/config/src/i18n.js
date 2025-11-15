@@ -26,7 +26,9 @@ async function discoverI18nResources() {
       throw new ConfigurationError(I18N_MESSAGES.NO_LANG_DIR);
     }
 
-    const namespaceFiles = await fs.readdir(path.join(localesDir, defaultLocale));
+    const namespaceFiles = await fs.readdir(
+      path.join(localesDir, defaultLocale)
+    );
     const availableNamespaces = namespaceFiles
       .filter((file) => file.endsWith(".json"))
       .map((file) => path.basename(file, ".json"));
@@ -36,7 +38,9 @@ async function discoverI18nResources() {
     if (error instanceof ConfigurationError) {
       throw error;
     }
-    throw new ConfigurationError(`${I18N_MESSAGES.DISCOVERY_FAILED} ${error.message}`);
+    throw new ConfigurationError(
+      `${I18N_MESSAGES.DISCOVERY_FAILED} ${error.message}`
+    );
   }
 }
 
@@ -51,7 +55,8 @@ const i18nInitPromise = i18next
       loadPath: path.join(localesDir, "{{lng}}/{{ns}}.json"),
     },
     fallbackLng: defaultLocale,
-    preload: availableLocales,
+    // all lng and ns will be preloaded, for lazy loading, remove this option
+    preload: availableLocales, //performance optimaztion
     defaultNS: defaultNamespace,
     ns: availableNamespaces,
   });

@@ -3,18 +3,7 @@ import bcrypt from "bcrypt";
 import { config } from "@auth/config";
 import { VALIDATION_RULES } from "@auth/utils";
 
-/**
- * @typedef {import('mongoose').Document & {
- *   name: string;
- *   email: string;
- *   password?: string;
- *   role: 'user' | 'admin';
- *   isVerified: boolean;
- *   createdAt: Date;
- *   updatedAt: Date;
- *   comparePassword: (candidatePassword: string) => Promise<boolean>;
- * }} IUser
- */
+
 
 /**
  * Mongoose schema for the User model.

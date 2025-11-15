@@ -5,7 +5,10 @@
     "disconnected": "MongoDB disconnected",
     "attemptingConnection": "Attempting MongoDB connection",
     "connectSuccess": "MongoDB connected successfully",
-    "disconnectError": "Error disconnecting from MongoDB:"
+    "disconnectError": "Error disconnecting from MongoDB:",
+    "retryingConnection": "Retrying connection in {{delay}} seconds...",
+    "pingSuccess": "Database ping successful.",
+    "connectionFailedAfterRetries": "Failed to connect to the database after multiple retries."
   },
   "redis": {
     "connected": "Redis connected",
@@ -16,7 +19,9 @@
     "startSuccess": "Server is listening on port {{port}}.",
     "startError": "Server failed to start.",
     "closeSuccess": "HTTP server closed.",
-    "healthCheck": "System is healthy and operational"
+    "healthCheck": "System is healthy and operational",
+    "serviceStartError": "Failed to start service: {{service}}.",
+    "allServicesStarted": "All services started successfully."
   },
   "auth": {
     "verify": {

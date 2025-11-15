@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { config } from "@auth/config";
 import { logger, t } from "@auth/config";
+import { ConfigurationError, DatabaseConnectionError } from "@auth/utils";
 
 mongoose.connection.on("connected", () => {
   logger.info(t("system:db.connected"));
@@ -17,27 +18,37 @@ mongoose.connection.on("disconnected", () => {
 });
 
 const connectDB = async () => {
-  try {
-    logger.debug({
-      msg: t("system:db.attemptingConnection"),
-      dbName: config.dbName
-    });
-    
-    await mongoose.connect(config.dbURI, {
-      dbName: config.dbName,
-      serverSelectionTimeoutMS: 5000, // 5 second timeout
-      socketTimeoutMS: 45000, // 45 second timeout
-    });
-    
-    logger.info(t("system:db.connectSuccess"));
-  } catch (error) {
-    logger.error({
-      msg: t("system:db.connectionError"),
-      error: error.message,
-      code: error.code,
-      name: error.name
-    });
-    throw error; // Let the caller handle the error
+  for (let i = 0; i < config.dbMaxRetries; i++) { // Use config.dbMaxRetries
+    try {
+      logger.debug({
+        msg: t("system:db.attemptingConnection"),
+        dbName: config.dbName,
+        attempt: i + 1,
+        maxAttempts: config.dbMaxRetries // Use config.dbMaxRetries
+      });
+
+      await mongoose.connect(config.dbURI, {
+        dbName: config.dbName,
+        serverSelectionTimeoutMS: 5000, // 5 second timeout
+        socketTimeoutMS: 45000, // 45 second timeout
+      });
+
+      // Health Check Granularity: Ping the database to ensure responsiveness
+      await mongoose.connection.db.admin().ping();
+      logger.info(t("system:db.pingSuccess"));
+
+      logger.info(t("system:db.connectSuccess"));
+      return; // Connection successful, exit loop
+    } catch (error) {
+      logger.error(t("system:db.connectionError"), error);
+      if (i < config.dbMaxRetries - 1) { // Use config.dbMaxRetries
+        const delay = config.dbInitialRetryDelayMs * Math.pow(2, i); // Use config.dbInitialRetryDelayMs
+        logger.warn(t("system:db.retryingConnection", { delay: delay / 1000 }));
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw new DatabaseConnectionError(error); // Last attempt failed, re-throw custom error
+      }
+    }
   }
 };
 
@@ -49,8 +60,7 @@ const disconnectDB = async () => {
     logger.info(t("system:db.disconnected"));
   } catch (error) {
     logger.error(t("system:db.disconnectError"), error);
-    // Similar to connection errors, a failure to disconnect might indicate
-    // a larger issue, prompting a graceful shutdown.
+    throw error; // Re-throw error
   }
 };
 

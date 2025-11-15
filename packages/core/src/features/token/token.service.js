@@ -1,5 +1,5 @@
 import { config, logger, t as systemT } from "@auth/config";
-import { redisConnection } from "@auth/config/redis";
+import { redisConnection } from "@auth/config";
 import crypto from "node:crypto";
 import { TOKEN_REDIS_PREFIXES } from "@auth/config";
 import { TokenCreationError, HASHING_ALGORITHM } from "@auth/utils";

@@ -1,11 +1,7 @@
-import { Mongoose, Model } from "mongoose";
-import { IUser } from "./models/user.model.js";
+import mongoose, { Model } from "mongoose";
+import { IUser } from "./models/user.model";
 
-declare module "@auth/database" {
-  export const connectDB: () => Promise<void>;
-  export const disconnectDB: () => Promise<void>;
-  export const User: Model<IUser>;
-
-  const mongoose: Mongoose;
-  export default mongoose;
-}
+export declare function connectDB(): Promise<void>;
+export declare function disconnectDB(): Promise<void>;
+export declare const User: Model<IUser>;
+export { mongoose };

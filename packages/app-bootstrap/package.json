@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Application bootstrap and orchestration for the authentication service.",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

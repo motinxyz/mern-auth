@@ -30,6 +30,8 @@ const DEFAULTS = {
   REDIS_PREFIX_VERIFY_EMAIL: "verify:",
   REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT: "verify-email-rate-limit:",
   BCRYPT_SALT_ROUNDS: 12,
+  DB_MAX_RETRIES: 5,
+  DB_INITIAL_RETRY_DELAY_MS: 1000, // 1 second
 };
 
 const urlRegex = /^(https?|ftp|redis|rediss):\/\/[^\s/$.?#].*$/i;
@@ -99,6 +101,8 @@ const envSchema = z.object({
     .default(DEFAULTS.VERIFICATION_TOKEN_EXPIRES_IN),
   LOG_LEVEL: z.string().default(DEFAULTS.LOG_LEVEL),
   BCRYPT_SALT_ROUNDS: z.coerce.number().default(DEFAULTS.BCRYPT_SALT_ROUNDS),
+  DB_MAX_RETRIES: z.coerce.number().default(DEFAULTS.DB_MAX_RETRIES),
+  DB_INITIAL_RETRY_DELAY_MS: z.coerce.number().default(DEFAULTS.DB_INITIAL_RETRY_DELAY_MS),
 });
 
 if (process.env.NODE_ENV === "test") {
@@ -141,6 +145,8 @@ const finalConfig = {
   verificationTokenExpiresIn: envVars.VERIFICATION_TOKEN_EXPIRES_IN,
   logLevel: envVars.NODE_ENV === "development" ? "debug" : envVars.LOG_LEVEL,
   bcryptSaltRounds: envVars.BCRYPT_SALT_ROUNDS,
+  dbMaxRetries: envVars.DB_MAX_RETRIES,
+  dbInitialRetryDelayMs: envVars.DB_INITIAL_RETRY_DELAY_MS,
   TOKEN_REDIS_PREFIXES: {
     VERIFY_EMAIL: envVars.REDIS_PREFIX_VERIFY_EMAIL,
   },
