@@ -4,8 +4,10 @@
   "main": "src/index.js",
   "type": "module",
   "exports": {
-    ".": "./src/index.js",
-    "./features/auth/auth.service.js": "./src/features/auth/auth.service.js"
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
   },
   "scripts": {
     "test": "vitest run --coverage"
@@ -20,7 +22,9 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
     "pino-http": "^11.0.0",
+    "@exortek/express-mongo-sanitize": "^1.1.1",
     "uuid": "^13.0.0",
     "zod": "^4.1.12"
   },

@@ -7,13 +7,16 @@
     "test": "vitest run --coverage"
   },
   "exports": {
-    ".": "./src/index.js",
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    },
     "./producers": "./src/producers/index.js"
   },
   "dependencies": {
     "@auth/config": "workspace:*",
     "@auth/utils": "workspace:*",
-    "bullmq": "^5.63.0",
+    "bullmq": "^5.63.2",
     "ioredis": "^5.8.2",
     "nodemailer": "^7.0.10"
   }

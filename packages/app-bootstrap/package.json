@@ -16,6 +16,6 @@
     "@auth/database": "workspace:*",
     "@auth/email": "workspace:*",
     "@auth/utils": "workspace:*",
-    "mongoose": "^8.0.0"
+    "mongoose": "^8.19.4"
   }
 }

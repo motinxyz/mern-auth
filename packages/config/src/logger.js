@@ -1,16 +1,21 @@
 import pino from "pino";
 import config from "./env.js";
 
-const logger = pino({
-  level: config.logLevel,
-  ...(config.isDevelopment && {
-    transport: {
-      target: "pino-pretty",
-      options: {
-        colorize: true,
-      },
-    },
-  }),
-});
+let loggerInstance;
 
-export default logger;
+export function getLogger() {
+  if (!loggerInstance) {
+    loggerInstance = pino({
+      level: config.logLevel,
+      ...(config.isDevelopment && {
+        transport: {
+          target: "pino-pretty",
+          options: {
+            colorize: true,
+          },
+        },
+      }),
+    });
+  }
+  return loggerInstance;
+}

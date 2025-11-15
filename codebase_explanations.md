@@ -53,7 +53,7 @@ The monorepo is composed of several distinct packages, each with a specific resp
     *   **Purpose:** A dedicated orchestration layer responsible for initializing all necessary services (configuration, database, i18n, email) and starting the API server. This centralizes application startup logic and error handling.
     *   **Key Dependencies:** `@auth/config`, `@auth/database`, `@auth/email`, `@auth/utils`.
 *   **`config`**:
-    *   **Purpose:** Centralized configuration management for the entire application. It provides environment variables, logging setup, internationalization (i18n), and Redis connection configurations.
+    *   **Purpose:** Centralized configuration management for the entire application. It provides environment variables, logging setup, internationalization (i18n), Redis connection configurations (including `REDIS_MAX_RETRIES`, `REDIS_RETRY_DELAY_MS`), and application shutdown timeout (`SHUTDOWN_TIMEOUT_MS`).
     *   **Key Dependencies:** `@auth/utils`, `dotenv`, `i18next`, `pino`, `ioredis`, `zod`.
 *   **`core`**:
     *   **Purpose:** Contains the core business logic and features, such as authentication, token management, and common middleware. This package is designed to be reusable across different parts of the application.
@@ -91,7 +91,7 @@ Here's a step-by-step breakdown of the startup process:
         *   The `env.js` file is responsible for loading environment variables. It first determines the monorepo root to locate the correct `.env` or `.env.test` file.
         *   It uses `dotenv` to load variables and `zod` to validate them against a predefined schema (`envSchema`). If validation fails, an `EnvironmentError` is thrown, halting the application.
         *   Default values are provided for many variables, and specific refinements (e.g., URL format for `MONGO_URI`, `REDIS_URL`) are applied.
-        *   The validated and parsed configuration is then exported as `config`.
+        *   The validated and parsed configuration, including `DB_MAX_RETRIES`, `DB_INITIAL_RETRY_DELAY_MS`, `REDIS_MAX_RETRIES`, `REDIS_RETRY_DELAY_MS`, and `SHUTDOWN_TIMEOUT_MS`, is then exported as `config`.
     *   **Internationalization Initialization (`@auth/config/i18n.js`):**
         *   `initI18n()` is called to set up the `i18next` instance. It configures `i18next-fs-backend` to load translation files from `packages/config/src/locales` and `i18next-http-middleware` for language detection.
         *   After `i18next` is initialized, `setT(i18next.t.bind(i18next))` is called to update the globally accessible `t` function (exported from `@auth/config`) with the fully functional translation instance.
@@ -99,8 +99,9 @@ Here's a step-by-step breakdown of the startup process:
     *   **Database Connection (`@auth/database/index.js`):**
         *   `connectDB()` is called to establish a connection to MongoDB using Mongoose.
         *   It uses the `dbURI` and `dbName` from the `config` package.
+        *   A retry mechanism with exponential backoff is implemented, using `config.dbMaxRetries` and `config.dbInitialRetryDelayMs`.
         *   Mongoose connection events (`connected`, `error`, `disconnected`) are logged using the application's logger.
-        *   If the connection fails, an error is logged, and the application exits.
+        *   If the connection fails after all retries, a `DatabaseConnectionError` is thrown.
     *   **Email Service Initialization (`@auth/email/index.js`):**
         *   `initEmailService()` is called to set up the Nodemailer transport and configure the Circuit Breaker for email sending.
         *   It verifies the SMTP connection on startup (except in test environments). If verification fails, it throws an `EmailServiceInitializationError`.
@@ -112,8 +113,10 @@ Here's a step-by-step breakdown of the startup process:
         *   This function closes the HTTP server, disconnects from the database (`disconnectDB()`), and then exits the process, ensuring no open connections or pending operations.
     *   **Centralized Error Handling:**
         *   The `bootstrapApplication` function includes a `try-catch` block that catches any errors occurring during the initialization of services or server startup.
-        *   It specifically checks for `EmailServiceInitializationError` to provide a more targeted fatal log message.
-        *   For any critical startup error, it logs the error and then calls `process.exit(1)`, ensuring the application fails fast and signals an abnormal termination.
+        *   It specifically checks for `DatabaseConnectionError`, `EmailServiceInitializationError`, and `RedisConnectionError` to provide more targeted fatal log messages.
+        *   If any critical service fails to initialize, it logs the error and then introduces a delay using `config.shutdownTimeoutMs` before calling `process.exit(1)`, ensuring the application fails fast but allows time for logs to be flushed and external systems to react.
+    *   **Lazy Logger Initialization:**
+        *   The `logger` is now initialized lazily via a `getLogger()` function. This ensures that `config.logLevel` is fully resolved and available when the `pino` logger instance is created, preventing issues where the logger's level might be `undefined` during early startup.
 
 3.  **`packages/api/src/app.js`**:
     *   This file remains responsible for configuring the Express application instance.
@@ -238,7 +241,9 @@ The application leverages a background worker and a message queue system (BullMQ
 
 *   **`packages/queues/src/connection.js`:**
     *   This file simply re-exports `redisConnection` from `@auth/config/redis`.
-    *   The `redisConnection` object (from `@auth/config/redis.js` - not explicitly read but inferred from usage) is an `ioredis` client instance, configured to connect to the Redis server specified in `config.redisUrl`.
+    *   The `redisConnection` object (from `@auth/config/redis.js`) is an `ioredis` client instance, configured to connect to the Redis server specified in `config.redisUrl`.
+    *   It now includes a retry mechanism with exponential backoff, using `config.redisMaxRetries` and `config.redisRetryDelayMs`. `maxRetriesPerRequest` is set to `null` to satisfy BullMQ's requirements, but the custom `retryStrategy` limits the actual reconnection attempts.
+    *   If the connection fails after all retries, a `RedisConnectionError` is thrown.
     *   This centralized connection ensures that both job producers and consumers use the same Redis instance for queue operations.
 *   **`packages/queues/src/email.queue.js`:**
     *   This file defines the `emailQueue` using `new Queue(QUEUE_NAMES.EMAIL, { connection, defaultJobOptions })`.
@@ -250,9 +255,10 @@ The application leverages a background worker and a message queue system (BullMQ
 
 *   **`packages/worker/src/index.js`:**
     *   This is the main entry point for the background worker application.
-    *   It first initializes `i18n` and the `emailService` (SMTP transporter) to ensure they are ready before processing jobs.
+    *   It now directly initializes `i18n` and the `emailService` (SMTP transporter) to ensure they are ready before processing jobs, as the worker's startup script no longer relies on `app-bootstrap` for these common services.
     *   It then imports `emailProcessor` from `./email.processor.js`, which is the BullMQ worker instance.
     *   It sets up graceful shutdown handlers for `SIGTERM` and `SIGINT` to properly close the worker and Redis connection.
+    *   The entire worker startup is wrapped in a `try...catch` block to handle critical initialization errors, including `RedisConnectionError`, ensuring the worker logs the error and exits gracefully.
 *   **`packages/worker/src/email.processor.js`:**
     *   This file creates and configures the BullMQ `Worker` instance for the `email` queue.
     *   `const emailProcessor = new Worker(QUEUE_NAMES.EMAIL, processor, { connection, concurrency, removeOnComplete, removeOnFail, limiter });`

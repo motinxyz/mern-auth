@@ -25,6 +25,13 @@ const emailProcessor = new Worker(QUEUE_NAMES.EMAIL, processor, {
     max: WORKER_CONFIG.RATE_LIMIT.MAX_JOBS,
     duration: WORKER_CONFIG.RATE_LIMIT.DURATION,
   },
+  // Reduce Redis chattiness for providers with strict request limits like Upstash
+  enableReadyEvent: false, // Disable ready event if not explicitly needed
+  enableKeyEvents: false, // Disable key events if not explicitly needed
+  // Further reduce Redis traffic by adjusting intervals and delays
+  stalledInterval: 60000, // How often the worker checks for stalled jobs (default 30000ms)
+  lockDuration: 60000,    // How long the job lock is valid (default 30000ms)
+  drainDelay: 500,        // Delay before fetching next job after completion (default 5ms)
 });
 
 emailProcessor.on("failed", async (job, err) => {

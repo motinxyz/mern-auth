@@ -9,12 +9,13 @@
     "test": "vitest run --coverage"
   },
   "dependencies": {
+    "@auth/app-bootstrap": "workspace:*",
     "@auth/config": "workspace:*",
     "@auth/core": "workspace:*",
     "@auth/database": "workspace:*",
     "@auth/email": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
-    "bullmq": "^5.63.0"
+    "bullmq": "^5.63.2"
   }
 }

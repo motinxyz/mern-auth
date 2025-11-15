@@ -1,15 +1,20 @@
 {
   "logs": {
     "starting": "Starting email worker process...",
-    "ready": "Email worker is ready and listening for jobs.",
-    "processing": "Processing job.",
+    "ready": "Email processor is ready for jobs.",
+    "processing": "Processing job...",
     "dispatchingEmail": "Dispatching verification email",
     "emailSentSuccess": "Verification email sent successfully.",
     "completed": "Job completed.",
-    "failed": "Job failed"
+    "failed": "Job failed.",
+    "jobStarted": "Job started.",
+    "sendingVerificationEmail": "Sending verification email.",
+    "verificationEmailSent": "Verification email sent."
   },
   "errors": {
     "jobDataMissingFields": "Job data is missing required fields.",
-    "unknownJobType": "Unknown job type received: {{type}}."
+    "unknownJobType": "Unknown job type received: {{type}}.",
+    "jobFailed": "Job processing failed.",
+    "startupFailed": "Email worker startup failed."
   }
 }

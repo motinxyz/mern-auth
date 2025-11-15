@@ -11,7 +11,7 @@
     "@auth/config": "workspace:*",
     "@auth/utils": "workspace:*",
     "bcrypt": "^6.0.0",
-    "mongoose": "^8.19.3"
+    "mongoose": "^8.19.4"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0"

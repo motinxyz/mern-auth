@@ -15,6 +15,9 @@ const emailQueue = new Queue(QUEUE_NAMES.EMAIL, {
       delay: 5000,
     },
   },
+  // Reduce Redis chattiness for providers with strict request limits like Upstash
+  enableReadyEvent: false, // Disable ready event if not explicitly needed
+  enableKeyEvents: false, // Disable key events if not explicitly needed
 });
 
 emailQueue.on("error", (err) => {

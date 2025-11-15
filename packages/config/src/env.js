@@ -30,8 +30,11 @@ const DEFAULTS = {
   REDIS_PREFIX_VERIFY_EMAIL: "verify:",
   REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT: "verify-email-rate-limit:",
   BCRYPT_SALT_ROUNDS: 12,
-  DB_MAX_RETRIES: 5,
-  DB_INITIAL_RETRY_DELAY_MS: 1000, // 1 second
+  DB_MAX_RETRIES: 10,
+  DB_INITIAL_RETRY_DELAY_MS: 2000, // 2 seconds
+  SHUTDOWN_TIMEOUT_MS: 10000, // 10 seconds
+  REDIS_MAX_RETRIES: 5,
+  REDIS_RETRY_DELAY_MS: 1000, // 1 second
 };
 
 const urlRegex = /^(https?|ftp|redis|rediss):\/\/[^\s/$.?#].*$/i;
@@ -103,6 +106,9 @@ const envSchema = z.object({
   BCRYPT_SALT_ROUNDS: z.coerce.number().default(DEFAULTS.BCRYPT_SALT_ROUNDS),
   DB_MAX_RETRIES: z.coerce.number().default(DEFAULTS.DB_MAX_RETRIES),
   DB_INITIAL_RETRY_DELAY_MS: z.coerce.number().default(DEFAULTS.DB_INITIAL_RETRY_DELAY_MS),
+  SHUTDOWN_TIMEOUT_MS: z.coerce.number().default(DEFAULTS.SHUTDOWN_TIMEOUT_MS),
+  REDIS_MAX_RETRIES: z.coerce.number().default(DEFAULTS.REDIS_MAX_RETRIES),
+  REDIS_RETRY_DELAY_MS: z.coerce.number().default(DEFAULTS.REDIS_RETRY_DELAY_MS),
 });
 
 if (process.env.NODE_ENV === "test") {
@@ -147,6 +153,9 @@ const finalConfig = {
   bcryptSaltRounds: envVars.BCRYPT_SALT_ROUNDS,
   dbMaxRetries: envVars.DB_MAX_RETRIES,
   dbInitialRetryDelayMs: envVars.DB_INITIAL_RETRY_DELAY_MS,
+  shutdownTimeoutMs: envVars.SHUTDOWN_TIMEOUT_MS,
+  redisMaxRetries: envVars.REDIS_MAX_RETRIES,
+  redisRetryDelayMs: envVars.REDIS_RETRY_DELAY_MS,
   TOKEN_REDIS_PREFIXES: {
     VERIFY_EMAIL: envVars.REDIS_PREFIX_VERIFY_EMAIL,
   },
