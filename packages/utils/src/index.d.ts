@@ -70,4 +70,7 @@ declare module "@auth/utils" {
     ACCESS_TOKEN: string;
     REFRESH_TOKEN: string;
   };
+
+  export function createAuthRateLimitKey(prefix: string, email: string): string;
+  export function createVerifyEmailKey(prefix: string, hashedToken: string): string;
 }

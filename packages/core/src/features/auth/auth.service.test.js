@@ -101,7 +101,7 @@ describe('Auth Service', () => {
       expect(createVerificationToken).toHaveBeenCalledWith(newUser);
       expect(addEmailJob).toHaveBeenCalled();
       expect(mockRedisConnection.get).toHaveBeenCalledWith('rate-limit:verify-email:test@example.com');
-      expect(mockRedisConnection.set).toHaveBeenCalledWith('rate-limit:verify-email:test@example.com', 'true', 'EX', 180);
+      expect(mockRedisConnection.set).toHaveBeenCalledWith('rate-limit:verify-email:test@example.com', '1', 'EX', 180);
       expect(result).toEqual({ ...userData, id: '123' });
     }, 30000);
 

@@ -1,15 +1,24 @@
 import { User, default as mongoose } from "@auth/database";
 import crypto from "node:crypto";
-import { logger, t } from "@auth/config";
-import { AUTH_REDIS_PREFIXES, TOKEN_REDIS_PREFIXES } from "@auth/config";
+import {
+  logger,
+  t,
+  AUTH_REDIS_PREFIXES,
+  TOKEN_REDIS_PREFIXES,
+} from "@auth/config";
 import {
   TooManyRequestsError,
   NotFoundError,
   VERIFICATION_STATUS,
   RATE_LIMIT_DURATIONS,
-  HASHING_ALGORITHM, // This is used in verifyUserEmail, not registerNewUser
+  HASHING_ALGORITHM,
+  REDIS_RATE_LIMIT_VALUE,
+  ApiError,
+  HTTP_STATUS_CODES,
+  createAuthRateLimitKey,
+  createVerifyEmailKey,
 } from "@auth/utils";
-import { createVerificationToken } from "../token/token.service.js"; // Corrected path
+import { createVerificationToken } from "../token/token.service.js";
 import { addEmailJob } from "@auth/queues/producers";
 import { redisConnection } from "@auth/config";
 import { EMAIL_JOB_TYPES } from "@auth/utils";
@@ -18,7 +27,10 @@ const authServiceLogger = logger.child({ module: "auth-service" });
 
 export const registerNewUser = async (userData, req) => {
   const { email } = userData;
-  const rateLimitKey = `${AUTH_REDIS_PREFIXES.VERIFY_EMAIL_RATE_LIMIT}${email}`;
+  const rateLimitKey = createAuthRateLimitKey(
+    AUTH_REDIS_PREFIXES.VERIFY_EMAIL_RATE_LIMIT,
+    email
+  );
 
   if (await redisConnection.get(rateLimitKey)) {
     throw new TooManyRequestsError(RATE_LIMIT_DURATIONS.VERIFY_EMAIL);
@@ -27,32 +39,25 @@ export const registerNewUser = async (userData, req) => {
   let newUser;
   const session = await mongoose.startSession();
   await session.withTransaction(async () => {
-    // Create the user within the transaction
     [newUser] = await User.create([userData], { session });
 
-    // Orchestrate the verification flow
     authServiceLogger.info(req.t("auth:logs.orchestratingVerification"));
     const verificationToken = await createVerificationToken(newUser);
 
-    // Add a job to the queue to send the verification email
-    await addEmailJob(
-      EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL,
-      {
-        user: {
-          id: newUser.id,
-          name: newUser.name,
-          email: newUser.email,
-        },
-        token: verificationToken,
-        locale: req.locale,
-      }
-    );
+    await addEmailJob(EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL, {
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+      },
+      token: verificationToken,
+      locale: req.locale,
+    });
   });
 
-  // Set rate limit only after the transaction is successful
   await redisConnection.set(
     rateLimitKey,
-    "true",
+    REDIS_RATE_LIMIT_VALUE,
     "EX",
     RATE_LIMIT_DURATIONS.VERIFY_EMAIL
   );
@@ -60,28 +65,21 @@ export const registerNewUser = async (userData, req) => {
   return newUser.toJSON();
 };
 
-/**
- * Verifies a user's email address using a provided token.
- * This function hashes the token, checks its validity in Redis,
- * updates the user's verification status in the database, and deletes the token from Redis.
- *
- * @param {string} token - The verification token received by the user.
- * @returns {Promise<object>} A promise that resolves to an object containing the verification status.
- * @throws {NotFoundError} If the token is invalid, expired, or the associated user is not found.
- */
 export const verifyUserEmail = async (token) => {
-  // 1. Hash the incoming token to match the one stored in Redis.
   const hashedToken = crypto
     .createHash(HASHING_ALGORITHM)
     .update(token)
     .digest("hex");
-  const verifyKey = `${TOKEN_REDIS_PREFIXES.VERIFY_EMAIL}${hashedToken}`;
+  const verifyKey = createVerifyEmailKey(
+    TOKEN_REDIS_PREFIXES.VERIFY_EMAIL,
+    hashedToken
+  );
+
   authServiceLogger.debug(
     { key: verifyKey },
     t("auth:logs.redisKeyConstructed")
   );
 
-  // 2. Check if the token exists in Redis
   const userDataJSON = await redisConnection.get(verifyKey);
   if (!userDataJSON) {
     authServiceLogger.warn(
@@ -90,18 +88,28 @@ export const verifyUserEmail = async (token) => {
     );
     throw new NotFoundError("auth:verify.invalidToken");
   }
+
   authServiceLogger.debug(
     { key: verifyKey, data: userDataJSON },
     t("auth:logs.tokenFoundRedis")
   );
 
-  const userData = JSON.parse(userDataJSON);
+  let userData;
+  try {
+    userData = JSON.parse(userDataJSON);
+  } catch (error) {
+    authServiceLogger.error(
+      { error, redisData: userDataJSON },
+      "Failed to parse user data from Redis."
+    );
+    throw new ApiError(
+      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      t("auth:errors.invalidDataFormat")
+    );
+  }
 
-  // 3. Find the user in the database.
   const user = await User.findById(userData.userId);
   if (!user) {
-    // This is an edge case, but good to handle.
-    // It means the token was valid, but the user was deleted.
     authServiceLogger.error(
       { userId: userData.userId },
       t("auth:logs.userFromTokenNotFound")
@@ -109,9 +117,7 @@ export const verifyUserEmail = async (token) => {
     throw new NotFoundError("auth:verify.userNotFound");
   }
 
-  // 4. (Idempotency Check) If user is already verified, we can stop here.
   if (user.isVerified) {
-    // Optionally, still delete the token so it can't be used again.
     await redisConnection.del(verifyKey);
     authServiceLogger.info(
       { userId: user.id },
@@ -120,16 +126,11 @@ export const verifyUserEmail = async (token) => {
     return { status: VERIFICATION_STATUS.ALREADY_VERIFIED };
   }
 
-  // 5. Update the user's verification status.
   user.isVerified = true;
   await user.save();
 
-  // 6. Delete the token from Redis so it cannot be used again.
   await redisConnection.del(verifyKey);
 
-  authServiceLogger.info(
-    { userId: user.id },
-    t("auth:logs.verifySuccess")
-  );
+  authServiceLogger.info({ userId: user.id }, t("auth:logs.verifySuccess"));
   return { status: VERIFICATION_STATUS.VERIFIED };
 };

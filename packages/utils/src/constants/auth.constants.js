@@ -9,3 +9,5 @@ export const VERIFICATION_STATUS = Object.freeze({
 export const RATE_LIMIT_DURATIONS = Object.freeze({
   VERIFY_EMAIL: 180, // 3 minutes in seconds
 });
+
+export const REDIS_RATE_LIMIT_VALUE = "1";
