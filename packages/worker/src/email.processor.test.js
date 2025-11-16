@@ -25,6 +25,7 @@ vi.doMock('@auth/config', () => ({
     })),
   },
   t: vi.fn((key) => key),
+  redisConnection: {},
 }));
 
 vi.doMock('@auth/queues', () => ({

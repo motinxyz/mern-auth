@@ -1,13 +1,35 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import Redis from 'ioredis-mock';
 import { User, default as mongoose } from '@auth/database';
 import { addEmailJob } from '@auth/queues/producers';
 import { createVerificationToken } from '../token/token.service.js';
 import { registerNewUser, verifyUserEmail } from './auth.service.js';
 import { TooManyRequestsError, NotFoundError, VERIFICATION_STATUS } from '@auth/utils';
 import crypto from 'node:crypto';
-import { redisConnection } from '@auth/config/redis'; // Import the mocked redisConnection
+
+// Mock Redis before other mocks
+vi.mock('@auth/config', () => ({
+  redisConnection: {
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+  },
+  logger: {
+    child: vi.fn(() => ({
+      info: vi.fn(),
+      debug: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    })),
+  },
+  t: vi.fn((key) => key),
+  AUTH_REDIS_PREFIXES: {
+    VERIFY_EMAIL_RATE_LIMIT: 'rate-limit:verify-email:',
+  },
+  TOKEN_REDIS_PREFIXES: {
+    VERIFY_EMAIL: 'verify-email:',
+  },
+}));
 
 // Mock dependencies
 vi.mock('mongoose', async () => {
@@ -21,14 +43,10 @@ vi.mock('mongoose', async () => {
     default: {
       ...actualMongoose.default,
       startSession: vi.fn().mockResolvedValue(session),
+      connection: new actualMongoose.default.EventEmitter(), // Use actual Mongoose EventEmitter
     },
   };
 });
-
-// Use a high-fidelity mock for Redis
-vi.mock('@auth/config/redis', () => ({
-  redisConnection: new Redis(),
-}));
 
 vi.mock('@auth/database', async (importOriginal) => {
   const actual = await importOriginal();
@@ -49,44 +67,32 @@ vi.mock('../token/token.service.js', () => ({
   createVerificationToken: vi.fn(),
 }));
 
-vi.mock('@auth/config', () => ({
-  config: {
-    bcryptSaltRounds: 10,
-  },
-  logger: {
-    child: vi.fn(() => ({
-      info: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-      warn: vi.fn(),
-    })),
-  },
-  t: vi.fn((key) => key),
-  TOKEN_REDIS_PREFIXES: {
-    VERIFY_EMAIL: 'verify-email:',
-  },
-  AUTH_REDIS_PREFIXES: {
-    VERIFY_EMAIL_RATE_LIMIT: 'rate-limit:verify-email:',
-  },
-}));
-
 describe('Auth Service', () => {
-  beforeEach(() => {
+  let mockRedisConnection;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
-    // Clear all data from the mock redis instance before each test
-    redisConnection.flushall();
+    // Import the mocked config to get the mock redis connection
+    const configModule = await vi.importMock('@auth/config');
+    mockRedisConnection = configModule.redisConnection;
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+  
   describe('registerNewUser', () => {
     it('should register a new user and orchestrate verification', async () => {
       const userData = { name: 'Test User', email: 'test@example.com', password: 'password' };
-      const req = { t: vi.fn((key) => key), locale: 'en' };
+      const req = { t: vi.fn((key) => key), locale: 'en' }; // Mock req.t here
       const newUser = { ...userData, id: '123', toJSON: () => ({ ...userData, id: '123' }) };
       const session = await mongoose.startSession();
       session.withTransaction.mockImplementation(async (fn) => fn(session));
 
       User.create.mockResolvedValue([newUser]);
       createVerificationToken.mockResolvedValue('test_token');
+      mockRedisConnection.get.mockResolvedValue(null);
+      mockRedisConnection.set.mockResolvedValue('OK');
 
       const result = await registerNewUser(userData, req);
 
@@ -94,16 +100,18 @@ describe('Auth Service', () => {
       expect(User.create).toHaveBeenCalledWith([userData], { session });
       expect(createVerificationToken).toHaveBeenCalledWith(newUser);
       expect(addEmailJob).toHaveBeenCalled();
-      expect(await redisConnection.get('rate-limit:verify-email:test@example.com')).not.toBeNull();
+      expect(mockRedisConnection.get).toHaveBeenCalledWith('rate-limit:verify-email:test@example.com');
+      expect(mockRedisConnection.set).toHaveBeenCalledWith('rate-limit:verify-email:test@example.com', 'true', 'EX', 180);
       expect(result).toEqual({ ...userData, id: '123' });
     }, 30000);
 
     it('should throw TooManyRequestsError if rate limit is exceeded', async () => {
       const userData = { email: 'test@example.com' };
-      // Set the rate limit key in the mock redis
-      await redisConnection.set('rate-limit:verify-email:test@example.com', 'true');
+      const req = { t: vi.fn((key) => key) }; // Mock req.t here
+      
+      mockRedisConnection.get.mockResolvedValue('true');
 
-      await expect(registerNewUser(userData, {})).rejects.toThrow(TooManyRequestsError);
+      await expect(registerNewUser(userData, req)).rejects.toThrow(TooManyRequestsError);
     });
   });
 
@@ -114,8 +122,8 @@ describe('Auth Service', () => {
         const userData = { userId: '123' };
         const user = { id: '123', isVerified: false, save: vi.fn() };
 
-        // Set the verification key in the mock redis
-        await redisConnection.set(`verify-email:${hashedToken}`, JSON.stringify(userData));
+        mockRedisConnection.get.mockResolvedValue(JSON.stringify(userData));
+        mockRedisConnection.del.mockResolvedValue(1);
         User.findById.mockResolvedValue(user);
 
         const result = await verifyUserEmail(token);
@@ -123,8 +131,7 @@ describe('Auth Service', () => {
         expect(User.findById).toHaveBeenCalledWith('123');
         expect(user.isVerified).toBe(true);
         expect(user.save).toHaveBeenCalled();
-        // Check that the key was deleted
-        expect(await redisConnection.get(`verify-email:${hashedToken}`)).toBeNull();
+        expect(mockRedisConnection.del).toHaveBeenCalledWith(`verify-email:${hashedToken}`);
         expect(result).toEqual({ status: VERIFICATION_STATUS.VERIFIED });
     });
 
@@ -134,17 +141,19 @@ describe('Auth Service', () => {
         const userData = { userId: '123' };
         const user = { id: '123', isVerified: true };
 
-        await redisConnection.set(`verify-email:${hashedToken}`, JSON.stringify(userData));
+        mockRedisConnection.get.mockResolvedValue(JSON.stringify(userData));
+        mockRedisConnection.del.mockResolvedValue(1);
         User.findById.mockResolvedValue(user);
 
         const result = await verifyUserEmail(token);
 
-        expect(await redisConnection.get(`verify-email:${hashedToken}`)).toBeNull();
+        expect(mockRedisConnection.del).toHaveBeenCalledWith(`verify-email:${hashedToken}`);
         expect(result).toEqual({ status: VERIFICATION_STATUS.ALREADY_VERIFIED });
     });
 
     it('should throw NotFoundError for an invalid token', async () => {
         const token = 'invalid_token';
+        mockRedisConnection.get.mockResolvedValue(null);
         await expect(verifyUserEmail(token)).rejects.toThrow(NotFoundError);
     });
 
@@ -153,7 +162,7 @@ describe('Auth Service', () => {
         const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
         const userData = { userId: '123' };
 
-        await redisConnection.set(`verify-email:${hashedToken}`, JSON.stringify(userData));
+        mockRedisConnection.get.mockResolvedValue(JSON.stringify(userData));
         User.findById.mockResolvedValue(null);
 
         await expect(verifyUserEmail(token)).rejects.toThrow(NotFoundError);

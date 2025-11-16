@@ -4,17 +4,8 @@ import crypto from "node:crypto";
 import { TOKEN_REDIS_PREFIXES } from "@auth/config";
 import { TokenCreationError, HASHING_ALGORITHM } from "@auth/utils";
 
-
-
 const tokenServiceLogger = logger.child({ module: "token-service" });
 
-// Initialize a system translator for token-service logs and messages.
-/**
- * Creates a verification token for a user and stores it in Redis.
- *redisLogger
- * @param {object} user - The user object containing id and email.
- * @returns {Promise<string>} A promise that resolves to the generated verification token.
- */
 export const createVerificationToken = async (user) => {
   try {
     // Generate a secure, random token.

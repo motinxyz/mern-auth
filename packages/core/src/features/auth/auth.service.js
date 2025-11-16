@@ -16,17 +16,6 @@ import { EMAIL_JOB_TYPES } from "@auth/utils";
 
 const authServiceLogger = logger.child({ module: "auth-service" });
 
-/**
- * Registers a new user in the system.
- * This function handles user creation within a transaction, orchestrates the email verification flow,
- * and applies a rate limit to prevent abuse.
- *
- * @param {object} userData - The data for the new user (e.g., name, email, password).
- * @param {object} req - The Express request object, used for accessing translation functions and locale.
- * @returns {Promise<object>} A promise that resolves to the newly created user object (JSON representation).
- * @throws {TooManyRequestsError} If the email address has exceeded the verification request rate limit.
- * @throws {Error} For any other unexpected errors during user creation or verification orchestration.
- */
 export const registerNewUser = async (userData, req) => {
   const { email } = userData;
   const rateLimitKey = `${AUTH_REDIS_PREFIXES.VERIFY_EMAIL_RATE_LIMIT}${email}`;
@@ -89,7 +78,7 @@ export const verifyUserEmail = async (token) => {
   const verifyKey = `${TOKEN_REDIS_PREFIXES.VERIFY_EMAIL}${hashedToken}`;
   authServiceLogger.debug(
     { key: verifyKey },
-    "Constructed Redis key for verification token."
+    t("auth:logs.redisKeyConstructed")
   );
 
   // 2. Check if the token exists in Redis
@@ -97,14 +86,14 @@ export const verifyUserEmail = async (token) => {
   if (!userDataJSON) {
     authServiceLogger.warn(
       { key: verifyKey },
-      "Verification token not found in Redis."
+      t("auth:logs.tokenNotFoundRedis")
     );
     throw new NotFoundError("auth:verify.invalidToken");
   }
   authServiceLogger.debug(
     { key: verifyKey, data: userDataJSON },
-    "Found verification token in Redis."
-    );
+    t("auth:logs.tokenFoundRedis")
+  );
 
   const userData = JSON.parse(userDataJSON);
 
@@ -115,7 +104,7 @@ export const verifyUserEmail = async (token) => {
     // It means the token was valid, but the user was deleted.
     authServiceLogger.error(
       { userId: userData.userId },
-      "User from token not found in database."
+      t("auth:logs.userFromTokenNotFound")
     );
     throw new NotFoundError("auth:verify.userNotFound");
   }
@@ -124,7 +113,10 @@ export const verifyUserEmail = async (token) => {
   if (user.isVerified) {
     // Optionally, still delete the token so it can't be used again.
     await redisConnection.del(verifyKey);
-    authServiceLogger.info({ userId: user.id }, "User is already verified.");
+    authServiceLogger.info(
+      { userId: user.id },
+      t("auth:logs.userAlreadyVerified")
+    );
     return { status: VERIFICATION_STATUS.ALREADY_VERIFIED };
   }
 
@@ -141,4 +133,3 @@ export const verifyUserEmail = async (token) => {
   );
   return { status: VERIFICATION_STATUS.VERIFIED };
 };
-

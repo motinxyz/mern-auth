@@ -113,7 +113,8 @@ describe("Healthz", () => {
 
   beforeEach(async () => {
     mongoose = (await import("mongoose")).default;
-    redisConnection = (await import("@auth/config/redis")).redisConnection;
+    const configModule = await import("@auth/config");
+    redisConnection = configModule.redisConnection;
     mongoose.connection.readyState = 1; // Ensure DB is connected for most tests
     redisConnection.status = "ready"; // Ensure Redis is connected for most tests
   });

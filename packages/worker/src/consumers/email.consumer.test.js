@@ -19,12 +19,26 @@ vi.mock('@auth/config', () => ({
   i18nInstance: {
     getFixedT: vi.fn().mockResolvedValue(vi.fn((key) => key)),
   },
+  logger: {
+    child: vi.fn(() => ({
+      info: vi.fn(),
+      debug: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+    })),
+  },
   t: vi.fn((key) => key),
 }));
 
 describe('Email Job Consumer', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    // Don't use clearAllMocks because it clears the mock implementations
+    // Instead just reset the call counts
+    vi.resetAllMocks();
+    // Re-setup the mocks
+    i18nInstance.getFixedT.mockResolvedValue(vi.fn((key) => key));
+    // Make sure sendVerificationEmail resolves by default
+    sendVerificationEmail.mockResolvedValue(undefined);
   });
 
   describe('SEND_VERIFICATION_EMAIL', () => {
