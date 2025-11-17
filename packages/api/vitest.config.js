@@ -22,4 +22,15 @@ export default defineConfig({
       statements: 80,
     },
   },
+  resolve: { // Add resolve alias
+    alias: {
+      '@auth/core': path.resolve(__dirname, '../core/src'),
+      '@auth/email': path.resolve(__dirname, '../email/src'),
+      '@auth/config': path.resolve(__dirname, '../config/src'),
+      '@auth/database': path.resolve(__dirname, '../database/src'),
+      '@auth/queues': path.resolve(__dirname, '../queues/src'),
+      '@auth/utils': path.resolve(__dirname, '../utils/src'),
+      '@auth/app-bootstrap': path.resolve(__dirname, '../app-bootstrap/src'), // Also add app-bootstrap
+    },
+  },
 });

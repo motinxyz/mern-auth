@@ -1,34 +1,31 @@
 {
   "name": "@auth/core",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "private": true,
   "type": "module",
-  "exports": {
-    ".": {
-      "types": "./src/index.d.ts",
-      "default": "./src/index.js"
-    }
-  },
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
   "scripts": {
     "test": "vitest run --coverage"
   },
   "dependencies": {
     "@auth/config": "workspace:*",
     "@auth/database": "workspace:*",
-    "@auth/email": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
-    "cors": "^2.8.5",
     "express": "^5.1.0",
-    "express-rate-limit": "^8.2.1",
-    "helmet": "^8.1.0",
-    "hpp": "^0.2.3",
+    "express-rate-limit": "^7.0.0",
+    "mongoose": "^8.19.4",
+    "i18next": "^23.11.5",
+    "i18next-http-backend": "^2.5.2",
+    "pino": "^9.2.0",
     "pino-http": "^11.0.0",
-    "@exortek/express-mongo-sanitize": "^1.1.1",
-    "uuid": "^13.0.0",
+    "pino-pretty": "^13.1.2",
+    "uuid": "^9.0.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "ioredis-mock": "^8.13.1"
+    "supertest": "^7.1.4",
+    "vitest": "^1.6.0"
   }
 }

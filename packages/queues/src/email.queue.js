@@ -16,7 +16,7 @@ const emailQueue = new Queue(QUEUE_NAMES.EMAIL, {
     },
   },
   // Reduce Redis chattiness for providers with strict request limits like Upstash
-  enableReadyEvent: false, // Disable ready event if not explicitly needed
+  enableReadyEvent: true, // Disable ready event if not explicitly needed
   enableKeyEvents: false, // Disable key events if not explicitly needed
 });
 

@@ -1,15 +1,11 @@
 // Auth Feature
 export { default as authRouter } from "./features/auth/auth.routes.js";
-export {
-  registerNewUser,
-  verifyUserEmail,
-} from "./features/auth/auth.service.js";
+export { AuthService } from "./features/auth/auth.service.js";
+export { TokenService } from "./features/token/token.service.js";
+export { AuthController } from "./features/auth/auth.controller.js";
 
 // Middleware
-export { errorHandler } from "./middleware/errorHandler.js";
-export { httpLogger } from "./middleware/loggerMiddleware.js";
+export { errorHandlerFactory } from "./middleware/errorHandler.js";
+export { loggerMiddlewareFactory } from "./middleware/loggerMiddleware.js";
 export { authLimiter } from "./middleware/rateLimiter.js";
 export { validate } from "./middleware/validate.js";
-
-// Token Service
-export { createVerificationToken } from "./features/token/token.service.js";

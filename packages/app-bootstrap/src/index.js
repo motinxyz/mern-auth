@@ -1,6 +1,3 @@
-import { config, logger, initI18n, t } from "@auth/config";
-import { connectDB, disconnectDB } from "@auth/database";
-import { initEmailService } from "@auth/email";
 import {
   EmailServiceInitializationError,
   DatabaseConnectionError,
@@ -10,9 +7,12 @@ import {
 /**
  * Initializes common application services (i18n, database, email).
  * Handles parallel initialization and robust error reporting.
+ * @param {import('awilix').AwilixContainer} container - The Awilix DI container.
  * @returns {Promise<void>} A promise that resolves when all common services are initialized.
  */
-export async function initializeCommonServices() {
+export async function initializeCommonServices(container) {
+  const { config, logger, t, initI18n, connectDB, initEmailService } = container.cradle;
+
   // Initialize i18n first and await its completion as other services might depend on it
   await initI18n();
 
@@ -65,10 +65,13 @@ export async function initializeCommonServices() {
 /**
  * Initializes all necessary services in parallel and starts the API server.
  * @param {Express.Application} app - The Express application instance.
+ * @param {import('awilix').AwilixContainer} container - The Awilix DI container.
  * @returns {Promise<import('http').Server>} The HTTP server instance.
  */
-export async function bootstrapApplication(app) {
-  await initializeCommonServices(); // Initialize common services
+export async function bootstrapApplication(app, container) {
+  const { config, logger, t, disconnectDB } = container.cradle;
+
+  await initializeCommonServices(container); // Initialize common services
 
   const server = app.listen(config.port, () => {
     logger.info(t("system:server.startSuccess", { port: config.port }));

@@ -2,10 +2,12 @@ import { Router } from "express";
 import { authRouter } from "@auth/core";
 import healthRouter from "./health.router.js";
 
-const router = Router();
+export const v1Routes = (container) => {
+  const router = Router();
 
-// v1 routes
-router.use("/auth", authRouter);
-router.use("/health", healthRouter);
+  // v1 routes
+  router.use("/auth", authRouter(container));
+  router.use("/health", healthRouter(container)); // Pass the container to healthRouter
 
-export { router as v1Routes };
+  return router;
+};

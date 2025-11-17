@@ -26,7 +26,7 @@ const emailProcessor = new Worker(QUEUE_NAMES.EMAIL, processor, {
     duration: WORKER_CONFIG.RATE_LIMIT.DURATION,
   },
   // Reduce Redis chattiness for providers with strict request limits like Upstash
-  enableReadyEvent: false, // Disable ready event if not explicitly needed
+  enableReadyEvent: true, // Disable ready event if not explicitly needed
   enableKeyEvents: false, // Disable key events if not explicitly needed
   // Further reduce Redis traffic by adjusting intervals and delays
   stalledInterval: 60000, // How often the worker checks for stalled jobs (default 30000ms)

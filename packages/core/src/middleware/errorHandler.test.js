@@ -1,16 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ApiError, ValidationError, HTTP_STATUS_CODES } from "@auth/utils";
+import { createContainer, asValue } from 'awilix'; // Import Awilix utilities
+import { errorHandlerFactory } from "./errorHandler.js"; // Import the errorHandlerFactory
 
-// Mock dependencies
-vi.mock("@auth/config", () => ({
-  logger: {
-    child: vi.fn(() => ({
-      error: vi.fn(),
-      warn: vi.fn(),
-    })),
-  },
-}));
-
+// Mock @auth/utils - keep existing mocks
 vi.mock("@auth/utils", async () => {
   const actual = await vi.importActual("@auth/utils");
   class MockValidationError extends Error {
@@ -29,26 +22,42 @@ vi.mock("@auth/utils", async () => {
 
 describe("Error Handler Middleware", () => {
   let req, res, next;
-  let errorHandler; // Declare errorHandler here with let
-  let mockErrorFn; // Declare mockErrorFn here
+  let errorHandler; // The resolved errorHandler middleware
+  let mockLogger;
+  let mockT;
+  let mockWarnFn; // For the logger.warn mock
+  let mockErrorFn; // For the logger.error mock
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks(); // Clear mocks at the beginning
-    vi.resetModules(); // Reset module registry to ensure a fresh import
 
-    // Use vi.doMock to re-mock @auth/config after vi.resetModules()
-    await vi.doMock("@auth/config", () => ({
-      logger: {
-        child: vi.fn(() => ({
-          error: (mockErrorFn = vi.fn()), // Assign the mock function to mockErrorFn
-          warn: vi.fn(),
-        })),
-      },
-    }));
-    
-    // Re-import errorHandler after resetting modules and re-mocking config
-    const reimportedModule = await import('./errorHandler.js');
-    errorHandler = reimportedModule.errorHandler;
+    // Create a fresh container for each test
+    const container = createContainer();
+
+    // Create mocks for logger methods
+    mockWarnFn = vi.fn();
+    mockErrorFn = vi.fn();
+
+    // Mock logger.child to return an object with these mocks
+    mockLogger = {
+      child: vi.fn(() => ({
+        error: mockErrorFn,
+        warn: mockWarnFn,
+      })),
+    };
+
+    // Mock t function
+    mockT = vi.fn((key) => key);
+
+    // Register mocks with the container
+    container.register({
+      logger: asValue(mockLogger),
+      t: asValue(mockT),
+      errorHandler: asValue(errorHandlerFactory({ logger: mockLogger, t: mockT })), // Registering the factory-created middleware
+    });
+
+    // Resolve errorHandler middleware from the container
+    errorHandler = container.resolve('errorHandler');
 
     req = {
       t: vi.fn((key) => key),
@@ -62,6 +71,10 @@ describe("Error Handler Middleware", () => {
     next = vi.fn();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("should handle ApiError correctly", () => {
     const error = new ApiError(HTTP_STATUS_CODES.NOT_FOUND, "Not Found");
     errorHandler(error, req, res, next);
@@ -72,12 +85,22 @@ describe("Error Handler Middleware", () => {
         message: "Not Found"
       })
     );
+     // Ensure logger was called correctly
+    expect(mockLogger.child).toHaveBeenCalledWith({ module: "errorHandler" });
+    expect(mockWarnFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalError: error,
+        apiError: expect.any(ApiError),
+      }),
+      "A client error occurred"
+    );
   });
 
   it("should handle ValidationError correctly", () => {
     const errors = [{ field: "email", message: "Invalid email" }];
-    const mockT = vi.fn((key) => key);
-    const error = new ValidationError(errors, mockT);
+    const mockReqT = vi.fn((key) => key); // Mock req.t for this specific test
+    req.t = mockReqT; // Assign mock to req.t
+    const error = new ValidationError(errors, mockReqT);
     errorHandler(error, req, res, next);
     expect(res.status).toHaveBeenCalledWith(
       HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY
@@ -87,6 +110,13 @@ describe("Error Handler Middleware", () => {
         statusCode: HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY,
         errors: expect.any(Array)
       })
+    );
+    expect(mockWarnFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalError: error,
+        apiError: expect.any(ValidationError),
+      }),
+      "A client error occurred"
     );
   });
 
@@ -107,6 +137,13 @@ describe("Error Handler Middleware", () => {
         errors: expect.any(Array)
       })
     );
+    expect(mockWarnFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalError: mongooseError,
+        apiError: expect.any(ValidationError),
+      }),
+      "A client error occurred"
+    );
   });
 
   it("should convert Mongoose DuplicateKeyError to ApiError", async () => {
@@ -124,9 +161,16 @@ describe("Error Handler Middleware", () => {
         message: "validation:duplicateKeyError", // Updated message key
       })
     );
+    expect(mockWarnFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalError: mongooseError,
+        apiError: expect.any(ApiError),
+      }),
+      "A client error occurred"
+    );
   });
 
-  it("should handle unexpected errors with a 500 status", async () => { // Mark test as async
+  it("should handle unexpected errors with a 500 status", async () => {
     const error = new Error("Unexpected error");
     errorHandler(error, req, res, next);
     expect(res.status).toHaveBeenCalledWith(
@@ -138,7 +182,13 @@ describe("Error Handler Middleware", () => {
         message: "system:process.errors.unexpected"
       })
     );
-    expect(mockErrorFn).toHaveBeenCalled(); // Assert that error was logged using the captured mock
+    expect(mockErrorFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalError: error,
+        apiError: expect.any(ApiError),
+      }),
+      "An unexpected server error occurred"
+    );
   });
 
   it("should not include sensitive fields in the response", () => {

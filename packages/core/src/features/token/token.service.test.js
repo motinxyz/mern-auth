@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Buffer } from "node:buffer";
 import crypto from "node:crypto";
 import { TOKEN_REDIS_PREFIXES } from "@auth/config";
-import { createVerificationToken } from "./token.service.js";
+import { TokenService } from "./token.service.js";
 import { TokenCreationError, ApiError } from "@auth/utils";
 
 // Mock dependencies
@@ -82,6 +82,9 @@ vi.mock('@auth/config', () => {
 describe("Token Service", () => {
   let redisConnection;
   let configModule;
+  let tokenService;
+  let mockLogger;
+  let mockT;
 
   beforeEach(async () => {
     configModule = await vi.importMock('@auth/config');
@@ -89,9 +92,25 @@ describe("Token Service", () => {
     mockDebug = vi.fn();
     mockInfo = vi.fn();
     mockError = vi.fn();
+    mockLogger = {
+      child: vi.fn(() => ({
+        debug: mockDebug,
+        info: mockInfo,
+        error: mockError,
+        fatal: vi.fn(),
+      })),
+    };
+    mockT = vi.fn((key) => key);
+
     vi.clearAllMocks();
     // Clear Redis data
     await redisConnection.flushall();
+
+    tokenService = new TokenService({
+      logger: mockLogger,
+      redisConnection,
+      t: mockT,
+    });
   });
 
   describe("createVerificationToken", () => {
@@ -106,7 +125,7 @@ describe("Token Service", () => {
         digest: vi.fn().mockReturnValue(hashedToken),
       });
 
-      const result = await createVerificationToken(user);
+      const result = await tokenService.createVerificationToken(user);
 
       expect(result).toBe(token);
 
@@ -141,7 +160,7 @@ describe("Token Service", () => {
       // Make set reject
       redisConnection.set = vi.fn().mockRejectedValue(new Error(errorMessage));
 
-      await expect(createVerificationToken(user)).rejects.toThrow(
+      await expect(tokenService.createVerificationToken(user)).rejects.toThrow(
         TokenCreationError
       );
 

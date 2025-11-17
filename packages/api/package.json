@@ -15,6 +15,7 @@
     "@auth/config": "workspace:*",
     "@auth/core": "workspace:*",
     "@auth/database": "workspace:*",
+    "@auth/email": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
     "@exortek/express-mongo-sanitize": "^1.1.1",
