@@ -26,21 +26,6 @@ function convertExternalError(err, req) {
     return new ValidationError(errors, req.t);
   }
 
-  // Handle Mongoose Duplicate Key Errors (e.g., unique index violation)
-  // Note: This is more robust than the previous implementation in auth.service.js
-  if (err.name === "MongoServerError" && err.code === 11000) {
-    const field = Object.keys(err.keyPattern)[0];
-    const value = err.keyValue[field];
-    const errors = [
-      { field, message: "validation:email.inUse", context: { value } },
-    ];
-    return new ApiError(
-      HTTP_STATUS_CODES.CONFLICT,
-      "validation:duplicateKeyError", // New message key for duplicate key errors
-      errors
-    );
-  }
-
   // Add other converters here for libraries like Stripe, AWS SDK, etc.
 
   return null; // Return null if the error is not a known external type.
@@ -99,7 +84,13 @@ export const errorHandler = (err, req, res, next) => {
       ? apiError.errors.map((e) => {
           const errorObject = {
             field: e.field,
-            message: req.t(e.message, e.context), // Translate detailed error messages
+            message: (() => {
+              const msgKey = e.issue || e.message; // Prioritize e.issue, then e.message
+              if (msgKey && typeof msgKey === 'string') {
+                return msgKey.includes(":") ? req.t(msgKey, e.context) : msgKey;
+              }
+              return ''; // Default to empty string if no valid message key
+            })(),
             ...(e.context?.value !== undefined && { value: e.context.value }),
           };
 

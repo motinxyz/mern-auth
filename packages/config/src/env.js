@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import { EnvironmentError } from "@auth/utils";
 import { z } from "zod";
+import { DEFAULTS, urlRegex, Environments } from "./env.constants.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,28 +21,16 @@ function findMonorepoRoot(startDir) {
   throw new EnvironmentError("Could not find monorepo root.");
 }
 
-const DEFAULTS = {
-  NODE_ENV: "development",
-  PORT: 3001,
-  CLIENT_URL: "http://localhost:",
-  VERIFICATION_TOKEN_EXPIRES_IN: 300, // 5 minutes
-  LOG_LEVEL: "info",
-  DB_NAME: "MernAuth",
-  REDIS_PREFIX_VERIFY_EMAIL: "verify:",
-  REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT: "verify-email-rate-limit:",
-  BCRYPT_SALT_ROUNDS: 12,
-  DB_MAX_RETRIES: 10,
-  DB_INITIAL_RETRY_DELAY_MS: 2000, // 2 seconds
-  SHUTDOWN_TIMEOUT_MS: 10000, // 10 seconds
-  REDIS_MAX_RETRIES: 5,
-  REDIS_RETRY_DELAY_MS: 1000, // 1 second
-};
-
-const urlRegex = /^(https?|ftp|redis|rediss):\/\/[^\s/$.?#].*$/i;
+let root = findMonorepoRoot(__dirname);
+if (process.env.NODE_ENV === "test") {
+  dotenv.config({ path: path.resolve(root, ".env.test") });
+} else {
+  dotenv.config({ path: path.resolve(root, ".env") });
+}
 
 const envSchema = z.object({
   NODE_ENV: z
-    .enum(["development", "production", "test"])
+    .enum([Environments.DEVELOPMENT, Environments.PRODUCTION, Environments.TEST])
     .default(DEFAULTS.NODE_ENV),
   PORT: z.coerce.number().default(DEFAULTS.PORT),
   MONGO_URI: z
@@ -80,12 +69,7 @@ const envSchema = z.object({
         params: { field: "REDIS_URL" },
       }),
     }),
-  REDIS_PREFIX_VERIFY_EMAIL: z
-    .string()
-    .default(DEFAULTS.REDIS_PREFIX_VERIFY_EMAIL),
-  REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT: z
-    .string()
-    .default(DEFAULTS.REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT),
+
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().optional(),
   SMTP_USER: z.string().optional(),
@@ -111,14 +95,6 @@ const envSchema = z.object({
   REDIS_RETRY_DELAY_MS: z.coerce.number().default(DEFAULTS.REDIS_RETRY_DELAY_MS),
 });
 
-if (process.env.NODE_ENV === "test") {
-  const root = findMonorepoRoot(__dirname);
-  dotenv.config({ path: path.resolve(root, ".env.test") });
-} else {
-  const root = findMonorepoRoot(__dirname);
-  dotenv.config({ path: path.resolve(root, ".env") });
-}
-
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
@@ -126,6 +102,20 @@ if (!parsedEnv.success) {
 }
 
 const envVars = parsedEnv.data;
+
+const envConfigPath = path.resolve(
+  root,
+  `packages/config/src/config/${envVars.NODE_ENV}.js`
+);
+
+let envConfig = {};
+try {
+  envConfig = await import(envConfigPath);
+} catch (error) {
+  console.warn(
+    `No environment-specific configuration found for ${envVars.NODE_ENV}.`
+  );
+}
 
 const finalConfig = {
   env: envVars.NODE_ENV,
@@ -162,9 +152,12 @@ const finalConfig = {
   AUTH_REDIS_PREFIXES: {
     VERIFY_EMAIL_RATE_LIMIT: envVars.REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT,
   },
+  ...envConfig.default,
 };
 
 export const TOKEN_REDIS_PREFIXES = finalConfig.TOKEN_REDIS_PREFIXES;
 export const AUTH_REDIS_PREFIXES = finalConfig.AUTH_REDIS_PREFIXES;
+
+Object.freeze(finalConfig);
 
 export default finalConfig;

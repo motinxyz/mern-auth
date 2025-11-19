@@ -17,6 +17,8 @@ import {
   HTTP_STATUS_CODES,
   createAuthRateLimitKey,
   createVerifyEmailKey,
+  ServiceUnavailableError,
+  ConflictError,
 } from "@auth/utils";
 import { createVerificationToken } from "../token/token.service.js";
 import { addEmailJob } from "@auth/queues/producers";
@@ -39,32 +41,85 @@ export const registerNewUser = async (userData, req) => {
   let newUser;
   const session = await mongoose.startSession();
   await session.withTransaction(async () => {
-    [newUser] = await User.create([userData], { session });
+    try {
+      [newUser] = await User.create([userData], { session });
+    } catch (dbError) {
+      if (dbError.code === 11000) {
+        authServiceLogger.warn(
+          { dbError },
+          "Attempted to register with duplicate key."
+        );
+        const errors = Object.keys(dbError.keyPattern).map((key) => ({
+          field: key,
+          issue:
+            key === "email"
+              ? "validation:email.inUse"
+              : "validation:duplicateValue",
+          value: dbError.keyValue[key],
+        }));
+        throw new ConflictError("auth:register.errors.duplicateKey", errors);
+      }
+      authServiceLogger.error(
+        { dbError },
+        "Failed to create new user in database."
+      );
+      throw new ApiError(
+        HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+        "auth:errors.dbCreateUserFailed"
+      );
+    }
 
     authServiceLogger.info(req.t("auth:logs.orchestratingVerification"));
-    const verificationToken = await createVerificationToken(newUser);
+    let verificationToken;
+    try {
+      verificationToken = await createVerificationToken(newUser);
+    } catch (tokenError) {
+      authServiceLogger.error(
+        { tokenError },
+        "Failed to create verification token."
+      );
+      throw new ApiError(
+        HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+        "auth:errors.createTokenFailed"
+      );
+    }
 
-    await addEmailJob(EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL, {
-      user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-      },
-      token: verificationToken,
-      locale: req.locale,
-    });
+    try {
+      await addEmailJob(EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL, {
+        user: {
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+        },
+        token: verificationToken,
+        locale: req.locale,
+      });
+    } catch (emailJobError) {
+      authServiceLogger.error(
+        { emailJobError },
+        "Failed to add email verification job to queue."
+      );
+      throw new ServiceUnavailableError("auth:errors.addEmailJobFailed");
+    }
   });
 
-  await redisConnection.set(
-    rateLimitKey,
-    REDIS_RATE_LIMIT_VALUE,
-    "EX",
-    RATE_LIMIT_DURATIONS.VERIFY_EMAIL
-  );
+  try {
+    await redisConnection.set(
+      rateLimitKey,
+      REDIS_RATE_LIMIT_VALUE,
+      "EX",
+      RATE_LIMIT_DURATIONS.VERIFY_EMAIL
+    );
+  } catch (redisSetError) {
+    authServiceLogger.error(
+      { redisSetError },
+      "Failed to set rate limit in Redis."
+    );
+    throw new ServiceUnavailableError("auth:errors.setRateLimitFailed");
+  }
 
   return newUser.toJSON();
 };
-
 export const verifyUserEmail = async (token) => {
   const hashedToken = crypto
     .createHash(HASHING_ALGORITHM)

@@ -1,5 +1,6 @@
 {
   "duplicateKeyError": "Duplicate key value error.",
+  "duplicateValue": "This value already exists.",
   "email": {
     "required": "Email is required.",
     "invalid": "Please enter a valid email address.",

@@ -1,10 +1,10 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import hpp from 'hpp';
-import { httpLogger, authLimiter } from '@auth/core';
-import { config } from '@auth/config';
-import expressMongoSanitize from '@exortek/express-mongo-sanitize';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import hpp from "hpp";
+import { httpLogger } from "@auth/core";
+import { config } from "@auth/config";
+import expressMongoSanitize from "@exortek/express-mongo-sanitize";
 
 const configureMiddleware = (app) => {
   // Enable CORS with secure options
@@ -17,10 +17,10 @@ const configureMiddleware = (app) => {
 
   // Set various security HTTP headers
   app.use(helmet());
-  
+
   // Prevent HTTP Parameter Pollution
   app.use(hpp());
-  
+
   // Sanitize data to prevent NoSQL injection
   app.use(expressMongoSanitize());
 
@@ -32,9 +32,9 @@ const configureMiddleware = (app) => {
 
   // Log HTTP requests
   app.use(httpLogger);
-  
+
   // Apply rate limiting to auth routes
-  app.use('/api/v1/auth', authLimiter);
+  // app.use('/api/v1/auth', authLimiter);
 };
 
 export { configureMiddleware };
