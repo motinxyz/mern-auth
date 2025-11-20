@@ -158,7 +158,19 @@ describe("Auth Service", () => {
       expect(User.db.startSession).toHaveBeenCalled();
       expect(User.create).toHaveBeenCalledWith([userData], { session });
       expect(createVerificationToken).toHaveBeenCalledWith(newUser);
-      expect(addEmailJob).toHaveBeenCalled();
+
+      // Verify job deduplication: addEmailJob should be called with deterministic jobId
+      expect(addEmailJob).toHaveBeenCalledWith(
+        expect.any(String), // job type
+        expect.objectContaining({
+          user: expect.objectContaining({ id: "123" }),
+          token: "test_token",
+        }),
+        expect.objectContaining({
+          jobId: "verify-email:123", // Deterministic job ID for deduplication
+        })
+      );
+
       expect(mockRedisConnection.get).toHaveBeenCalledWith(
         "rate-limit:verify-email:test@example.com"
       );

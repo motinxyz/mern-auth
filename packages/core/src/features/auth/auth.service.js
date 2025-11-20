@@ -91,6 +91,11 @@ export class AuthService {
             },
             token: verificationToken,
             locale: locale,
+          },
+          {
+            // Deterministic job ID prevents duplicate emails if producer retries
+            // Only one verification email job per user can exist at a time
+            jobId: `verify-email:${newUser.id}`,
           }
         );
       } catch (emailJobError) {

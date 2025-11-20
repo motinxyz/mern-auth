@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerUser, verifyEmail } from "./auth.controller.js";
+import { authController } from "./auth.container.js";
 import { validate } from "../../middleware/validate.js";
 import { registerSchema, verifyEmailSchema } from "./auth.validation.js";
 import { authLimiter } from "../../middleware/rateLimiter.js";
@@ -52,7 +52,12 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post("/register", authLimiter, validate(registerSchema), registerUser);
+router.post(
+  "/register",
+  authLimiter,
+  validate(registerSchema),
+  authController.registerUser.bind(authController)
+);
 
 /**
  * @openapi
@@ -89,6 +94,10 @@ router.post("/register", authLimiter, validate(registerSchema), registerUser);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/verify-email", validate(verifyEmailSchema), verifyEmail);
+router.get(
+  "/verify-email",
+  validate(verifyEmailSchema),
+  authController.verifyEmail.bind(authController)
+);
 
 export default router;

@@ -149,49 +149,47 @@ This section details the journey of a user registration request, from the moment
 
 The `/register` endpoint is defined in `packages/core/src/features/auth/auth.routes.js`.
 
-### Routing
+### Routing & Dependency Injection
 
-*   The `packages/api/src/startup/routes.js` file mounts the `authRouter` (from `@auth/core`) at the `/api/v1/auth` path.
-*   Inside `packages/core/src/features/auth/auth.routes.js`, the `POST /register` route is defined:
+*   **Dependency Injection Container (`packages/core/src/features/auth/auth.container.js`):**
+    *   The application now uses a manual dependency injection container to wire up the `Auth` feature.
+    *   It instantiates the `AuthService` class, injecting all necessary dependencies (models, redis, config, producers).
+    *   It then instantiates the `AuthController` class, injecting the `authService`.
+    *   This ensures loose coupling and makes the components easily testable.
+*   **Routing (`packages/core/src/features/auth/auth.routes.js`):**
+    *   The router imports the fully assembled `authController` from the container.
+    *   The `POST /register` route is defined as:
     ```javascript
-    router.post("/register", authLimiter, validate(registerSchema), registerUser);
+    router.post("/register", authLimiter, validate(registerSchema), authController.registerUser.bind(authController));
     ```
-*   This route uses three middleware functions in sequence:
-    1.  `authLimiter`: A rate-limiting middleware (from `@auth/core/middleware/rateLimiter.js`) to prevent abuse.
-    2.  `validate(registerSchema)`: A validation middleware that uses `zod` to ensure the request body conforms to the `registerSchema`.
-    3.  `registerUser`: The controller function (from `packages/core/src/features/auth/auth.controller.js`) that handles the business logic for user registration.
 
-### Validation
+### Validation & DTOs
 
 *   **Zod Validation (`packages/core/src/features/auth/auth.validation.js`):**
-    *   The `registerSchema` is a `zod` object schema that defines the expected structure and constraints for the request `body`.
-    *   It specifies that `name`, `email`, and `password` are required strings.
-    *   `name` and `password` have minimum length requirements (`VALIDATION_RULES.NAME.MIN_LENGTH`, `VALIDATION_RULES.PASSWORD.MIN_LENGTH` from `@auth/utils`).
-    *   `email` must be a valid email format, validated using a centralized `EMAIL_REGEX` from `@auth/utils`.
-    *   Error messages for these validations are defined as translation keys following the `namespace:field.issue` pattern (e.g., `"validation:name.required"`), allowing for internationalization of validation feedback.
-*   **`validate` Middleware (`packages/core/src/middleware/validate.js`):**
-    *   This generic middleware takes a `zod` schema as an argument.
-    *   It attempts to parse `req.body`, `req.query`, and `req.params` against the provided schema using `schema.parseAsync()`.
-    *   If validation fails, a `ZodError` is caught. The middleware then transforms the `ZodError` issues into a structured array of errors, each containing `field`, `message` (translation key), and `context` (for i18n interpolation, e.g., `count` for `too_small` errors).
-    *   It then creates and passes a `ValidationError` (from `@auth/utils`) to the `next()` middleware, which will eventually be caught by the global error handler.
+    *   The `registerSchema` defines the shape of the incoming request body.
+*   **Data Transfer Objects (DTOs) (`packages/core/src/features/auth/dtos/RegisterUserDto.js`):**
+    *   The `RegisterUserDto` class encapsulates the data required for registration.
+    *   It includes a static factory method `fromRequest(req)` that extracts the necessary data (body, locale) from the Express request object.
+    *   This decouples the service layer from the web framework (Express), as the service now operates on a DTO rather than the raw `req` object.
 
 ### Controller Logic (`packages/core/src/features/auth/auth.controller.js`)
 
-*   The `registerUser` function is an asynchronous Express controller.
-*   It wraps the call to the `registerNewUserService` (from `packages/core/src/features/auth/auth.service.js`) in a `try...catch` block.
-*   **Success Path:** If `registerNewUserService` completes successfully, it returns the newly created user object. The controller then sends a `201 Created` response using `ApiResponse` (from `@auth/utils`), including the user data and a success message translated via `req.t("auth:register.success")`.
-*   **Failure Path:** If `registerNewUserService` throws an error, the `catch` block calls `next(error)`, passing the error to the next middleware in the chain (ultimately the global error handler).
+*   The `AuthController` class handles incoming HTTP requests.
+*   **`registerUser` Method:**
+    *   It creates a `RegisterUserDto` from the request: `const registerDto = RegisterUserDto.fromRequest(req);`.
+    *   It calls `this.authService.register(registerDto)`, passing the DTO instead of the request object.
+    *   On success, it returns a `201 Created` response with the new user data.
 
 ### Service Layer (`packages/core/src/features/auth/auth.service.js`)
 
-*   The `registerNewUser` function encapsulates the core business logic for user registration.
-*   **Rate Limiting Check:** It first checks a Redis key (`AUTH_REDIS_PREFIXES.VERIFY_EMAIL_RATE_LIMIT`) to see if the email address has exceeded a verification request rate limit. If so, it throws a `TooManyRequestsError` (from `@auth/utils`).
-*   **Database Transaction:** It initiates a Mongoose session and performs the user creation within a transaction (`session.withTransaction`). This ensures atomicity: either the user is created and verification token is generated/queued, or nothing is changed.
-    *   **User Creation:** `User.create([userData], { session })` creates the new user document in MongoDB.
-    *   **Verification Token Creation:** `createVerificationToken(newUser)` (from `packages/core/src/features/token/token.service.js`) generates a secure, random token, hashes it, and stores the hashed token along with the `userId` and `email` in Redis with an expiration time (`config.verificationTokenExpiresIn`). The original (unhashed) token is returned.
-    *   **Email Job Queuing:** `addEmailJob(EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL, { user, token, locale })` (from `packages/queues/src/producers/email.producer.js`) adds a job to the BullMQ email queue to send the verification email. This offloads the email sending process to a background worker, preventing the API response from being delayed by SMTP operations.
-*   **Rate Limit Set:** After the transaction and job queuing are successful, a rate limit is set in Redis for the user's email, preventing immediate re-registration or excessive verification email requests.
-*   **Return Value:** The function returns the `toJSON()` representation of the newly created user.
+*   The `AuthService` class contains the core business logic.
+*   **Constructor Injection:** Dependencies like `User` model, `redis`, `config`, and `emailProducer` are injected via the constructor.
+*   **`register(registerUserDto)` Method:**
+    *   It accepts a `RegisterUserDto` object, making it framework-agnostic.
+    *   **Rate Limiting:** Checks `VERIFY_EMAIL_RATE_LIMIT` using the email from the DTO.
+    *   **Database Transaction:** Creates the user and verification token within a transaction.
+    *   **Email Job Queuing:** Adds a job to the email queue using the `locale` from the DTO (`registerUserDto.locale`), ensuring the email is sent in the user's preferred language.
+    *   **Logging:** Uses standard English log messages instead of localized strings, as logs are for developers/admins.
 
 ### Database Interaction (`packages/database/src/models/user.model.js`)
 
