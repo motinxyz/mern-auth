@@ -1,9 +1,7 @@
 // Auth Feature
 export { default as authRouter } from "./features/auth/auth.routes.js";
-export {
-  registerNewUser,
-  verifyUserEmail,
-} from "./features/auth/auth.service.js";
+export { AuthService } from "./features/auth/auth.service.js";
+export { RegisterUserDto } from "./features/auth/dtos/RegisterUserDto.js";
 
 // Middleware
 export { errorHandler } from "./middleware/errorHandler.js";

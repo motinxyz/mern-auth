@@ -1,9 +1,22 @@
-import {
-  registerNewUser as registerNewUserService,
-  verifyUserEmail as verifyUserEmailService,
-} from "./auth.service.js";
+import { AuthService } from "./auth.service.js";
 import { HTTP_STATUS_CODES } from "@auth/utils";
 import { ApiResponse } from "@auth/utils";
+import { RegisterUserDto } from "./dtos/RegisterUserDto.js";
+
+// Dependencies for AuthService
+import { User } from "@auth/database";
+import { redisConnection, config } from "@auth/config";
+import * as emailProducer from "@auth/queues/producers";
+import * as tokenService from "../token/token.service.js";
+
+// Instantiate the service with dependencies
+const authService = new AuthService({
+  userModel: User,
+  redis: redisConnection,
+  config: config,
+  emailProducer: emailProducer,
+  tokenService: tokenService,
+});
 
 /**
  * Handles new user registration.
@@ -15,7 +28,8 @@ import { ApiResponse } from "@auth/utils";
  */
 export const registerUser = async (req, res, next) => {
   try {
-    const user = await registerNewUserService(req.body, req);
+    const registerDto = RegisterUserDto.fromRequest(req);
+    const user = await authService.register(registerDto);
 
     res
       .status(HTTP_STATUS_CODES.CREATED)
@@ -27,7 +41,6 @@ export const registerUser = async (req, res, next) => {
         )
       );
   } catch (error) {
-    console.log("Error in registerUser controller:", error); // Diagnostic log
     next(error);
   }
 };
@@ -43,7 +56,7 @@ export const registerUser = async (req, res, next) => {
 export const verifyEmail = async (req, res, next) => {
   try {
     const { token } = req.query;
-    const { status } = await verifyUserEmailService(token);
+    const { status } = await authService.verifyUserEmail(token);
     const message =
       status === "ALREADY_VERIFIED"
         ? "auth:verify.alreadyVerified"
