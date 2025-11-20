@@ -93,6 +93,8 @@ const envSchema = z.object({
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().default(DEFAULTS.SHUTDOWN_TIMEOUT_MS),
   REDIS_MAX_RETRIES: z.coerce.number().default(DEFAULTS.REDIS_MAX_RETRIES),
   REDIS_RETRY_DELAY_MS: z.coerce.number().default(DEFAULTS.REDIS_RETRY_DELAY_MS),
+  REDIS_PREFIX_VERIFY_EMAIL: z.string().default(DEFAULTS.REDIS_PREFIX_VERIFY_EMAIL),
+  REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT: z.string().default(DEFAULTS.REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -154,9 +156,6 @@ const finalConfig = {
   },
   ...envConfig.default,
 };
-
-export const TOKEN_REDIS_PREFIXES = finalConfig.TOKEN_REDIS_PREFIXES;
-export const AUTH_REDIS_PREFIXES = finalConfig.AUTH_REDIS_PREFIXES;
 
 Object.freeze(finalConfig);
 

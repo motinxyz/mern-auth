@@ -12,24 +12,24 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "validation.required.name"],
-      minlength: [VALIDATION_RULES.NAME.MIN_LENGTH, "validation.length.name"],
+      required: [true, "validation:name.required"],
+      minlength: [VALIDATION_RULES.NAME.MIN_LENGTH, "validation:name.length"],
       trim: true,
     },
     email: {
       type: String,
-      required: [true, "validation.required.email"],
+      required: [true, "validation:email.required"],
       unique: true,
       trim: true,
       lowercase: true,
-      match: [/\S+@\S+\.\S+/, "validation.invalid.email"],
+      match: [VALIDATION_RULES.EMAIL_REGEX, "validation:email.invalid"],
     },
     password: {
       type: String,
-      required: [true, "validation.required.password"],
+      required: [true, "validation:password.required"],
       minlength: [
         VALIDATION_RULES.PASSWORD.MIN_LENGTH,
-        "validation.length.password",
+        "validation:password.length",
       ],
       select: false,
     },

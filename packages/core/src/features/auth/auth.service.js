@@ -3,8 +3,7 @@ import crypto from "node:crypto";
 import {
   logger,
   t,
-  AUTH_REDIS_PREFIXES,
-  TOKEN_REDIS_PREFIXES,
+  config, // Import the main config object
 } from "@auth/config";
 import {
   TooManyRequestsError,
@@ -30,7 +29,7 @@ const authServiceLogger = logger.child({ module: "auth-service" });
 export const registerNewUser = async (userData, req) => {
   const { email } = userData;
   const rateLimitKey = createAuthRateLimitKey(
-    AUTH_REDIS_PREFIXES.VERIFY_EMAIL_RATE_LIMIT,
+    config.redis.prefixes.verifyEmailRateLimit, // Access via config
     email
   );
 
@@ -59,6 +58,8 @@ export const registerNewUser = async (userData, req) => {
         }));
         throw new ConflictError("auth:register.errors.duplicateKey", errors);
       }
+      // Re-throw other errors (including Mongoose ValidationError) to be handled by the global error handler
+      throw dbError;
       authServiceLogger.error(
         { dbError },
         "Failed to create new user in database."
@@ -126,7 +127,7 @@ export const verifyUserEmail = async (token) => {
     .update(token)
     .digest("hex");
   const verifyKey = createVerifyEmailKey(
-    TOKEN_REDIS_PREFIXES.VERIFY_EMAIL,
+    config.redis.prefixes.verifyEmail, // Access via config
     hashedToken
   );
 
@@ -189,3 +190,4 @@ export const verifyUserEmail = async (token) => {
   authServiceLogger.info({ userId: user.id }, t("auth:logs.verifySuccess"));
   return { status: VERIFICATION_STATUS.VERIFIED };
 };
+

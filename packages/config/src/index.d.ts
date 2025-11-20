@@ -3,8 +3,6 @@ import { Logger } from 'pino';
 import { i18n, i18nMiddleware } from 'i18next-http-middleware';
 
 export const config: any; // TODO: Define a proper type for config
-export const TOKEN_REDIS_PREFIXES: any; // TODO: Define a proper type
-export const AUTH_REDIS_PREFIXES: any; // TODO: Define a proper type
 
 export const logger: Logger;
 

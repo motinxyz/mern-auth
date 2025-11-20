@@ -23,11 +23,14 @@ vi.mock('@auth/config', () => ({
     })),
   },
   t: vi.fn((key) => key),
-  AUTH_REDIS_PREFIXES: {
-    VERIFY_EMAIL_RATE_LIMIT: 'rate-limit:verify-email:',
-  },
-  TOKEN_REDIS_PREFIXES: {
-    VERIFY_EMAIL: 'verify-email:',
+  config: { // Add mock config object
+    redis: {
+      prefixes: {
+        verifyEmailRateLimit: 'rate-limit:verify-email:',
+        verifyEmail: 'verify-email:',
+      },
+    },
+    verificationTokenExpiresIn: 180, // Mock this value as it's used
   },
 }));
 

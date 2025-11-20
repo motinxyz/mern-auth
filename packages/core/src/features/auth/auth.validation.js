@@ -14,7 +14,7 @@ export const registerSchema = z.object({
       }),
     email: z
       .string({ required_error: "validation:email.required" })
-      .email({ message: "validation:email.invalid" }),
+      .regex(VALIDATION_RULES.EMAIL_REGEX, { message: "validation:email.invalid" }),
     password: z
       .string({ required_error: "validation:password.required" })
       .min(VALIDATION_RULES.PASSWORD.MIN_LENGTH, {

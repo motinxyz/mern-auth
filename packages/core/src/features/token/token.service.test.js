@@ -72,9 +72,11 @@ vi.mock('@auth/config', () => {
     t: vi.fn((key) => key),
     config: {
       verificationTokenExpiresIn: 300,
-    },
-    TOKEN_REDIS_PREFIXES: {
-      VERIFY_EMAIL: 'verify-email:',
+      redis: {
+        prefixes: {
+          verifyEmail: 'verify-email:',
+        },
+      },
     },
   };
 });
@@ -111,7 +113,7 @@ describe("Token Service", () => {
       expect(result).toBe(token);
 
       const storedValue = await redisConnection.get(
-        `${TOKEN_REDIS_PREFIXES.VERIFY_EMAIL}${hashedToken}`
+        `${configModule.config.redis.prefixes.verifyEmail}${hashedToken}`
       );
       expect(storedValue).not.toBeNull();
       expect(JSON.parse(storedValue)).toEqual({
@@ -120,13 +122,13 @@ describe("Token Service", () => {
       });
 
       const ttl = await redisConnection.ttl(
-        `${TOKEN_REDIS_PREFIXES.VERIFY_EMAIL}${hashedToken}`
+        `${configModule.config.redis.prefixes.verifyEmail}${hashedToken}`
       );
       expect(Math.abs(ttl - configModule.config.verificationTokenExpiresIn)).toBeLessThanOrEqual(1);
 
       expect(mockDebug).toHaveBeenCalledWith(
         {
-          key: `${TOKEN_REDIS_PREFIXES.VERIFY_EMAIL}${hashedToken}`,
+          key: `${configModule.config.redis.prefixes.verifyEmail}${hashedToken}`,
           ttl: expect.any(Number),
           redisResponse: "OK",
         },

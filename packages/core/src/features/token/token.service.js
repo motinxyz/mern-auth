@@ -1,7 +1,6 @@
 import { config, logger, t as systemT } from "@auth/config";
 import { redisConnection } from "@auth/config";
 import crypto from "node:crypto";
-import { TOKEN_REDIS_PREFIXES } from "@auth/config";
 import { TokenCreationError, HASHING_ALGORITHM } from "@auth/utils";
 
 const tokenServiceLogger = logger.child({ module: "token-service" });
@@ -17,7 +16,7 @@ export const createVerificationToken = async (user) => {
       .update(verificationToken)
       .digest("hex");
 
-    const verifyKey = `${TOKEN_REDIS_PREFIXES.VERIFY_EMAIL}${hashedToken}`;
+    const verifyKey = `${config.redis.prefixes.verifyEmail}${hashedToken}`;
 
     // Prepare the data to be stored.
     const userDataToStore = JSON.stringify({

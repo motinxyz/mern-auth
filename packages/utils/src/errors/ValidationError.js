@@ -11,18 +11,10 @@ class ValidationError extends ApiError {
       let message = err.message;
       let context = err.context;
 
-      // Attempt to parse the message if it looks like a stringified JSON
-      try {
-        const parsedMessage = JSON.parse(err.message);
-        if (parsedMessage.key) { // Assuming the parsed object has a 'key' for translation
-          message = translate(parsedMessage.key, parsedMessage.params);
-        } else {
-          // If it's a parsed object but not in the expected format, use the original message
-          message = translate(err.message, context); // Translate directly if it's a simple key
-        }
-      } catch (e) {
-        // If parsing fails, it's not a stringified JSON, so use the original message
-        message = translate(err.message, context); // Translate directly if it's a simple key
+      // If the message is a string and contains a colon, treat it as a translation key.
+      // Otherwise, use the message directly.
+      if (typeof message === 'string' && message.includes(':')) {
+        message = translate(message, context);
       }
 
       return {
@@ -36,6 +28,7 @@ class ValidationError extends ApiError {
       translate("validation:default"), // Translate the default message as well
       translatedErrors
     );
+    this.name = "ValidationError"; // Explicitly set the name
   }
 }
 

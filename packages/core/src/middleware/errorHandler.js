@@ -1,5 +1,10 @@
 import { logger } from "@auth/config";
-import { HTTP_STATUS_CODES, ApiError, ValidationError } from "@auth/utils";
+import {
+  HTTP_STATUS_CODES,
+  ApiError,
+  ValidationError,
+  ConflictError,
+} from "@auth/utils";
 
 const errorHandlerLogger = logger.child({ module: "errorHandler" });
 /**
@@ -18,12 +23,27 @@ function convertExternalError(err, req) {
   }
 
   if (err.name === "ValidationError" && err.errors) {
-    const errors = Object.values(err.errors).map((e) => ({
-      field: e.path,
-      message: e.message, // The message from the Mongoose schema is our translation key.
-      context: e.properties || e.context, // Use `e.context` if `e.properties` is not available
-    }));
+    const errors = Object.values(err.errors).map((e) => {
+      const context = e.properties || e.context || {};
+      // Map Mongoose properties to translation keys
+      if (context.minlength) context.count = context.minlength;
+      if (context.maxlength) context.count = context.maxlength;
+
+      return {
+        field: e.path,
+        message: e.message, // The message from the Mongoose schema is our translation key.
+        context, // Use `e.context` if `e.properties` is not available
+      };
+    });
     return new ValidationError(errors, req.t);
+  }
+
+  // Handle Mongoose Duplicate Key Errors (e.g., unique index violation)
+  if (err.name === "MongoServerError" && err.code === 11000) {
+    const field = Object.keys(err.keyPattern)[0];
+    const value = err.keyValue[field];
+    const errors = [{ field, issue: "validation:duplicateValue", value }];
+    return new ConflictError("auth:errors.duplicateKey", errors);
   }
 
   // Add other converters here for libraries like Stripe, AWS SDK, etc.
@@ -32,7 +52,7 @@ function convertExternalError(err, req) {
 }
 
 // Fields that should not have their 'oldValue' exposed in error responses for security reasons.
-const SENSITIVE_FIELDS = ['password', 'confirmPassword']; // Define sensitive fields once
+const SENSITIVE_FIELDS = ["password", "confirmPassword"]; // Define sensitive fields once
 
 /**
  * Express error handling middleware.
@@ -51,13 +71,25 @@ const SENSITIVE_FIELDS = ['password', 'confirmPassword']; // Define sensitive fi
 export const errorHandler = (err, req, res, next) => {
   let apiError = err;
 
-  // If the error is not a custom ApiError, convert it.
-  if (!(apiError instanceof ApiError)) {
+  // If the error is our custom ValidationError, it's already structured correctly.
+  // We check for `err.name` and `err.errors` to be resilient against module resolution issues
+  // that might prevent `instanceof` from working across module boundaries.
+  if (
+    apiError.name === "ValidationError" &&
+    apiError.errors &&
+    apiError.statusCode
+  ) {
+    // It's already a ValidationError, no conversion needed.
+  } else if (!(apiError instanceof ApiError)) {
+    // If it's not our custom ValidationError and not a generic ApiError, try to convert it.
     apiError = convertExternalError(err, req);
 
-    // If it's still not an ApiError, it's an unexpected internal error.
+    // If it's still not an ApiError after conversion, it's an unexpected internal error.
     if (!apiError) {
-      apiError = new ApiError(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "system:process.errors.unexpected");
+      apiError = new ApiError(
+        HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+        "system:process.errors.unexpected"
+      );
     }
   }
 
@@ -65,7 +97,9 @@ export const errorHandler = (err, req, res, next) => {
   // 5xx errors are logged as 'error', 4xx errors as 'warn'.
   const isServerError = apiError.statusCode >= 500;
   const logMethod = isServerError ? "error" : "warn";
-  const logMessage = isServerError ? "An unexpected server error occurred" : "A client error occurred";
+  const logMessage = isServerError
+    ? "An unexpected server error occurred"
+    : "A client error occurred";
 
   errorHandlerLogger[logMethod](
     {
@@ -86,12 +120,13 @@ export const errorHandler = (err, req, res, next) => {
             field: e.field,
             message: (() => {
               const msgKey = e.issue || e.message; // Prioritize e.issue, then e.message
-              if (msgKey && typeof msgKey === 'string') {
+              if (msgKey && typeof msgKey === "string") {
                 return msgKey.includes(":") ? req.t(msgKey, e.context) : msgKey;
               }
-              return ''; // Default to empty string if no valid message key
+              return ""; // Default to empty string if no valid message key
             })(),
             ...(e.context?.value !== undefined && { value: e.context.value }),
+            ...(e.value !== undefined && { value: e.value }),
           };
 
           // Add oldValue if req.body exists and the field is not sensitive

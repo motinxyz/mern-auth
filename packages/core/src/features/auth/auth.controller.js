@@ -27,6 +27,7 @@ export const registerUser = async (req, res, next) => {
         )
       );
   } catch (error) {
+    console.log("Error in registerUser controller:", error); // Diagnostic log
     next(error);
   }
 };

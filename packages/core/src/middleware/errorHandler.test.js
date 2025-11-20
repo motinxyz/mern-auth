@@ -109,7 +109,7 @@ describe("Error Handler Middleware", () => {
     );
   });
 
-  it("should convert Mongoose DuplicateKeyError to ApiError", async () => {
+  it("should convert Mongoose DuplicateKeyError to ConflictError", () => {
     const mongooseError = {
       name: "MongoServerError",
       code: 11000,
@@ -120,8 +120,16 @@ describe("Error Handler Middleware", () => {
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS_CODES.CONFLICT);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        statusCode: HTTP_STATUS_CODES.CONFLICT, // Assert statusCode
-        message: "validation:duplicateKeyError", // Updated message key
+        success: false,
+        statusCode: HTTP_STATUS_CODES.CONFLICT,
+        message: req.t("auth:errors.duplicateKey"),
+        errors: [
+          {
+            field: "email",
+            message: req.t("validation:duplicateValue"),
+            value: "test@example.com",
+          },
+        ],
       })
     );
   });
