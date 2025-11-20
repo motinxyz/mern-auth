@@ -53,7 +53,7 @@ The monorepo is composed of several distinct packages, each with a specific resp
     *   **Purpose:** A dedicated orchestration layer responsible for initializing all necessary services (configuration, database, i18n, email) and starting the API server. This centralizes application startup logic and error handling.
     *   **Key Dependencies:** `@auth/config`, `@auth/database`, `@auth/email`, `@auth/utils`.
 *   **`config`**:
-    *   **Purpose:** Centralized configuration management for the entire application. It provides environment variables, logging setup, internationalization (i18n), Redis connection configurations (including `REDIS_MAX_RETRIES`, `REDIS_RETRY_DELAY_MS`), and application shutdown timeout (`SHUTDOWN_TIMEOUT_MS`).
+    *   **Purpose:** Centralized configuration management for the entire application. It provides environment variables, logging setup, internationalization (i18n) with translation files in `src/locales`, Redis connection configurations (including `REDIS_MAX_RETRIES`, `REDIS_RETRY_DELAY_MS`), and application shutdown timeout (`SHUTDOWN_TIMEOUT_MS`).
     *   **Key Dependencies:** `@auth/utils`, `dotenv`, `i18next`, `pino`, `ioredis`, `zod`.
 *   **`core`**:
     *   **Purpose:** Contains the core business logic and features, such as authentication, token management, and common middleware. This package is designed to be reusable across different parts of the application.
@@ -167,8 +167,8 @@ The `/register` endpoint is defined in `packages/core/src/features/auth/auth.rou
     *   The `registerSchema` is a `zod` object schema that defines the expected structure and constraints for the request `body`.
     *   It specifies that `name`, `email`, and `password` are required strings.
     *   `name` and `password` have minimum length requirements (`VALIDATION_RULES.NAME.MIN_LENGTH`, `VALIDATION_RULES.PASSWORD.MIN_LENGTH` from `@auth/utils`).
-    *   `email` must be a valid email format.
-    *   Error messages for these validations are defined as translation keys (e.g., `"validation:name.required"`), allowing for internationalization of validation feedback.
+    *   `email` must be a valid email format, validated using a centralized `EMAIL_REGEX` from `@auth/utils`.
+    *   Error messages for these validations are defined as translation keys following the `namespace:field.issue` pattern (e.g., `"validation:name.required"`), allowing for internationalization of validation feedback.
 *   **`validate` Middleware (`packages/core/src/middleware/validate.js`):**
     *   This generic middleware takes a `zod` schema as an argument.
     *   It attempts to parse `req.body`, `req.query`, and `req.params` against the provided schema using `schema.parseAsync()`.
@@ -216,7 +216,7 @@ The `/register` endpoint is defined in `packages/core/src/features/auth/auth.rou
 *   **Global Error Handler (`packages/core/src/middleware/errorHandler.js`):**
     *   This is the final middleware in the Express chain. It catches any errors passed via `next(error)`.
     *   **Error Conversion:** It first attempts to convert known external errors (like Mongoose `ValidationError` or `MongoServerError` for duplicate keys) into the application's `ApiError` or `ValidationError` format.
-        *   For Mongoose `ValidationError` (from schema validation), it extracts field-specific error messages and contexts.
+        *   For Mongoose `ValidationError` (from schema validation), it extracts field-specific error messages and contexts. It explicitly maps Mongoose validation properties (like `minlength`, `maxlength`) to the `count` context variable to support interpolation in translation strings (e.g., `{{count}}`).
         *   For `MongoServerError` with `code: 11000` (duplicate key error, typically for email), it identifies the conflicting field and creates a `ValidationError` with a specific translation key (`"validation:email.inUse"`).
     *   **Logging:** Errors are logged using the `errorHandlerLogger` from `@auth/config/logger.js`. Server errors (5xx) are logged as `error`, while client errors (4xx) are logged as `warn`.
     *   **Response Formatting:** It constructs a standardized error response JSON object, including `success: false`, a translated main `message`, and an array of detailed `errors`. Sensitive fields like `password` are explicitly excluded from `oldValue` in error responses.
