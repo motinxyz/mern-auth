@@ -79,16 +79,15 @@ userSchema.set("toJSON", {
  * @param {Function} next - The next middleware function.
  * @returns {Promise<void>}
  */
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
   // Only hash the password if it has been modified (or is new)
   if (!this.isModified("password")) {
-    return next();
+    return;
   }
 
   // Hash the password with a salt round from config
   const salt = await bcrypt.genSalt(config.bcryptSaltRounds);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
 /**

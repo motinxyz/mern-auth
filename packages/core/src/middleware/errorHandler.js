@@ -103,7 +103,12 @@ export const errorHandler = (err, req, res, next) => {
 
   errorHandlerLogger[logMethod](
     {
-      originalError: err, // The original error object
+      originalError: {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+        ...err, // Spread to capture any custom properties
+      },
       apiError, // The final, structured ApiError
     },
     logMessage

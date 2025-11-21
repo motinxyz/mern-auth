@@ -44,7 +44,13 @@ export class AuthService {
     const session = await this.User.db.startSession();
     await session.withTransaction(async () => {
       try {
-        [newUser] = await this.User.create([registerUserDto], { session });
+        // Extract only the fields that belong to the User model
+        const userData = {
+          name: registerUserDto.name,
+          email: registerUserDto.email,
+          password: registerUserDto.password,
+        };
+        [newUser] = await this.User.create([userData], { session });
       } catch (dbError) {
         if (dbError.code === 11000) {
           authServiceLogger.warn(
@@ -85,7 +91,7 @@ export class AuthService {
           EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL,
           {
             user: {
-              id: newUser.id,
+              id: newUser._id.toString(),
               name: newUser.name,
               email: newUser.email,
             },
@@ -96,7 +102,7 @@ export class AuthService {
             // Deterministic job ID prevents duplicate emails if producer retries
             // Only one verification email job per user can exist at a time
             // Note: BullMQ doesn't allow colons in job IDs, so we use hyphens
-            jobId: `verify-email-${newUser.id}`,
+            jobId: `verify-email-${newUser._id}`,
           }
         );
       } catch (emailJobError) {

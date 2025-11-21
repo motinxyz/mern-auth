@@ -20,7 +20,7 @@ export const createVerificationToken = async (user) => {
 
     // Prepare the data to be stored.
     const userDataToStore = JSON.stringify({
-      userId: user.id,
+      userId: user._id.toString(),
       email: user.email,
     });
 

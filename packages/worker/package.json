@@ -6,6 +6,7 @@
   "scripts": {
     "lint": "eslint .",
     "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
     "test": "vitest run --coverage"
   },
   "dependencies": {
@@ -16,6 +17,6 @@
     "@auth/email": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
-    "bullmq": "^5.63.2"
+    "bullmq": "^5.64.1"
   }
 }

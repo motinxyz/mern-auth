@@ -16,7 +16,7 @@
   "dependencies": {
     "@auth/config": "workspace:*",
     "@auth/utils": "workspace:*",
-    "bullmq": "^5.63.2",
+    "bullmq": "^5.64.1",
     "ioredis": "^5.8.2",
     "nodemailer": "^7.0.10"
   }

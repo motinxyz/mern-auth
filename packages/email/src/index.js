@@ -81,6 +81,15 @@ export const initEmailService = async () => {
     throw new EmailDispatchError(systemT("email:errors.circuitBreakerOpen"));
   });
 
+  // Log actual failures to see why it's tripping
+  emailBreaker.on("failure", (error) => {
+    circuitBreakerStats.totalFailures++;
+    emailUtilLogger.error(
+      { error: error.message, stack: error.stack },
+      "Circuit breaker detected failure"
+    );
+  });
+
   // === Circuit Breaker Event Handlers with Statistics Tracking ===
 
   // Circuit opened - service is failing

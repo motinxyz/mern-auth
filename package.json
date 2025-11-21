@@ -3,16 +3,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start-dev": "turbo dev",
+    "dev": "turbo dev",
     "dev:api": "pnpm --filter @auth/api dev",
     "dev:worker": "pnpm --filter @auth/worker dev",
+    "dev:web": "pnpm --filter @auth/web dev",
     "test": "pnpm --filter @auth/api test && pnpm --filter @auth/core test && pnpm --filter @auth/email test && pnpm --filter @auth/queues test && pnpm --filter @auth/utils test && pnpm --filter @auth/worker test",
     "lint": "turbo run lint",
     "build": "turbo run build"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@vitest/coverage-v8": "^4.0.10",
+    "@vitest/coverage-v8": "^4.0.13",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-alias": "^1.1.2",
@@ -22,7 +23,7 @@
     "globals": "^16.5.0",
     "prettier": "^3.6.2",
     "turbo": "^2.6.1",
-    "vitest": "^4.0.10"
+    "vitest": "^4.0.13"
   },
   "packageManager": "pnpm@10.19.0",
   "pnpm": {
