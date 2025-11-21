@@ -9,10 +9,18 @@
     "attemptingSend": "Attempting to send email",
     "sendSuccess": "Email sent successfully",
     "preparingVerification": "Preparing verification email",
-    "sendingVerification": "Sending verification email"
+    "sendingVerification": "Sending verification email",
+    "circuitBreakerOpen": "Circuit breaker opened - email service failing",
+    "circuitBreakerHalfOpen": "Circuit breaker half-open - testing email service recovery",
+    "circuitBreakerClosed": "Circuit breaker closed - email service recovered",
+    "circuitBreakerSuccess": "Email sent successfully through circuit breaker",
+    "circuitBreakerFailure": "Email sending failed through circuit breaker",
+    "circuitBreakerTimeout": "Email sending timed out",
+    "circuitBreakerReject": "Email request rejected - circuit is open or at capacity"
   },
   "errors": {
     "smtpConnectionFailed": "Failed to verify SMTP connection",
-    "dispatchFailed": "Failed to dispatch email"
+    "dispatchFailed": "Failed to dispatch email",
+    "circuitBreakerOpen": "Email service temporarily unavailable - circuit breaker is open"
   }
 }

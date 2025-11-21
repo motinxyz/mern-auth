@@ -165,9 +165,10 @@ describe("Auth Service", () => {
         expect.objectContaining({
           user: expect.objectContaining({ id: "123" }),
           token: "test_token",
+          locale: undefined, // locale is undefined in test
         }),
         expect.objectContaining({
-          jobId: "verify-email:123", // Deterministic job ID for deduplication
+          jobId: "verify-email-123", // hyphen instead of colon
         })
       );
 

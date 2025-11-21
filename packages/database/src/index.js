@@ -18,13 +18,14 @@ mongoose.connection.on("disconnected", () => {
 });
 
 const connectDB = async () => {
-  for (let i = 0; i < config.dbMaxRetries; i++) { // Use config.dbMaxRetries
+  for (let i = 0; i < config.dbMaxRetries; i++) {
+    // Use config.dbMaxRetries
     try {
       logger.debug({
         msg: t("system:db.attemptingConnection"),
         dbName: config.dbName,
         attempt: i + 1,
-        maxAttempts: config.dbMaxRetries // Use config.dbMaxRetries
+        maxAttempts: config.dbMaxRetries, // Use config.dbMaxRetries
       });
 
       await mongoose.connect(config.dbURI, {
@@ -41,10 +42,11 @@ const connectDB = async () => {
       return; // Connection successful, exit loop
     } catch (error) {
       logger.error(t("system:db.connectionError"), error);
-      if (i < config.dbMaxRetries - 1) { // Use config.dbMaxRetries
+      if (i < config.dbMaxRetries - 1) {
+        // Use config.dbMaxRetries
         const delay = config.dbInitialRetryDelayMs * Math.pow(2, i); // Use config.dbInitialRetryDelayMs
         logger.warn(t("system:db.retryingConnection", { delay: delay / 1000 }));
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         throw new DatabaseConnectionError(error); // Last attempt failed, re-throw custom error
       }
@@ -53,6 +55,7 @@ const connectDB = async () => {
 };
 
 import User from "./models/user.model.js";
+import EmailLog from "./models/email-log.model.js";
 
 const disconnectDB = async () => {
   try {
@@ -64,5 +67,5 @@ const disconnectDB = async () => {
   }
 };
 
-export { connectDB, disconnectDB, User };
+export { connectDB, disconnectDB, User, EmailLog };
 export default mongoose;

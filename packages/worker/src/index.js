@@ -1,6 +1,6 @@
 import { logger, t, initI18n } from "@auth/config";
 import { redisConnection } from "@auth/config";
-import { disconnectDB } from "@auth/database";
+import { connectDB, disconnectDB } from "@auth/database";
 import { initEmailService } from "@auth/email";
 import emailProcessor from "./email.processor.js";
 import { RedisConnectionError } from "@auth/utils";
@@ -9,6 +9,7 @@ async function startWorker() {
   try {
     // Initialize services first
     await initI18n();
+    await connectDB(); // Connect to MongoDB for EmailLog tracking
     await initEmailService();
 
     logger.info(t("worker:logs.starting"));

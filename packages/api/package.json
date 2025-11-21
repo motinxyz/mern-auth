@@ -14,6 +14,7 @@
     "@auth/app-bootstrap": "workspace:*",
     "@auth/config": "workspace:*",
     "@auth/core": "workspace:*",
+    "@auth/email": "workspace:*",
     "@auth/database": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",

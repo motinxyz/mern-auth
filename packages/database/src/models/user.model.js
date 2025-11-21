@@ -3,8 +3,6 @@ import bcrypt from "bcrypt";
 import { config } from "@auth/config";
 import { VALIDATION_RULES } from "@auth/utils";
 
-
-
 /**
  * Mongoose schema for the User model.
  */
@@ -43,6 +41,17 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    emailValid: {
+      type: Boolean,
+      default: true,
+    },
+    emailBounceReason: String,
+    emailBouncedAt: Date,
+    emailComplaint: {
+      type: Boolean,
+      default: false,
+    },
+    emailComplaintAt: Date,
   },
   {
     timestamps: true,
