@@ -95,7 +95,8 @@ export class AuthService {
           {
             // Deterministic job ID prevents duplicate emails if producer retries
             // Only one verification email job per user can exist at a time
-            jobId: `verify-email:${newUser.id}`,
+            // Note: BullMQ doesn't allow colons in job IDs, so we use hyphens
+            jobId: `verify-email-${newUser.id}`,
           }
         );
       } catch (emailJobError) {
