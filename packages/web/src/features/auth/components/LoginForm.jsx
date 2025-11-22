@@ -25,7 +25,8 @@ export default function LoginForm() {
     setErrors({});
 
     try {
-      const response = await authService.login(formData);
+      const { email, password } = formData;
+      await authService.login(email, password);
 
       // Redirect to dashboard on successful login
       navigate("/dashboard");

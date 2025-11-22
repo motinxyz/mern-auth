@@ -54,8 +54,8 @@ export class AuthService {
       } catch (dbError) {
         if (dbError.code === 11000) {
           authServiceLogger.warn(
-            { dbError },
-            "Attempted to register with duplicate key."
+            { dbError, email },
+            t("auth:logs.registerDuplicateKey")
           );
           const errors = Object.keys(dbError.keyPattern).map((key) => ({
             field: key,
@@ -70,15 +70,18 @@ export class AuthService {
         throw dbError;
       }
 
-      authServiceLogger.info("Orchestrating verification for new user.");
+      authServiceLogger.info(
+        { userId: newUser._id },
+        t("auth:logs.orchestratingVerification")
+      );
       let verificationToken;
       try {
         verificationToken =
           await this.tokenService.createVerificationToken(newUser);
       } catch (tokenError) {
         authServiceLogger.error(
-          { tokenError },
-          "Failed to create verification token."
+          { tokenError, userId: newUser._id },
+          t("auth:logs.createTokenFailed")
         );
         throw new ApiError(
           HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
@@ -107,8 +110,8 @@ export class AuthService {
         );
       } catch (emailJobError) {
         authServiceLogger.error(
-          { emailJobError },
-          "Failed to add email verification job to queue."
+          { emailJobError, userId: newUser._id },
+          t("auth:logs.addEmailJobFailed")
         );
         throw new ServiceUnavailableError("auth:errors.addEmailJobFailed");
       }
@@ -123,8 +126,8 @@ export class AuthService {
       );
     } catch (redisSetError) {
       authServiceLogger.error(
-        { redisSetError },
-        "Failed to set rate limit in Redis."
+        { redisSetError, email },
+        t("auth:logs.setRateLimitFailed")
       );
       throw new ServiceUnavailableError("auth:errors.setRateLimitFailed");
     }
@@ -167,7 +170,7 @@ export class AuthService {
     } catch (error) {
       authServiceLogger.error(
         { error, redisData: userDataJSON },
-        "Failed to parse user data from Redis."
+        t("auth:logs.parseRedisDataFailed")
       );
       throw new ApiError(
         HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,

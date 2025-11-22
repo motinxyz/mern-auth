@@ -138,6 +138,7 @@ describe("Auth Service", () => {
       const newUser = {
         ...userData,
         id: "123",
+        _id: "123", // Add _id for Mongoose compatibility
         toJSON: () => ({ ...userData, id: "123" }),
       };
 

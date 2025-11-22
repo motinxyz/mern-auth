@@ -10,19 +10,6 @@ let mockDebug = vi.fn();
 let mockInfo = vi.fn();
 let mockError = vi.fn();
 
-vi.mock("node:crypto", async () => {
-  const actualCrypto = await vi.importActual("node:crypto");
-  return {
-    ...actualCrypto,
-    randomBytes: vi.fn(() => Buffer.from("random_token_string")),
-    createHash: vi.fn(() => ({
-      update: vi.fn(() => ({
-        digest: vi.fn(() => "hashed_token_string"),
-      })),
-    })),
-  };
-});
-
 vi.mock("@auth/utils", async () => ({
   ...(await vi.importActual("@auth/utils")),
   HASHING_ALGORITHM: "sha256",
@@ -35,7 +22,7 @@ vi.mock("@auth/utils", async () => ({
   },
 }));
 
-vi.mock('@auth/config', () => {
+vi.mock("@auth/config", () => {
   // Create Redis mock that stores data
   const mockRedisData = new Map();
   const mockRedisInstance = {
@@ -43,11 +30,11 @@ vi.mock('@auth/config', () => {
     set: vi.fn().mockImplementation(async (key, value, ...args) => {
       mockRedisData.set(key, value);
       // Extract TTL if provided (EX, 300 format)
-      const exIndex = args.indexOf('EX');
+      const exIndex = args.indexOf("EX");
       if (exIndex !== -1) {
         // Store TTL info if needed
       }
-      return 'OK';
+      return "OK";
     }),
     get: vi.fn().mockImplementation(async (key) => {
       return mockRedisData.get(key) || null;
@@ -55,7 +42,7 @@ vi.mock('@auth/config', () => {
     ttl: vi.fn().mockResolvedValue(300),
     flushall: vi.fn().mockImplementation(async () => {
       mockRedisData.clear();
-      return 'OK';
+      return "OK";
     }),
   };
 
@@ -74,35 +61,69 @@ vi.mock('@auth/config', () => {
       verificationTokenExpiresIn: 300,
       redis: {
         prefixes: {
-          verifyEmail: 'verify-email:',
+          verifyEmail: "verify-email:",
         },
       },
     },
   };
 });
 
+import { redisConnection } from "@auth/config";
+
 describe("Token Service", () => {
-  let redisConnection;
   let configModule;
 
   beforeEach(async () => {
-    configModule = await vi.importMock('@auth/config');
-    redisConnection = configModule.redisConnection;
+    configModule = await vi.importMock("@auth/config");
     mockDebug = vi.fn();
     mockInfo = vi.fn();
     mockError = vi.fn();
     vi.clearAllMocks();
+
+    // Ensure data map exists
+    if (!redisConnection.data) {
+      redisConnection.data = new Map();
+    }
+
+    // Restore default implementation of set
+    redisConnection.set = vi
+      .fn()
+      .mockImplementation(async (key, value, ...args) => {
+        console.log("[TEST DEBUG] set called", key);
+        if (!redisConnection.data) {
+          console.error("[TEST DEBUG] redisConnection.data is undefined");
+          throw new Error("redisConnection.data is undefined");
+        }
+        redisConnection.data.set(key, value);
+        return "OK";
+      });
+
+    // Restore default implementation of get
+    redisConnection.get = vi.fn().mockImplementation(async (key) => {
+      return redisConnection.data.get(key) || null;
+    });
+
     // Clear Redis data
-    await redisConnection.flushall();
+    if (redisConnection.flushall) {
+      await redisConnection.flushall();
+    } else {
+      redisConnection.data.clear();
+    }
   });
 
   describe("createVerificationToken", () => {
     it("should create a token, hash it, and store it in Redis", async () => {
-      const user = { id: "userId123", email: "test@example.com" };
+      const user = {
+        id: "userId123",
+        _id: "userId123",
+        email: "test@example.com",
+      };
       const token = "72616e646f5f746f6b656e5f737472696e67";
       const hashedToken = "hashed_token_string";
 
-      vi.spyOn(crypto, "randomBytes").mockReturnValue(Buffer.from(token, "hex"));
+      vi.spyOn(crypto, "randomBytes").mockReturnValue(
+        Buffer.from(token, "hex")
+      );
       vi.spyOn(crypto, "createHash").mockReturnValue({
         update: vi.fn().mockReturnThis(),
         digest: vi.fn().mockReturnValue(hashedToken),
@@ -124,7 +145,9 @@ describe("Token Service", () => {
       const ttl = await redisConnection.ttl(
         `${configModule.config.redis.prefixes.verifyEmail}${hashedToken}`
       );
-      expect(Math.abs(ttl - configModule.config.verificationTokenExpiresIn)).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(ttl - configModule.config.verificationTokenExpiresIn)
+      ).toBeLessThanOrEqual(1);
 
       expect(mockDebug).toHaveBeenCalledWith(
         {
