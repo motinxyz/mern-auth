@@ -1,7 +1,13 @@
 {
+    "buildCommand": "pnpm build",
+    "outputDirectory": "dist",
     "rewrites": [
         {
-            "source": "/((?!assets/).*)",
+            "source": "/assets/(.*)",
+            "destination": "/assets/$1"
+        },
+        {
+            "source": "/(.*)",
             "destination": "/index.html"
         }
     ]
