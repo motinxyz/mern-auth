@@ -1,6 +1,6 @@
-# Deployment Guide (Production Grade)
+# Deployment Guide (PaaS Only)
 
-This guide outlines the best strategies for deploying the `@auth` monorepo.
+This guide outlines the best strategies for deploying the `@auth` monorepo using modern PaaS providers.
 
 ## 🏆 Recommended Architecture (Split Stack)
 
@@ -33,7 +33,7 @@ For a production-grade application, we separate the frontend and backend to leve
 
 ### Option A: Railway (Recommended - $5/mo)
 
-Railway natively understands monorepos (Turborepo/PNPM) and requires **NO Docker**.
+Railway natively understands monorepos (Turborepo/PNPM).
 
 1.  **New Project**: Go to [Railway](https://railway.app/) -> New Project -> Deploy from GitHub repo.
 2.  **Configure API Service**:
@@ -71,75 +71,6 @@ Render offers a free tier but is slightly slower due to "cold starts" (server sl
 5.  **New Background Worker** (For the Worker):
     *   Create a new "Background Worker" service.
     *   **Start Command**: `node packages/worker/src/index.js`.
-
-### Option C: Docker (VPS / Self-Hosted)
-
-For maximum control, use the provided Dockerfiles to deploy on any VPS (AWS, DigitalOcean, Hetzner).
-
-1.  **Build Images**:
-    ```bash
-    # Build API
-    docker build -f packages/api/Dockerfile -t auth-api .
-
-    # Build Worker
-    docker build -f packages/worker/Dockerfile -t auth-worker .
-
-    # Build Frontend (Nginx)
-    docker build -f packages/web/Dockerfile -t auth-web .
-    ```
-
-2.  **Run Containers**:
-    ```bash
-    # Run API
-    docker run -d -p 3001:3001 --env-file .env --name api auth-api
-
-    # Run Worker
-    docker run -d --env-file .env --name worker auth-worker
-
-    # Run Frontend
-    docker run -d -p 80:80 --name web auth-web
-    ```
-
-    *Note: For production, use **Docker Compose** to orchestrate these services together.*
-
----
-
-## Level 4: Automated CI/CD (GitHub Actions)
-
-**Question:** "If I automate deployment with GitHub Actions, is it the same as doing it manually?"
-**Answer:** **YES.** The end result (a running container on your server) is identical. The difference is **who** does the work.
-
-| Manual Deployment | Automated Deployment (GitHub Actions) |
-| :--- | :--- |
-| You run `docker build` on your laptop. | GitHub runs `docker build` on their servers. |
-| You run `docker push`. | GitHub runs `docker push`. |
-| You SSH into server to pull changes. | GitHub triggers a webhook (or SSH) to pull changes. |
-| **Risk:** Human error, slow. | **Benefit:** Consistent, fast, automatic. |
-
-### How to Automate?
-I've created a workflow file for you at `.github/workflows/deploy.yml`.
-
-1.  **Secrets**: Go to GitHub Repo -> Settings -> Secrets -> Actions.
-2.  **Add**: `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
-3.  **Push**: When you push to `main`, GitHub will automatically build your Docker images and push them to Docker Hub.
-4.  **Deploy**: You can add a step to SSH into your VPS and run `docker pull && docker restart`.
-
----
-
-## ⚖️ Comparison: Docker vs. Direct Deployment
-
-| Feature | Direct Deployment (Railway/Render) | Docker Deployment (VPS) |
-| :--- | :--- | :--- |
-| **Ease of Use** | ⭐⭐⭐⭐⭐ (Connect GitHub & Go) | ⭐⭐ (Requires Docker knowledge) |
-| **Maintenance** | Zero (Platform handles OS/Updates) | High (You manage OS, Security, Updates) |
-| **Cost** | Higher (Pay for convenience) | Lower (Pay for raw compute) |
-| **Control** | Limited (Platform constraints) | Full (Root access to OS) |
-| **Scaling** | Auto-scaling (One click) | Manual (Orchestration needed) |
-| **Best For** | **Startups, MVPs, Speed** | **Enterprise, Custom Infrastructure** |
-
-**Verdict:**
--   Start with **Direct Deployment** (Railway/Render). It saves you hours of devops work.
--   Switch to **Docker/VPS** only when your bill exceeds $100/mo or you need custom OS-level configurations.
 
 ---
 
