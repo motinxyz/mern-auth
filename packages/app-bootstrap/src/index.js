@@ -22,7 +22,7 @@ export async function initializeCommonServices() {
   ];
 
   const results = await Promise.allSettled(
-    services.map((s) => s.init().then(() => s.name)),
+    services.map((s) => s.init().then(() => s.name))
   );
 
   const failedServices = results.filter((r) => r.status === "rejected");
@@ -35,7 +35,7 @@ export async function initializeCommonServices() {
       if (error instanceof DatabaseConnectionError) {
         logger.fatal(
           t("system:db.connectionFailedAfterRetries"),
-          error.originalError,
+          error.originalError
         );
       } else if (error instanceof EmailServiceInitializationError) {
         logger.fatal(t("email:errors.smtpConnectionFailed"), error);
@@ -44,17 +44,17 @@ export async function initializeCommonServices() {
       } else {
         logger.error(
           t("system:server.serviceStartError", { service: serviceName }),
-          error,
+          error
         );
       }
     });
     logger.fatal(
       t("system:server.failedToStartServices"),
-      `Exiting in ${config.shutdownTimeoutMs / 1000} seconds...`,
+      `Exiting in ${config.shutdownTimeoutMs / 1000} seconds...`
     );
     // Give some time for logs to be flushed and external systems to react
     await new Promise((resolve) =>
-      setTimeout(resolve, config.shutdownTimeoutMs),
+      setTimeout(resolve, config.shutdownTimeoutMs)
     );
     process.exit(1);
   }
@@ -70,7 +70,7 @@ export async function initializeCommonServices() {
 export async function bootstrapApplication(app) {
   await initializeCommonServices(); // Initialize common services
 
-  const server = app.listen(config.port, () => {
+  const server = app.listen(config.port, "0.0.0.0", () => {
     logger.info(t("system:server.startSuccess", { port: config.port }));
   });
 
