@@ -130,8 +130,6 @@ export const errorHandler = (err, req, res, next) => {
               }
               return ""; // Default to empty string if no valid message key
             })(),
-            ...(e.context?.value !== undefined && { value: e.context.value }),
-            ...(e.value !== undefined && { value: e.value }),
           };
         })
       : [], // Return empty array if errors is not defined or not an array

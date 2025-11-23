@@ -1,16 +1,46 @@
 import { useActionState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { authService } from "../services/auth.service";
+import { registerUserSchema } from "@auth/utils";
 
 export default function RegisterForm() {
   const navigate = useNavigate();
   const [isPending, startTransition] = useTransition();
+  const { t } = useTranslation();
+
+  // Helper to translate error messages
+  const translateError = (message) => {
+    // If message contains ':', it's a translation key
+    if (message && message.includes(":")) {
+      return t(message);
+    }
+    return message;
+  };
 
   // Form action handler following React 19 patterns
   async function registerAction(prevState, formData) {
     const name = formData.get("name");
     const email = formData.get("email");
     const password = formData.get("password");
+
+    // Client-side validation using shared schema
+    const validation = registerUserSchema.safeParse({ name, email, password });
+
+    if (!validation.success) {
+      const fieldErrors = {};
+      validation.error.errors.forEach((err) => {
+        const field = err.path[0];
+        if (field) {
+          fieldErrors[field] = translateError(err.message);
+        }
+      });
+      return {
+        success: false,
+        errors: fieldErrors,
+        defaultValues: { name, email },
+      };
+    }
 
     try {
       await authService.register({ name, email, password });
@@ -26,7 +56,7 @@ export default function RegisterForm() {
         const fieldErrors = {};
         error.errors.forEach((err) => {
           if (err.field) {
-            fieldErrors[err.field] = err.message;
+            fieldErrors[err.field] = translateError(err.message);
           }
         });
         return {
@@ -38,7 +68,9 @@ export default function RegisterForm() {
 
       return {
         success: false,
-        errors: { general: error.message || "Registration failed" },
+        errors: {
+          general: translateError(error.message) || "Registration failed",
+        },
         defaultValues: { name, email },
       };
     }
@@ -56,7 +88,7 @@ export default function RegisterForm() {
   const isLoading = pending || isPending;
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#f8fafc] text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-700">
+    <div className="w-full flex-1 flex items-center justify-center p-4 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-700 relative">
       {/* Abstract Background Shapes */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] rounded-full bg-indigo-100/40 blur-3xl" />

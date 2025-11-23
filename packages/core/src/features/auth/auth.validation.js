@@ -1,26 +1,12 @@
 import { z } from "zod";
-import { VALIDATION_RULES } from "@auth/utils";
+import { registerUserSchema } from "@auth/utils";
 
 /**
  * Zod schema for user registration.
- * It validates the request body.
+ * It validates the request body by wrapping the shared schema.
  */
 export const registerSchema = z.object({
-  body: z.object({
-    name: z
-      .string({ required_error: "validation:name.required" })
-      .min(VALIDATION_RULES.NAME.MIN_LENGTH, {
-        message: "validation:name.length",
-      }),
-    email: z
-      .string({ required_error: "validation:email.required" })
-      .regex(VALIDATION_RULES.EMAIL_REGEX, { message: "validation:email.invalid" }),
-    password: z
-      .string({ required_error: "validation:password.required" })
-      .min(VALIDATION_RULES.PASSWORD.MIN_LENGTH, {
-        message: "validation:password.length",
-      }),
-  }),
+  body: registerUserSchema,
 });
 
 /**
