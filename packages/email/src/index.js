@@ -24,8 +24,8 @@ let circuitBreakerStats = {
 
 // Advanced circuit breaker options
 const breakerOptions = {
-  // Timeout: Max time to wait for email sending (10 seconds)
-  timeout: 10000,
+  // Timeout: Max time to wait for email sending (30 seconds)
+  timeout: 30000,
 
   // Error threshold: Open circuit if 50% of requests fail
   errorThresholdPercentage: 50,
@@ -34,19 +34,16 @@ const breakerOptions = {
   resetTimeout: 30000,
 
   // Rolling window: Time window for counting errors (10 seconds)
-  // This means we look at the last 10 seconds of requests
   rollingCountTimeout: 10000,
 
   // Rolling buckets: Divide the window into 10 buckets
-  // More buckets = more granular tracking
   rollingCountBuckets: 10,
 
   // Volume threshold: Minimum number of requests before opening circuit
-  // Prevents opening on low traffic (e.g., 1 failure out of 1 request)
-  volumeThreshold: 5,
+  // Increased to prevent tripping on low traffic/startup
+  volumeThreshold: 20,
 
   // Capacity: Maximum number of concurrent requests
-  // Prevents overwhelming the SMTP server
   capacity: 50,
 
   // Name for identification in logs/metrics

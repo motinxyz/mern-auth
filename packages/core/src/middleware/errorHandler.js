@@ -121,7 +121,7 @@ export const errorHandler = (err, req, res, next) => {
     message: req.t(apiError.message), // Translate the main message
     errors: Array.isArray(apiError.errors)
       ? apiError.errors.map((e) => {
-          const errorObject = {
+          return {
             field: e.field,
             message: (() => {
               const msgKey = e.issue || e.message; // Prioritize e.issue, then e.message
@@ -133,16 +133,18 @@ export const errorHandler = (err, req, res, next) => {
             ...(e.context?.value !== undefined && { value: e.context.value }),
             ...(e.value !== undefined && { value: e.value }),
           };
-
-          // Add oldValue if req.body exists and the field is not sensitive
-          if (req.body && !SENSITIVE_FIELDS.includes(e.field)) {
-            if (req.body[e.field] !== undefined) {
-              errorObject.oldValue = req.body[e.field];
-            }
-          }
-          return errorObject;
         })
       : [], // Return empty array if errors is not defined or not an array
+    data: (() => {
+      if (!req.body) return null;
+      const safeData = {};
+      Object.keys(req.body).forEach((key) => {
+        if (!SENSITIVE_FIELDS.includes(key)) {
+          safeData[key] = req.body[key];
+        }
+      });
+      return Object.keys(safeData).length > 0 ? safeData : null;
+    })(),
   };
 
   if (!res.headersSent) {
