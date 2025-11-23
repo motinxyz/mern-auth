@@ -30,7 +30,11 @@ if (process.env.NODE_ENV === "test") {
 
 const envSchema = z.object({
   NODE_ENV: z
-    .enum([Environments.DEVELOPMENT, Environments.PRODUCTION, Environments.TEST])
+    .enum([
+      Environments.DEVELOPMENT,
+      Environments.PRODUCTION,
+      Environments.TEST,
+    ])
     .default(DEFAULTS.NODE_ENV),
   PORT: z.coerce.number().default(DEFAULTS.PORT),
   MONGO_URI: z
@@ -70,6 +74,8 @@ const envSchema = z.object({
       }),
     }),
 
+  RESEND_API_KEY: z.string().optional(),
+
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().optional(),
   SMTP_USER: z.string().optional(),
@@ -89,12 +95,20 @@ const envSchema = z.object({
   LOG_LEVEL: z.string().default(DEFAULTS.LOG_LEVEL),
   BCRYPT_SALT_ROUNDS: z.coerce.number().default(DEFAULTS.BCRYPT_SALT_ROUNDS),
   DB_MAX_RETRIES: z.coerce.number().default(DEFAULTS.DB_MAX_RETRIES),
-  DB_INITIAL_RETRY_DELAY_MS: z.coerce.number().default(DEFAULTS.DB_INITIAL_RETRY_DELAY_MS),
+  DB_INITIAL_RETRY_DELAY_MS: z.coerce
+    .number()
+    .default(DEFAULTS.DB_INITIAL_RETRY_DELAY_MS),
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().default(DEFAULTS.SHUTDOWN_TIMEOUT_MS),
   REDIS_MAX_RETRIES: z.coerce.number().default(DEFAULTS.REDIS_MAX_RETRIES),
-  REDIS_RETRY_DELAY_MS: z.coerce.number().default(DEFAULTS.REDIS_RETRY_DELAY_MS),
-  REDIS_PREFIX_VERIFY_EMAIL: z.string().default(DEFAULTS.REDIS_PREFIX_VERIFY_EMAIL),
-  REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT: z.string().default(DEFAULTS.REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT),
+  REDIS_RETRY_DELAY_MS: z.coerce
+    .number()
+    .default(DEFAULTS.REDIS_RETRY_DELAY_MS),
+  REDIS_PREFIX_VERIFY_EMAIL: z
+    .string()
+    .default(DEFAULTS.REDIS_PREFIX_VERIFY_EMAIL),
+  REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT: z
+    .string()
+    .default(DEFAULTS.REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -139,6 +153,7 @@ const finalConfig = {
     user: envVars.SMTP_USER,
     pass: envVars.SMTP_PASS,
   },
+  resendApiKey: envVars.RESEND_API_KEY,
   emailFrom: envVars.EMAIL_FROM,
   verificationTokenExpiresIn: envVars.VERIFICATION_TOKEN_EXPIRES_IN,
   logLevel: envVars.NODE_ENV === "development" ? "debug" : envVars.LOG_LEVEL,

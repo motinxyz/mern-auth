@@ -1,14 +1,53 @@
 import { createTransport } from "nodemailer";
+import { Resend } from "resend";
 import { config, logger } from "@auth/config";
 
 const providerLogger = logger.child({ module: "email-providers" });
 
 export const providers = [];
 
-// Primary provider
-if (config.smtp?.host) {
+// Primary provider (Resend API)
+if (config.resendApiKey) {
+  const resend = new Resend(config.resendApiKey);
+
   providers.push({
-    name: "primary",
+    name: "resend-api",
+    transport: {
+      // Adapter to match Nodemailer interface
+      sendMail: async (mailOptions) => {
+        const { from, to, subject, html, text } = mailOptions;
+        const data = await resend.emails.send({
+          from,
+          to,
+          subject,
+          html,
+          text,
+        });
+
+        if (data.error) {
+          throw new Error(data.error.message);
+        }
+
+        return { messageId: data.data.id };
+      },
+      verify: async () => {
+        // Simple verification by checking if client is initialized
+        // In a real scenario, we might try to fetch a dummy resource or check account status
+        // For now, existence of API key is enough validation for startup
+        if (!config.resendApiKey) throw new Error("Missing Resend API Key");
+        return true;
+      },
+    },
+  });
+
+  providerLogger.info(
+    { provider: "resend-api" },
+    "Resend API email provider configured"
+  );
+} else if (config.smtp?.host) {
+  // Fallback to SMTP if Resend API key is not present
+  providers.push({
+    name: "smtp-primary",
     transport: createTransport({
       pool: true,
       host: config.smtp.host,
@@ -21,15 +60,15 @@ if (config.smtp?.host) {
     }),
   });
   providerLogger.info(
-    { provider: "primary", host: config.smtp.host },
-    "Primary email provider configured"
+    { provider: "smtp-primary", host: config.smtp.host },
+    "Primary SMTP email provider configured"
   );
 }
 
-// Fallback provider (if configured)
+// Fallback provider (SMTP)
 if (config.smtp?.fallback?.host) {
   providers.push({
-    name: "fallback",
+    name: "smtp-fallback",
     transport: createTransport({
       pool: true,
       host: config.smtp.fallback.host,
@@ -42,8 +81,8 @@ if (config.smtp?.fallback?.host) {
     }),
   });
   providerLogger.info(
-    { provider: "fallback", host: config.smtp.fallback.host },
-    "Fallback email provider configured"
+    { provider: "smtp-fallback", host: config.smtp.fallback.host },
+    "Fallback SMTP email provider configured"
   );
 }
 
