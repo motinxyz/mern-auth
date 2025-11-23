@@ -72,6 +72,57 @@ Render offers a free tier but is slightly slower due to "cold starts" (server sl
     *   Create a new "Background Worker" service.
     *   **Start Command**: `node packages/worker/src/index.js`.
 
+### Detailed Render Deployment Steps
+
+#### 1️⃣ API Service (Web Service)
+1. **Create a New Web Service** on Render → *New* → *Web Service*.
+2. **Name**: `auth-api`.
+3. **Root Directory**: `.` (project root).
+4. **Build Command**: `pnpm install` (installs all workspace dependencies).
+5. **Start Command**: `node packages/api/src/server.js`.
+6. **Environment**: Set `NODE_ENV=production`.
+7. **Add Environment Variables** – copy every key from your local `.env` (e.g., `MONGODB_URI`, `REDIS_URL`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`, `RESEND_API_KEY`, `VITE_API_URL`, `CLIENT_URL`).
+8. **Health Check** (optional): `GET /health` (ensure your API exposes a health endpoint).
+9. **Instance Type**: Free (or choose a paid plan for higher concurrency).
+
+#### 2️⃣ Worker Service (Background Worker)
+1. **Create a New Background Worker** on Render.
+2. **Name**: `auth-worker`.
+3. **Root Directory**: `.`.
+4. **Build Command**: `pnpm install`.
+5. **Start Command**: `node packages/worker/src/index.js`.
+6. **Environment Variables**: Same as API service (so the worker can connect to MongoDB, Redis, and email services).
+7. **Instance Type**: Free (or paid for higher throughput).
+
+#### 3️⃣ Database (MongoDB Atlas)
+- Sign up at **MongoDB Atlas** and create a cluster.
+- Whitelist Render IP ranges (or allow access from anywhere for dev).
+- Obtain the connection string and set it as `MONGODB_URI` in Render env vars.
+
+#### 4️⃣ Redis (Upstash)
+- Create an Upstash Redis instance.
+- Copy the URL and set it as `REDIS_URL` in Render env vars.
+
+#### 5️⃣ Email Service (Resend)
+- Verify your domain with **Resend**.
+- Generate an API key and set `RESEND_API_KEY` and `EMAIL_FROM` in env vars.
+
+#### 6️⃣ CORS & Client URL
+- In your API configuration, ensure CORS allows the Vercel frontend URL.
+- Set `CLIENT_URL` env var to the Vercel domain (e.g., `https://myapp.vercel.app`).
+
+#### 7️⃣ Deploy & Verify
+1. **Trigger Deploy**: Push a commit to `main` – Render will auto‑build.
+2. **Check Logs**: Verify the startup logs show successful connections to MongoDB, Redis, and email.
+3. **Test Endpoints**: Use Postman or curl to hit `https://<render‑service>.onrender.com/api/v1/auth/register`.
+4. **Monitor**: Use Render’s metrics dashboard to watch CPU, memory, and request latency.
+
+#### 8️⃣ Optional – Custom Domain & HTTPS
+- Add a custom domain in Render → *Custom Domains*.
+- Render provides automatic HTTPS via Let’s Encrypt.
+
+---
+
 ---
 
 ## Part 3: Connect Frontend & Backend
