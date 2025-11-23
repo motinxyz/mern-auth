@@ -71,6 +71,9 @@ importers:
       '@auth/utils':
         specifier: workspace:*
         version: link:../utils
+      '@auth/worker':
+        specifier: workspace:*
+        version: link:../worker
       '@exortek/express-mongo-sanitize':
         specifier: ^1.1.1
         version: 1.1.1

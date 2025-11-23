@@ -19,6 +19,7 @@
     "@auth/email": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
+    "@auth/worker": "workspace:*",
     "@exortek/express-mongo-sanitize": "^1.1.1",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
