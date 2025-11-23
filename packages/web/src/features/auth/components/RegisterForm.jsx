@@ -2,7 +2,7 @@ import { useActionState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { authService } from "../services/auth.service";
-import { registerUserSchema } from "@auth/utils";
+import { registerUserSchema, VALIDATION_RULES } from "@auth/utils";
 
 export default function RegisterForm() {
   const navigate = useNavigate();
@@ -228,8 +228,9 @@ export default function RegisterForm() {
                   </p>
                 )}
                 <p className="text-xs text-slate-500 ml-1">
-                  Must be at least 8 characters with uppercase, lowercase,
-                  number, and special character
+                  Must be at least {VALIDATION_RULES.PASSWORD.MIN_LENGTH}{" "}
+                  characters with uppercase, lowercase, number, and special
+                  character
                 </p>
               </div>
             </div>

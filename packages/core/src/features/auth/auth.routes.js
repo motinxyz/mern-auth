@@ -3,6 +3,7 @@ import { authController } from "./auth.container.js";
 import { validate } from "../../middleware/validate.js";
 import { registerSchema, verifyEmailSchema } from "./auth.validation.js";
 import { authLimiter } from "../../middleware/rateLimiter.js";
+import { AUTH_ROUTES } from "@auth/utils";
 
 const router = Router();
 
@@ -53,7 +54,7 @@ const router = Router();
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post(
-  "/register",
+  AUTH_ROUTES.REGISTER,
   authLimiter,
   validate(registerSchema),
   authController.registerUser.bind(authController)
@@ -95,7 +96,7 @@ router.post(
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get(
-  "/verify-email",
+  AUTH_ROUTES.VERIFY_EMAIL,
   validate(verifyEmailSchema),
   authController.verifyEmail.bind(authController)
 );

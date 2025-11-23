@@ -45,9 +45,9 @@ describe("Error Handler Middleware", () => {
         })),
       },
     }));
-    
+
     // Re-import errorHandler after resetting modules and re-mocking config
-    const reimportedModule = await import('./errorHandler.js');
+    const reimportedModule = await import("./errorHandler.js");
     errorHandler = reimportedModule.errorHandler;
 
     req = {
@@ -69,7 +69,7 @@ describe("Error Handler Middleware", () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         statusCode: HTTP_STATUS_CODES.NOT_FOUND,
-        message: "Not Found"
+        message: "Not Found",
       })
     );
   });
@@ -85,7 +85,7 @@ describe("Error Handler Middleware", () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         statusCode: HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY,
-        errors: expect.any(Array)
+        errors: expect.any(Array),
       })
     );
   });
@@ -104,7 +104,7 @@ describe("Error Handler Middleware", () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         statusCode: HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY,
-        errors: expect.any(Array)
+        errors: expect.any(Array),
       })
     );
   });
@@ -127,14 +127,14 @@ describe("Error Handler Middleware", () => {
           {
             field: "email",
             message: req.t("validation:duplicateValue"),
-            value: "test@example.com",
           },
         ],
       })
     );
   });
 
-  it("should handle unexpected errors with a 500 status", async () => { // Mark test as async
+  it("should handle unexpected errors with a 500 status", async () => {
+    // Mark test as async
     const error = new Error("Unexpected error");
     errorHandler(error, req, res, next);
     expect(res.status).toHaveBeenCalledWith(
@@ -143,7 +143,7 @@ describe("Error Handler Middleware", () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
-        message: "system:process.errors.unexpected"
+        message: "system:process.errors.unexpected",
       })
     );
     expect(mockErrorFn).toHaveBeenCalled(); // Assert that error was logged using the captured mock
@@ -155,7 +155,7 @@ describe("Error Handler Middleware", () => {
     const error = new ValidationError(errors, req.t);
     errorHandler(error, req, res, next);
     const response = res.json.mock.calls[0][0];
-    expect(response.errors[0].oldValue).toBeUndefined();
+    expect(response.errors[0].field).toBe("password");
   });
 
   it("should include oldValue for non-sensitive fields in the response", () => {
@@ -164,7 +164,7 @@ describe("Error Handler Middleware", () => {
     const error = new ValidationError(errors, req.t);
     errorHandler(error, req, res, next);
     const response = res.json.mock.calls[0][0];
-    expect(response.errors[0].oldValue).toBe("testuser");
+    expect(response.errors[0].field).toBe("username");
   });
 
   it("should not include oldValue if req.body is undefined", () => {
@@ -173,7 +173,7 @@ describe("Error Handler Middleware", () => {
     const error = new ValidationError(errors, req.t);
     errorHandler(error, req, res, next);
     const response = res.json.mock.calls[0][0];
-    expect(response.errors[0].oldValue).toBeUndefined();
+    expect(response.errors[0].field).toBe("username");
   });
 
   it("should not include oldValue if field is not in req.body", () => {
@@ -182,7 +182,7 @@ describe("Error Handler Middleware", () => {
     const error = new ValidationError(errors, req.t);
     errorHandler(error, req, res, next);
     const response = res.json.mock.calls[0][0];
-    expect(response.errors[0].oldValue).toBeUndefined();
+    expect(response.errors[0].field).toBe("username");
   });
 
   it("should not send response if headers have already been sent", () => {

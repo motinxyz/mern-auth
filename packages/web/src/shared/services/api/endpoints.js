@@ -1,23 +1,24 @@
 import { env } from "../../../config/env";
+import { AUTH_ROUTES, USER_ROUTES } from "@auth/utils";
 
 // API Configuration
 const API_BASE_URL = env.API_URL;
 
 export const API_ENDPOINTS = {
   // Auth endpoints
-  REGISTER: "/auth/register",
-  LOGIN: "/auth/login",
-  LOGOUT: "/auth/logout",
-  VERIFY_EMAIL: "/auth/verify-email",
-  RESEND_VERIFICATION: "/auth/resend-verification",
-  FORGOT_PASSWORD: "/auth/forgot-password",
-  RESET_PASSWORD: "/auth/reset-password",
-  REFRESH_TOKEN: "/auth/refresh-token",
+  REGISTER: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.REGISTER}`,
+  LOGIN: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.LOGIN}`,
+  LOGOUT: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.LOGOUT}`,
+  VERIFY_EMAIL: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.VERIFY_EMAIL}`,
+  RESEND_VERIFICATION: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.RESEND_VERIFICATION}`,
+  FORGOT_PASSWORD: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.FORGOT_PASSWORD}`,
+  RESET_PASSWORD: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.RESET_PASSWORD}`,
+  REFRESH_TOKEN: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.REFRESH_TOKEN}`,
 
   // User endpoints
-  ME: "/users/me",
-  UPDATE_PROFILE: "/users/profile",
-  CHANGE_PASSWORD: "/users/change-password",
+  ME: `${USER_ROUTES.BASE}${USER_ROUTES.ME}`,
+  UPDATE_PROFILE: `${USER_ROUTES.BASE}${USER_ROUTES.PROFILE}`,
+  CHANGE_PASSWORD: `${USER_ROUTES.BASE}${USER_ROUTES.CHANGE_PASSWORD}`,
 };
 
 export { API_BASE_URL };
