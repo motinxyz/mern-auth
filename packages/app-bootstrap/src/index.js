@@ -28,6 +28,8 @@ export async function initializeCommonServices() {
   const failedServices = results.filter((r) => r.status === "rejected");
 
   if (failedServices.length > 0) {
+    const criticalFailures = [];
+
     failedServices.forEach((failure) => {
       const serviceName = services[results.indexOf(failure)].name;
       const error = failure.reason;
@@ -37,26 +39,34 @@ export async function initializeCommonServices() {
           t("system:db.connectionFailedAfterRetries"),
           error.originalError
         );
+        criticalFailures.push(error);
       } else if (error instanceof EmailServiceInitializationError) {
-        logger.fatal(t("email:errors.smtpConnectionFailed"), error);
+        // Treat email failure as non-fatal warning
+        logger.warn(t("email:errors.smtpConnectionFailed"), error);
       } else if (error instanceof RedisConnectionError) {
         logger.fatal(t("system:redis.connectionFailedAfterRetries"), error);
+        criticalFailures.push(error);
       } else {
         logger.error(
           t("system:server.serviceStartError", { service: serviceName }),
           error
         );
+        // Treat unknown errors as critical for safety
+        criticalFailures.push(error);
       }
     });
-    logger.fatal(
-      t("system:server.failedToStartServices"),
-      `Exiting in ${config.shutdownTimeoutMs / 1000} seconds...`
-    );
-    // Give some time for logs to be flushed and external systems to react
-    await new Promise((resolve) =>
-      setTimeout(resolve, config.shutdownTimeoutMs)
-    );
-    process.exit(1);
+
+    if (criticalFailures.length > 0) {
+      logger.fatal(
+        t("system:server.failedToStartServices"),
+        `Exiting in ${config.shutdownTimeoutMs / 1000} seconds...`
+      );
+      // Give some time for logs to be flushed and external systems to react
+      await new Promise((resolve) =>
+        setTimeout(resolve, config.shutdownTimeoutMs)
+      );
+      process.exit(1);
+    }
   }
 
   logger.info(t("system:server.allServicesStarted"));
