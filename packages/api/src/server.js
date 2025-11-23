@@ -4,7 +4,11 @@ import { logger } from "@auth/config";
 import emailProcessor from "@auth/worker/src/email.processor.js"; // Import worker to start it
 
 // Start the application by bootstrapping all services and starting the server.
-await bootstrapApplication(app);
+await bootstrapApplication(app, async () => {
+  logger.info("Shutting down worker services...");
+  await emailProcessor.close();
+  logger.info("Worker services stopped.");
+});
 
 // Log that worker is also running in this process
 logger.info("Worker services (Email Processor) started in API process.");

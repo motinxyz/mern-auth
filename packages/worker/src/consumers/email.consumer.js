@@ -1,4 +1,3 @@
-
 import { i18nInstance, t as systemT, logger } from "@auth/config";
 import {
   UnknownJobTypeError,
@@ -60,10 +59,7 @@ export const emailJobConsumer = async (job) => {
         );
     }
   } catch (error) {
-    consumerLogger.error(
-      { err: error },
-      systemT("worker:errors.jobFailed")
-    );
+    consumerLogger.error({ err: error }, systemT("worker:errors.jobFailed"));
     throw error;
   }
 };

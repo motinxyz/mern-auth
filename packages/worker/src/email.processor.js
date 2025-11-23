@@ -1,11 +1,12 @@
-
 import { Worker, Queue } from "bullmq";
 import { redisConnection as connection } from "@auth/config";
 import { QUEUE_NAMES, WORKER_CONFIG } from "@auth/queues";
 import { logger, t as systemT } from "@auth/config";
 import { emailJobConsumer } from "./consumers/email.consumer.js";
 
-const failedJobsQueue = new Queue(QUEUE_NAMES.EMAIL_DEAD_LETTER, { connection });
+const failedJobsQueue = new Queue(QUEUE_NAMES.EMAIL_DEAD_LETTER, {
+  connection,
+});
 export const workerLogger = logger.child({ module: "email-processor" }); // Changed module name for logger
 
 const processor = async (job) => {
@@ -19,7 +20,9 @@ const processor = async (job) => {
 const emailProcessor = new Worker(QUEUE_NAMES.EMAIL, processor, {
   connection,
   concurrency: WORKER_CONFIG.CONCURRENCY,
-  removeOnComplete: { count: WORKER_CONFIG.JOB_RETENTION.REMOVE_ON_COMPLETE_COUNT },
+  removeOnComplete: {
+    count: WORKER_CONFIG.JOB_RETENTION.REMOVE_ON_COMPLETE_COUNT,
+  },
   removeOnFail: { count: WORKER_CONFIG.JOB_RETENTION.REMOVE_ON_FAIL_COUNT },
   limiter: {
     max: WORKER_CONFIG.RATE_LIMIT.MAX_JOBS,
@@ -30,8 +33,8 @@ const emailProcessor = new Worker(QUEUE_NAMES.EMAIL, processor, {
   enableKeyEvents: false, // Disable key events if not explicitly needed
   // Further reduce Redis traffic by adjusting intervals and delays
   stalledInterval: 60000, // How often the worker checks for stalled jobs (default 30000ms)
-  lockDuration: 60000,    // How long the job lock is valid (default 30000ms)
-  drainDelay: 500,        // Delay before fetching next job after completion (default 5ms)
+  lockDuration: 60000, // How long the job lock is valid (default 30000ms)
+  drainDelay: 500, // Delay before fetching next job after completion (default 5ms)
 });
 
 emailProcessor.on("failed", async (job, err) => {

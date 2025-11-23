@@ -75,9 +75,10 @@ export async function initializeCommonServices() {
 /**
  * Initializes all necessary services in parallel and starts the API server.
  * @param {Express.Application} app - The Express application instance.
+ * @param {Function} [onShutdown] - Optional callback to run during graceful shutdown.
  * @returns {Promise<import('http').Server>} The HTTP server instance.
  */
-export async function bootstrapApplication(app) {
+export async function bootstrapApplication(app, onShutdown) {
   await initializeCommonServices(); // Initialize common services
 
   const server = app.listen(config.port, "0.0.0.0", () => {
@@ -88,6 +89,15 @@ export async function bootstrapApplication(app) {
     logger.info(t("system:process.shutdownSignal", { signal }));
     server.close(async () => {
       logger.info(t("system:server.closeSuccess"));
+
+      if (onShutdown) {
+        try {
+          await onShutdown();
+        } catch (error) {
+          logger.error("Error during custom shutdown handler", error);
+        }
+      }
+
       await disconnectDB(); // Disconnect DB during graceful shutdown
       process.exit(0);
     });
