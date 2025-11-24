@@ -7,9 +7,10 @@ const router = express.Router();
 const webhookLogger = logger.child({ module: "webhooks" });
 
 /**
- * Verify Resend webhook signature
+ * Verify Resend/Svix webhook signature
+ * Svix signature format: "v1,<signature>"
  */
-function verifyResendSignature(payload, signature, secret) {
+function verifyResendSignature(payload, signatureHeader, secret, timestamp) {
   if (!secret) {
     webhookLogger.warn(
       "Resend webhook secret not configured - skipping verification"
@@ -17,10 +18,39 @@ function verifyResendSignature(payload, signature, secret) {
     return true; // Allow in development
   }
 
-  const hmac = crypto.createHmac("sha256", secret);
-  const digest = hmac.update(payload).digest("hex");
+  try {
+    // Parse Svix signature format: "v1,base64signature"
+    const signatures = signatureHeader.split(" ").map((sig) => {
+      const [version, signature] = sig.split(",");
+      return { version, signature };
+    });
 
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));
+    // Get the v1 signature
+    const v1Sig = signatures.find((s) => s.version === "v1");
+    if (!v1Sig) {
+      webhookLogger.warn("No v1 signature found in header");
+      return false;
+    }
+
+    // Construct the signed content: timestamp.payload
+    const signedContent = `${timestamp}.${payload}`;
+
+    // Compute expected signature
+    const hmac = crypto.createHmac("sha256", secret);
+    const expectedSignature = hmac.update(signedContent).digest("base64");
+
+    // Compare signatures
+    return crypto.timingSafeEqual(
+      Buffer.from(v1Sig.signature),
+      Buffer.from(expectedSignature)
+    );
+  } catch (error) {
+    webhookLogger.error(
+      { error: error.message },
+      "Signature verification failed"
+    );
+    return false;
+  }
 }
 
 /**
@@ -37,13 +67,15 @@ router.post(
       // Verify webhook signature
       const signature =
         req.headers["svix-signature"] || req.headers["resend-signature"];
+      const timestamp = req.headers["svix-timestamp"];
       const webhookSecret = config.resendWebhookSecret;
 
       if (signature && webhookSecret) {
         const isValid = verifyResendSignature(
           req.body.toString(),
           signature,
-          webhookSecret
+          webhookSecret,
+          timestamp
         );
 
         if (!isValid) {
