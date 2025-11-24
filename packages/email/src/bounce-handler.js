@@ -1,6 +1,6 @@
 import { EmailLog } from "@auth/database";
 import { User } from "@auth/database";
-import { logger } from "@auth/config";
+import { logger, t as systemT } from "@auth/config";
 
 const bounceLogger = logger.child({ module: "bounce-handler" });
 
@@ -35,6 +35,40 @@ export async function handleBounce(bounceData) {
 
   // Handle hard bounces (permanent failures)
   if (bounceType === "hard") {
+    // Check if this was sent via Resend (primary provider)
+    const wasSentViaResend =
+      emailLog.provider === "resend-api" || !emailLog.provider;
+
+    if (wasSentViaResend) {
+      bounceLogger.info(
+        {
+          email,
+          messageId,
+          bounceReason,
+        },
+        "Hard bounce from Resend - will retry via Gmail SMTP"
+      );
+
+      // Trigger retry via SMTP fallback
+      // This will be handled by the email service's failover mechanism
+      // We mark it for retry and the worker will pick it up
+      await EmailLog.updateOne(
+        { _id: emailLog._id },
+        {
+          status: "retry_pending",
+          retryProvider: "smtp-gmail-fallback",
+          retryReason: "Bounced from primary provider",
+        }
+      );
+
+      return {
+        success: true,
+        action: "retry_scheduled",
+        message: "Email will be retried via Gmail SMTP",
+      };
+    }
+
+    // If it already failed via SMTP fallback, mark email as invalid
     await User.updateOne(
       { email },
       {
@@ -50,7 +84,7 @@ export async function handleBounce(bounceData) {
         messageId,
         bounceReason,
       },
-      "Hard bounce - marked email as invalid"
+      "Hard bounce from fallback provider - marked email as invalid"
     );
 
     return { success: true, action: "email_marked_invalid" };

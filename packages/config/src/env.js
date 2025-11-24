@@ -75,6 +75,7 @@ const envSchema = z.object({
     }),
 
   RESEND_API_KEY: z.string().optional(),
+  RESEND_WEBHOOK_SECRET: z.string().optional(),
 
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().optional(),
@@ -154,6 +155,7 @@ const finalConfig = {
     pass: envVars.SMTP_PASS,
   },
   resendApiKey: envVars.RESEND_API_KEY,
+  resendWebhookSecret: envVars.RESEND_WEBHOOK_SECRET,
   emailFrom: envVars.EMAIL_FROM,
   verificationTokenExpiresIn: envVars.VERIFICATION_TOKEN_EXPIRES_IN,
   logLevel: envVars.NODE_ENV === "development" ? "debug" : envVars.LOG_LEVEL,

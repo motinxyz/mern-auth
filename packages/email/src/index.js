@@ -54,19 +54,47 @@ let emailBreaker;
 let transport;
 
 export const initEmailService = async () => {
-  // Create a reusable transporter object using the SMTP transport configuration.
-  // Nodemailer's connection pooling inherently provides a form of bulkheading
-  // by limiting the number of concurrent connections to the SMTP server.
-  transport = createTransport({
-    pool: true, // Enable connection pooling for better performance
-    host: config.smtp.host,
-    port: config.smtp.port,
-    secure: config.smtp.port === 465,
-    auth: {
-      user: config.smtp.user,
-      pass: config.smtp.pass,
-    },
-  });
+  // Only create SMTP transport if SMTP credentials are configured
+  if (config.smtp?.host && config.smtp?.user) {
+    // Create a reusable transporter object using the SMTP transport configuration.
+    // Nodemailer's connection pooling inherently provides a form of bulkheading
+    // by limiting the number of concurrent connections to the SMTP server.
+    transport = createTransport({
+      pool: true, // Enable connection pooling for better performance
+      host: config.smtp.host,
+      port: config.smtp.port,
+      secure: config.smtp.port === 465,
+      auth: {
+        user: config.smtp.user,
+        pass: config.smtp.pass,
+      },
+    });
+
+    emailUtilLogger.info(
+      { host: config.smtp.host, port: config.smtp.port },
+      systemT("email:logs.smtpConfigured")
+    );
+
+    /**
+     * Verifies the SMTP connection on startup.
+     */
+    if (config.env !== "test") {
+      try {
+        await transport.verify();
+        emailUtilLogger.info(systemT("email:logs.smtpConnectionVerified"));
+      } catch (error) {
+        emailUtilLogger.warn(
+          { err: error },
+          systemT("email:errors.smtpConnectionFailed")
+        );
+        // Don't throw - allow app to start with Resend API only
+      }
+    }
+  } else {
+    emailUtilLogger.info(
+      "SMTP transport not configured, using Resend API only"
+    );
+  }
 
   // Create a circuit breaker for the sendMail function with provider failover
   emailBreaker = new CircuitBreaker(async (mailOptions) => {
@@ -222,30 +250,6 @@ export const initEmailService = async () => {
       systemT("email:logs.circuitBreakerReject")
     );
   });
-
-  emailUtilLogger.info(
-    { host: config.smtp.host, port: config.smtp.port },
-    systemT("email:logs.smtpConfigured")
-  );
-
-  /**
-   * Verifies the SMTP connection on startup.
-   */
-  if (config.env !== "test") {
-    try {
-      await transport.verify();
-      emailUtilLogger.info(systemT("email:logs.smtpConnectionVerified"));
-    } catch (error) {
-      emailUtilLogger.fatal(
-        { err: error },
-        systemT("email:errors.smtpConnectionFailed")
-      );
-      throw new EmailServiceInitializationError(
-        systemT("email:errors.smtpConnectionFailed"),
-        error
-      );
-    }
-  }
 };
 
 /**
@@ -281,7 +285,11 @@ export const sendEmail = async ({
       to,
       subject,
       status: "queued",
-      metadata,
+      metadata: {
+        ...metadata,
+        html,
+        text,
+      },
     });
 
     emailUtilLogger.debug(

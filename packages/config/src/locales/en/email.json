@@ -16,11 +16,21 @@
     "circuitBreakerSuccess": "Email sent successfully through circuit breaker",
     "circuitBreakerFailure": "Email sending failed through circuit breaker",
     "circuitBreakerTimeout": "Email sending timed out",
-    "circuitBreakerReject": "Email request rejected - circuit is open or at capacity"
+    "circuitBreakerReject": "Email request rejected - circuit is open or at capacity",
+    "resendRetrying": "Retrying Resend API call",
+    "resendSent": "Email sent via Resend API",
+    "resendAttempting": "Attempting to send via Resend API"
   },
   "errors": {
     "smtpConnectionFailed": "Failed to verify SMTP connection",
     "dispatchFailed": "Failed to dispatch email",
-    "circuitBreakerOpen": "Email service temporarily unavailable - circuit breaker is open"
+    "circuitBreakerOpen": "Email service temporarily unavailable - circuit breaker is open",
+    "resendTimeout": "Resend API request timed out",
+    "resendFailed": "Failed to send email via Resend API",
+    "resendApiError": "Resend API returned an error",
+    "resendApiKeyMissing": "Resend API key is not configured",
+    "resendApiKeyInvalid": "Resend API key format appears invalid",
+    "noProvidersConfigured": "No email providers are configured",
+    "allProvidersFailed": "All email providers failed"
   }
 }
