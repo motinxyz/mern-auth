@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@vitest/coverage-v8": "^4.0.13",
+    "@vitest/coverage-v8": "^4.0.15",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-alias": "^1.1.2",
@@ -25,9 +25,9 @@
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-security": "^3.0.1",
     "globals": "^16.5.0",
-    "prettier": "^3.6.2",
-    "turbo": "^2.6.1",
-    "vitest": "^4.0.13"
+    "prettier": "^3.7.4",
+    "turbo": "^2.6.3",
+    "vitest": "^4.0.15"
   },
   "packageManager": "pnpm@10.19.0",
   "pnpm": {

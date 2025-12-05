@@ -8,12 +8,12 @@
     "@auth/database": "workspace:*",
     "@auth/utils": "workspace:*",
     "handlebars": "^4.7.8",
-    "nodemailer": "^7.0.10",
+    "nodemailer": "^7.0.11",
     "opossum": "^9.0.0",
     "resend": "^6.5.2"
   },
   "devDependencies": {
-    "vitest": "^4.0.13"
+    "vitest": "^4.0.15"
   },
   "scripts": {
     "test": "vitest run --coverage"
