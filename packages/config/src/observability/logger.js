@@ -13,11 +13,20 @@ import pino from "pino";
 import config from "../env.js";
 import { trace } from "@opentelemetry/api";
 
+// Force IPv4 preference for all network connections
+// This fixes ETIMEDOUT errors when shipping to Grafana Cloud from environments that prefer IPv6
+import dns from "node:dns";
+try {
+  dns.setDefaultResultOrder("ipv4first");
+} catch (error) {
+  // Ignore error if specific node version doesn't support this (though v18+ does)
+}
+
 /**
  * Create logger optimized for Grafana Agent collection
  *
  * In development: Pretty-printed console output
- * In production: JSON logs to stdout (collected by Grafana Agent)
+ * In production: pino-loki transport to ship logs directly to Grafana Cloud
  */
 export function getObservabilityLogger(options = {}) {
   const baseConfig = {
@@ -73,8 +82,34 @@ export function getObservabilityLogger(options = {}) {
     });
   }
 
-  // Production: Clean JSON to stdout for Grafana Agent
-  // Grafana Agent will tail stdout and ship to Loki
+  // Production: Ship to Loki directly
+  // This replaces the experimental custom shipper service
+  if (
+    config.observability.grafana.loki.url &&
+    config.observability.grafana.loki.user
+  ) {
+    return pino({
+      ...baseConfig,
+      transport: {
+        target: "pino-loki",
+        options: {
+          batching: true,
+          interval: 5, // Ship every 5 seconds
+          host: config.observability.grafana.loki.url.replace(/\/$/, ""), // Ensure no trailing slash
+          basicAuth: {
+            username: config.observability.grafana.loki.user,
+            password: config.observability.grafana.loki.apiKey,
+          },
+          labels: {
+            app: config.observability.serviceName || "auth-api",
+            environment: config.env,
+          },
+        },
+      },
+    });
+  }
+
+  // Fallback: Stdout if Loki not configured
   return pino(baseConfig);
 }
 

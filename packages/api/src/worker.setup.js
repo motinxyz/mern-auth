@@ -45,14 +45,7 @@ export async function startWorker({
       lockDuration: WORKER_CONFIG.settings.lockDuration,
       drainDelay: WORKER_CONFIG.settings.drainDelay,
       removeOnComplete: WORKER_CONFIG.retention.removeOnComplete,
-      removeOnFail: WORKER_CONFIG.retention.removeOnFail,
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 2000,
-      },
     },
-    deadLetterQueueName: QUEUE_NAMES.EMAIL_DEAD_LETTER,
   });
 
   // Start worker

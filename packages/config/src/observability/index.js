@@ -30,4 +30,3 @@ export {
   getTracingSDK,
 } from "./tracing.js";
 export { isObservabilityEnabled, isLokiEnabled } from "./config.js";
-export { ObservabilityShipperService } from "./shipper.service.js";

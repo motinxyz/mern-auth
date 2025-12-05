@@ -10,7 +10,6 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 import {
   initializeTracing,
   initializeMetrics,
-  ObservabilityShipperService,
 } from "@auth/config/observability";
 
 // Initialize tracing (must be first!)
@@ -46,13 +45,8 @@ const Sentry = initSentry();
 const databaseService = getDatabaseService();
 
 // Get email service (lazy initialization)
+// Get email service (lazy initialization)
 const emailService = getEmailService();
-
-// Create observability shipper service instance
-const shipperService = new ObservabilityShipperService({
-  logger,
-  config,
-});
 
 let workerService;
 
@@ -63,9 +57,6 @@ await bootstrapApplication(app, async () => {
     await workerService.stop();
     logger.info(API_MESSAGES.WORKER_SHUTDOWN_COMPLETE);
   }
-
-  logger.info({ module: "shipper" }, "Stopping observability shipper...");
-  await shipperService.stop();
 });
 
 // Start worker in the same process using the decoupled setup
@@ -75,10 +66,6 @@ workerService = await startWorker({
   emailService,
   sentry: Sentry,
 });
-
-// Start observability shipper in the same process
-await shipperService.start();
-logger.info({ module: "shipper" }, "Observability shipper started");
 
 // Log health and metrics periodically (only in production)
 if (config.nodeEnv === "production") {

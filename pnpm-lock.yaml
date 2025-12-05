@@ -271,9 +271,6 @@ importers:
       pino-pretty:
         specifier: ^13.1.3
         version: 13.1.3
-      tail:
-        specifier: ^2.2.6
-        version: 2.2.6
       zod:
         specifier: ^4.1.13
         version: 4.1.13
