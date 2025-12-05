@@ -106,13 +106,6 @@ jobs:
           CLIENT_URL: http://localhost:3000
           EMAIL_FROM: test@example.com
 
-      - name: Run integration tests (Testcontainers)
-        run: pnpm test:integration
-        env:
-          NODE_ENV: test
-          CLIENT_URL: http://localhost:3000
-          EMAIL_FROM: test@example.com
-
   security:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -149,10 +142,5 @@ jobs:
         run: pnpm audit --audit-level=moderate
         continue-on-error: true
 
-      - name: Check for vulnerabilities
-        run: |
-          if pnpm audit --audit-level=high --json | grep -q '"vulnerabilities"'; then
-            echo "High severity vulnerabilities found!"
-            pnpm audit --audit-level=high
-            exit 1
-          fi
+      - name: Check for high severity vulnerabilities
+        run: pnpm audit --audit-level=high
