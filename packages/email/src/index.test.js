@@ -1,292 +1,256 @@
-import {
-  describe,
-  it,
-  expect,
-  vi,
-  beforeEach,
-  afterEach,
-  beforeAll,
-} from "vitest";
-import nodemailer from "nodemailer";
-import CircuitBreaker from "opossum"; // Import CircuitBreaker
-import { sendEmail, initEmailService } from "./index.js";
-import { config, logger, t as systemT } from "@auth/config";
-import {
-  EmailDispatchError,
-  EmailServiceInitializationError,
-} from "@auth/utils";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import CircuitBreaker from "opossum";
+import { EmailService } from "./index.js";
+import { EmailDispatchError } from "@auth/utils";
 
 // Mock external dependencies
-vi.mock("nodemailer");
-vi.mock("opossum"); // Mock opossum
-vi.mock("@auth/database", () => ({
-  EmailLog: {
-    create: vi.fn().mockResolvedValue({ _id: "mock-log-id" }),
-    updateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+vi.mock("opossum", () => {
+  return {
+    default: vi.fn(),
+  };
+});
+
+vi.mock("@auth/config", () => ({
+  i18nInstance: {
+    getFixedT: vi.fn().mockResolvedValue((key) => key),
   },
-}));
-vi.mock("@auth/config", () => {
-  const mockLoggerChild = vi.fn();
-  // Set a default mockReturnValue for mockLoggerChild
-  mockLoggerChild.mockReturnValue({
+  config: {
+    emailFrom: "test@example.com",
+    env: "test",
+  },
+  getLogger: vi.fn(() => ({
+    child: vi.fn().mockReturnThis(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    fatal: vi.fn(),
     debug: vi.fn(),
-  });
-
-  return {
-    config: {
-      smtp: {
-        host: "mock-smtp.example.com",
-        port: 587,
-        user: "mock-user",
-        pass: "mock-pass",
-      },
-      emailFrom: "mock@example.com",
-      env: "development",
-    },
-    logger: {
-      child: mockLoggerChild,
-    },
-    t: vi.fn((key) => key), // Mock translation function
-  };
-});
-
-// Mock EmailDispatchError as a class
-vi.mock("@auth/utils", async () => {
-  const actual = await vi.importActual("@auth/utils");
-  return {
-    ...actual,
-    EmailDispatchError: class EmailDispatchError extends Error {
-      constructor(message, originalError) {
-        super(message);
-        this.name = "EmailDispatchError";
-        this.originalError = originalError;
-      }
-    },
-    EmailServiceInitializationError: class EmailServiceInitializationError extends Error {
-      constructor(message, originalError) {
-        super(message);
-        this.name = "EmailServiceInitializationError";
-        this.originalError = originalError;
-      }
-    },
-  };
-});
+  })),
+  // Mock metrics
+  emailSendTotal: {
+    add: vi.fn(),
+  },
+  emailSendDuration: {
+    record: vi.fn(),
+  },
+  updateEmailMetrics: vi.fn(),
+}));
 
 describe("Email Service", () => {
-  let mockSendMail;
-  let mockTransport;
+  let emailService;
+  let mockConfig;
+  let mockLogger;
+  let mockT;
+  let mockEmailLogRepository;
+  let mockProviderService;
   let mockCircuitBreakerInstance;
-  let mockBreakerOn;
   let mockBreakerFire;
-  let mockBreakerFallback;
 
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    mockBreakerOn = vi.fn(); // Revert to simple vi.fn()
+    // Mock dependencies
+    mockConfig = {
+      emailFrom: "test@example.com",
+      env: "test",
+    };
+
+    mockLogger = {
+      child: vi.fn().mockReturnThis(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    };
+
+    mockT = vi.fn((key) => key);
+
+    mockEmailLogRepository = {
+      create: vi.fn().mockResolvedValue({ _id: "log-123" }),
+      updateById: vi.fn().mockResolvedValue(true),
+      updateStatus: vi.fn().mockResolvedValue(true),
+    };
+
+    // Create mock provider service (injected via DI)
+    mockProviderService = {
+      initialize: vi.fn().mockResolvedValue(),
+      sendWithFailover: vi.fn(),
+      getHealth: vi.fn().mockResolvedValue({ healthy: true, providers: [] }),
+    };
+
+    // Mock Circuit Breaker
     mockBreakerFire = vi.fn();
-    mockBreakerFallback = vi.fn();
     mockCircuitBreakerInstance = {
-      on: mockBreakerOn,
+      on: vi.fn(),
       fire: mockBreakerFire,
-      fallback: mockBreakerFallback,
+      fallback: vi.fn(),
+      stats: {},
+      opened: false,
+      halfOpen: false,
     };
     CircuitBreaker.mockImplementation(function () {
       return mockCircuitBreakerInstance;
     });
 
-    mockSendMail = vi.fn();
-    mockTransport = {
-      verify: vi.fn().mockResolvedValue(true),
-      sendMail: mockSendMail,
-    };
-    nodemailer.createTransport.mockReturnValue(mockTransport);
+    // Initialize service (with providerService injected)
+    emailService = new EmailService({
+      config: mockConfig,
+      logger: mockLogger,
+      t: mockT,
+      emailLogRepository: mockEmailLogRepository,
+      providerService: mockProviderService,
+    });
 
-    // Ensure logger.child has been called at least once before accessing mock.results
-    const { logger } = await import("@auth/config");
-    logger.child({ module: "email-utility" }); // Explicitly call it once
-
-    // Reset the mock functions on the emailUtilLogger that was created when index.js was loaded
-    const emailUtilLoggerMock = logger.child.mock.results[0].value; // Now this should work
-    emailUtilLoggerMock.info.mockClear();
-    emailUtilLoggerMock.warn.mockClear();
-    emailUtilLoggerMock.error.mockClear();
-    emailUtilLoggerMock.fatal.mockClear();
-    emailUtilLoggerMock.debug.mockClear();
-
-    await initEmailService();
+    await emailService.initialize();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    mockSendMail.mockReset();
   });
 
-  describe("initEmailService failure handling", () => {
-    // No beforeEach here, or a minimal one that doesn't call initEmailService
-    // The test itself will call initEmailService
-    it("should call process.exit and log fatal error if SMTP connection verification fails", async () => {
-      // Temporarily set env to something other than 'test' to trigger the verification logic
-      const originalEnv = config.env;
-      config.env = "development";
-
-      const mockFatal = vi.fn();
-      const { logger } = await import("@auth/config");
-      // Get the actual mock object returned by logger.child and set its fatal method
-      const emailUtilLoggerMock = logger.child.mock.results[0].value;
-      emailUtilLoggerMock.fatal = mockFatal; // Assign our specific mockFatal
-
-      mockTransport.verify.mockRejectedValue(
-        new Error("SMTP verification failed")
-      );
-
-      try {
-        await initEmailService();
-      } catch (error) {
-        // We expect an EmailServiceInitializationError to be thrown
-        expect(error).toBeInstanceOf(EmailServiceInitializationError);
-      }
-
-      expect(mockFatal).toHaveBeenCalledWith(
-        { err: expect.any(Error) },
-        systemT("email:errors.smtpConnectionFailed")
-      );
-
-      config.env = originalEnv;
+  describe("Initialization", () => {
+    it("should initialize provider service and circuit breaker", () => {
+      expect(mockProviderService.initialize).toHaveBeenCalled();
+      expect(CircuitBreaker).toHaveBeenCalled();
     });
   });
 
-  it("should send an email successfully", async () => {
-    mockBreakerFire.mockResolvedValue({
-      messageId: "mock-message-id",
-      provider: "primary",
-    }); // Mock fire method
-
+  describe("sendEmail", () => {
     const mailOptions = {
-      to: "test@example.com",
+      to: "user@example.com",
       subject: "Test Subject",
-      html: "<p>Test HTML</p>",
-      text: "Test Text",
-      type: "notification",
+      html: "<p>Test</p>",
+      text: "Test",
     };
 
-    const result = await sendEmail(mailOptions);
+    it("should send email successfully", async () => {
+      mockBreakerFire.mockResolvedValue({
+        messageId: "msg-123",
+        provider: "smtp",
+      });
 
-    expect(nodemailer.createTransport).toHaveBeenCalled();
-    expect(mockBreakerFire).toHaveBeenCalled();
-    expect(result).toHaveProperty("messageId", "mock-message-id");
-  });
+      const result = await emailService.sendEmail(mailOptions);
 
-  it("should open the circuit breaker and throw EmailDispatchError on repeated failures", async () => {
-    mockBreakerFire.mockRejectedValue(new Error("SMTP connection failed")); // Mock fire method to reject
+      expect(mockEmailLogRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "user@example.com",
+          status: "queued",
+        })
+      );
 
-    const mailOptions = {
-      to: "test@example.com",
-      subject: "Failing Subject",
-      html: "<p>Failing HTML</p>",
-      text: "Failing Text",
-      type: "notification",
-    };
+      expect(mockBreakerFire).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: "test@example.com",
+          to: "user@example.com",
+        })
+      );
 
-    await expect(sendEmail(mailOptions)).rejects.toThrow(EmailDispatchError);
-    expect(mockBreakerFire).toHaveBeenCalled();
-  });
+      expect(mockEmailLogRepository.updateStatus).toHaveBeenCalledWith(
+        "log-123",
+        "sent",
+        expect.objectContaining({
+          messageId: "msg-123",
+        })
+      );
 
-  it("should send a verification email", async () => {
-    const user = {
-      id: "user123",
-      email: "user@example.com",
-      name: "Test User",
-    };
-    const token = "mockVerificationToken";
-    const mockT = vi.fn((key, options) => {
-      if (key === "email:verification.subject") return "Verify Your Email";
-      if (key === "email:verification.text")
-        return `Hello ${options.name}, please verify your email: ${options.verificationUrl}`;
-      return key;
+      expect(result).toEqual({
+        messageId: "msg-123",
+        provider: "smtp",
+        emailLogId: "log-123",
+      });
     });
 
-    mockBreakerFire.mockResolvedValue({ messageId: "verification-message-id" });
+    it("should handle send failure", async () => {
+      const error = new Error("Send failed");
+      mockBreakerFire.mockRejectedValue(error);
 
-    // Import sendVerificationEmail here to ensure it's the one from the module
-    const { sendVerificationEmail } = await import("./index.js");
+      await expect(emailService.sendEmail(mailOptions)).rejects.toThrow(
+        EmailDispatchError
+      );
 
-    await sendVerificationEmail(user, token, mockT);
+      expect(mockEmailLogRepository.updateById).toHaveBeenCalledWith(
+        "log-123",
+        expect.objectContaining({
+          status: "failed",
+          error: "Send failed",
+        })
+      );
+    });
 
-    expect(mockBreakerFire).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: user.email,
-        subject: "Verify Your Email",
-        html: expect.stringContaining(user.name),
-        text: expect.stringContaining(token),
-      })
-    );
-    expect(mockT).toHaveBeenCalledWith("email:verification.subject");
-    expect(mockT).toHaveBeenCalledWith(
-      "email:verification.text",
-      expect.any(Object)
-    );
+    it("should continue sending even if log creation fails", async () => {
+      mockEmailLogRepository.create.mockRejectedValue(new Error("Log failed"));
+      mockBreakerFire.mockResolvedValue({
+        messageId: "msg-123",
+        provider: "smtp",
+      });
+
+      const result = await emailService.sendEmail(mailOptions);
+
+      expect(mockBreakerFire).toHaveBeenCalled();
+      expect(result).toEqual({
+        messageId: "msg-123",
+        provider: "smtp",
+        emailLogId: undefined,
+      });
+    });
+
+    it("should handle log update failure after success", async () => {
+      mockBreakerFire.mockResolvedValue({
+        messageId: "msg-123",
+        provider: "smtp",
+      });
+      mockEmailLogRepository.updateStatus.mockRejectedValue(
+        new Error("Update failed")
+      );
+
+      // Should not throw
+      await emailService.sendEmail(mailOptions);
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          err: expect.any(Error),
+          emailLogId: "log-123",
+        }),
+        expect.stringContaining("Failed to update email log")
+      );
+    });
+
+    it("should handle log update failure after failure", async () => {
+      mockBreakerFire.mockRejectedValue(new Error("Send failed"));
+      mockEmailLogRepository.updateById.mockRejectedValue(
+        new Error("Update failed")
+      );
+
+      await expect(emailService.sendEmail(mailOptions)).rejects.toThrow(
+        EmailDispatchError
+      );
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          err: expect.any(Error),
+          emailLogId: "log-123",
+        }),
+        expect.stringContaining("Failed to update email log")
+      );
+    });
   });
 
-  it("should transition circuit breaker through open, half-open, and close states", async () => {
-    vi.useFakeTimers();
+  describe("sendVerificationEmail", () => {
+    it("should call emailService.sendEmail with correct parameters", async () => {
+      const user = { id: "u1", email: "u@test.com", name: "User" };
+      const token = "token123";
 
-    const mailOptions = {
-      to: "test@example.com",
-      subject: "Circuit Breaker Test",
-      html: "<p>Circuit Breaker Test</p>",
-      text: "Circuit Breaker Test",
-      type: "notification",
-    };
+      // Mock sendEmail on the service instance
+      emailService.sendEmail = vi.fn().mockResolvedValue({ messageId: "123" });
 
-    // Find the callbacks from mockBreakerOn.mock.calls
-    let openCallback, halfOpenCallback, closeCallback;
-    mockBreakerOn.mock.calls.forEach(([event, callback]) => {
-      if (event === "open") openCallback = callback;
-      if (event === "halfOpen") halfOpenCallback = callback;
-      if (event === "close") closeCallback = callback;
+      await emailService.sendVerificationEmail(user, token, mockT);
+
+      expect(emailService.sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "u@test.com",
+          type: "verification",
+          subject: "email:verification.subject",
+        })
+      );
     });
-
-    // 1. Trigger failures to open the circuit
-    mockBreakerFire.mockRejectedValue(new Error("SMTP connection failed"));
-    for (let i = 0; i < 5; i++) {
-      await expect(sendEmail(mailOptions)).rejects.toThrow(EmailDispatchError);
-    }
-    // Manually invoke the 'open' callback
-    if (openCallback) openCallback();
-    const { logger } = await import("@auth/config");
-    const emailUtilLoggerMock = logger.child.mock.results[0].value;
-    expect(emailUtilLoggerMock.warn).toHaveBeenCalledWith(
-      expect.objectContaining({ event: "circuit_breaker_open" }),
-      systemT("email:logs.circuitBreakerOpen")
-    );
-
-    // 2. Advance timers to trigger half-open
-    vi.advanceTimersByTime(30000); // resetTimeout is 30 seconds
-    // Manually invoke the 'halfOpen' callback
-    if (halfOpenCallback) halfOpenCallback();
-    expect(emailUtilLoggerMock.warn).toHaveBeenCalledWith(
-      expect.objectContaining({ event: "circuit_breaker_half_open" }),
-      systemT("email:logs.circuitBreakerHalfOpen")
-    );
-
-    // 3. Mock success to close the circuit
-    mockBreakerFire.mockResolvedValue({
-      messageId: "mock-message-id-2",
-      provider: "primary",
-    });
-    await sendEmail(mailOptions);
-    // Manually invoke the 'close' callback
-    if (closeCallback) closeCallback();
-    expect(emailUtilLoggerMock.info).toHaveBeenCalledWith(
-      expect.objectContaining({ event: "circuit_breaker_closed" }),
-      systemT("email:logs.circuitBreakerClosed")
-    );
-
-    vi.useRealTimers();
   });
 });

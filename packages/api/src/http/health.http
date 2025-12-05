@@ -1,4 +1,0 @@
-GET http://localhost:3001/api/v1/health
-
-### invalid url
-GET http://localhost:3001/api/v1/invalidUrl

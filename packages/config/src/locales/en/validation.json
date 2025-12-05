@@ -18,5 +18,6 @@
     "required": "Token is required.",
     "empty": "Token cannot be empty."
   },
-  "default": "Invalid data format. See details below..."
+  "default": "Invalid data format. See details below...",
+  "failed": "Validation failed. Please check your input."
 }

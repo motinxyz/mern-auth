@@ -6,7 +6,7 @@ class ApiResponse {
   /**
    * @param {number} statusCode - The HTTP status code for the response.
    * @param {object} data - The data payload to be included in the response.
-   * @param {string} message - A descriptive message for the response, typically a translation key.
+   * @param {string} message - A descriptive message for the response.
    */
   constructor(statusCode, data, message = "success") {
     this.success = statusCode < 400;

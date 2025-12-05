@@ -1,5 +1,12 @@
 node_modules
 .turbo
-.env
+
 GEMINI_ANALYSIS**
 **/coverage
+# docs
+
+packages/api/logs/
+*.log
+
+.env
+.env.test

@@ -1,41 +1,92 @@
-import { logger, t, initI18n } from "@auth/config";
-import { redisConnection } from "@auth/config";
-import { connectDB, disconnectDB } from "@auth/database";
-import { initEmailService } from "@auth/email";
-import emailProcessor from "./email.processor.js";
-import { RedisConnectionError } from "@auth/utils";
+#!/usr/bin/env node
 
-async function startWorker() {
+/**
+ * Worker CLI
+ * Example: How to start workers with different processors
+ */
+import {
+  config,
+  getLogger,
+  initI18n,
+  redisConnection,
+  QUEUE_NAMES,
+} from "@auth/config";
+
+const logger = getLogger();
+import { EmailService } from "@auth/email";
+import DatabaseService from "@auth/database";
+import WorkerService from "./worker.service.js";
+import {
+  createEmailJobConsumer,
+  EmailConsumer,
+} from "./consumers/email.consumer.js";
+
+async function main() {
   try {
-    // Initialize services first
+    // Initialize i18n first
     await initI18n();
-    await connectDB(); // Connect to MongoDB for EmailLog tracking
-    await initEmailService();
 
-    logger.info(t("worker:logs.starting"));
+    // Create database service
+    const databaseService = new DatabaseService({ config, logger });
 
-    emailProcessor.on("ready", () => {
-      logger.info(t("worker:logs.ready"));
+    // Create email service with DI
+    const emailService = new EmailService({
+      config,
+      logger,
+      emailLogRepository: databaseService.emailLogs,
     });
 
-    async function gracefulShutdown(signal) {
-      logger.info(t("system:process.shutdownSignal", { signal }));
-      await emailProcessor.close();
-      await redisConnection.quit();
-      await disconnectDB(); // Disconnect DB during graceful shutdown
-      process.exit(0);
-    }
+    // Create worker service with DI
+    const workerService = new WorkerService({
+      logger,
+      redisConnection,
+      databaseService,
+      initServices: [
+        // Initialize email service
+        async () => await emailService.initialize(),
+      ],
+    });
 
-    process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-    process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+    // Create email consumer using factory pattern (with DI)
+    const emailJobConsumer = createEmailJobConsumer({
+      emailService,
+      logger,
+    });
+
+    // Register email processor with retry strategy
+    workerService.registerProcessor({
+      queueName: QUEUE_NAMES.EMAIL,
+      processor: emailJobConsumer,
+      workerConfig: {
+        concurrency: config.worker.concurrency,
+        attempts: config.worker.maxRetries,
+        backoff: {
+          type: "exponential",
+          delay: config.worker.backoffDelay,
+        },
+        stalledInterval: config.worker.stalledInterval,
+        disableStalledJobCheck: config.worker.disableStalledJobCheck,
+      },
+      deadLetterQueueName: QUEUE_NAMES.EMAIL_DEAD_LETTER,
+    });
+
+    // You can register more processors here:
+    // workerService.registerProcessor({
+    //   queueName: QUEUE_NAMES.SMS,
+    //   processor: smsJobConsumer,
+    //   workerConfig: { attempts: 5, backoff: { type: "exponential", delay: 1000 } },
+    //   deadLetterQueueName: QUEUE_NAMES.SMS_DEAD_LETTER,
+    // });
+
+    // Setup graceful shutdown
+    workerService.setupGracefulShutdown();
+
+    // Start the worker
+    await workerService.start();
   } catch (error) {
-    if (error instanceof RedisConnectionError) {
-      logger.fatal(t("system:redis.connectionFailedAfterRetries"), error);
-    } else {
-      logger.fatal(t("worker:errors.startupFailed"), error);
-    }
+    logger.fatal("Failed to start worker", error);
     process.exit(1);
   }
 }
 
-startWorker();
+main();

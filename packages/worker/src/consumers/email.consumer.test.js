@@ -1,112 +1,112 @@
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { emailJobConsumer } from './email.consumer.js';
-import { sendVerificationEmail } from '@auth/email';
-import { i18nInstance } from '@auth/config';
-import {
-  UnknownJobTypeError,
-  InvalidJobDataError,
-  EmailDispatchError,
-  EMAIL_JOB_TYPES,
-} from '@auth/utils';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createEmailJobConsumer } from "./email.consumer.js";
+import { EMAIL_JOB_TYPES } from "@auth/config";
+import { EmailDispatchError } from "@auth/utils";
 
 // Mock dependencies
-vi.mock('@auth/email', () => ({
-  sendVerificationEmail: vi.fn(),
-}));
-
-vi.mock('@auth/config', () => ({
-  i18nInstance: {
-    getFixedT: vi.fn().mockResolvedValue(vi.fn((key) => key)),
-  },
-  logger: {
-    child: vi.fn(() => ({
-      info: vi.fn(),
-      debug: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-    })),
-  },
+vi.mock("@auth/config", () => ({
+  getLogger: vi.fn(() => ({
+    child: vi.fn().mockReturnThis(),
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  })),
   t: vi.fn((key) => key),
+  i18nInstance: {
+    getFixedT: vi.fn().mockResolvedValue((key) => key),
+  },
+  config: {},
+  EMAIL_JOB_TYPES: {
+    SEND_VERIFICATION_EMAIL: "send-verification-email",
+  },
 }));
 
-describe('Email Job Consumer', () => {
+describe("Email Consumer", () => {
+  let mockEmailService;
+  let mockLogger;
+  let emailJobConsumer;
+
   beforeEach(() => {
-    // Don't use clearAllMocks because it clears the mock implementations
-    // Instead just reset the call counts
-    vi.resetAllMocks();
-    // Re-setup the mocks
-    i18nInstance.getFixedT.mockResolvedValue(vi.fn((key) => key));
-    // Make sure sendVerificationEmail resolves by default
-    sendVerificationEmail.mockResolvedValue(undefined);
+    vi.clearAllMocks();
+    mockLogger = {
+      child: vi.fn().mockReturnThis(),
+      info: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    };
+    mockEmailService = {
+      sendEmail: vi.fn(),
+      sendVerificationEmail: vi
+        .fn()
+        .mockResolvedValue({ messageId: "msg-123" }),
+    };
+    emailJobConsumer = createEmailJobConsumer({
+      emailService: mockEmailService,
+      logger: mockLogger,
+    });
   });
 
-  describe('SEND_VERIFICATION_EMAIL', () => {
+  it("should throw error if emailService is not provided", () => {
+    expect(() => createEmailJobConsumer({ logger: mockLogger })).toThrow(
+      "EmailService is required"
+    );
+  });
+
+  it("should process SEND_VERIFICATION_EMAIL job", async () => {
     const job = {
+      id: "job-1",
       data: {
         type: EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL,
         data: {
-          user: { name: 'Test User', email: 'test@example.com' },
-          token: 'test_token',
-          locale: 'en',
+          user: { id: "u1", email: "test@example.com" },
+          token: "token123",
+          locale: "en",
         },
       },
     };
 
-    it('should send a verification email successfully', async () => {
-      const result = await emailJobConsumer(job);
-      expect(sendVerificationEmail).toHaveBeenCalledWith(job.data.data.user, job.data.data.token, expect.any(Function));
-      expect(result).toEqual({ status: "OK", message: "worker:logs.emailSentSuccess" });
+    const result = await emailJobConsumer(job);
+
+    expect(result).toEqual({
+      status: "OK",
+      message: "Email sent successfully",
     });
 
-    it('should use default locale "en" if locale is not provided', async () => {
-      const jobWithNoLocale = {
-        data: {
-          type: EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL,
-          data: {
-            user: { name: 'Test User', email: 'test@example.com' },
-            token: 'test_token',
-          },
-        },
-      };
-      await emailJobConsumer(jobWithNoLocale);
-      expect(i18nInstance.getFixedT).toHaveBeenCalledWith('en');
-      expect(sendVerificationEmail).toHaveBeenCalledWith(
-        jobWithNoLocale.data.data.user,
-        jobWithNoLocale.data.data.token,
-        expect.any(Function)
-      );
-    });
-
-    it('should throw InvalidJobDataError if user is missing', async () => {
-      const invalidJob = { ...job, data: { ...job.data, data: { ...job.data.data, user: undefined } } };
-      await expect(emailJobConsumer(invalidJob)).rejects.toThrow(InvalidJobDataError);
-    });
-
-    it('should throw EmailDispatchError if sending email fails', async () => {
-      const error = new Error('Email dispatch failed');
-      sendVerificationEmail.mockRejectedValue(error);
-      await expect(emailJobConsumer(job)).rejects.toThrow(EmailDispatchError);
-    });
-
-    it('should throw InvalidJobDataError if token is missing', async () => {
-      const invalidJob = { ...job, data: { ...job.data, data: { ...job.data.data, token: undefined } } };
-      await expect(emailJobConsumer(invalidJob)).rejects.toThrow(InvalidJobDataError);
-    });
-
-    it('should throw InvalidJobDataError if multiple fields are missing', async () => {
-      const invalidJob = { ...job, data: { ...job.data, data: { user: undefined, token: undefined, locale: undefined } } };
-      await expect(emailJobConsumer(invalidJob)).rejects.toThrow(InvalidJobDataError);
-    });
+    expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
+      job.data.data.user,
+      job.data.data.token,
+      "en"
+    );
   });
 
-  it('should throw UnknownJobTypeError for an unknown job type', async () => {
+  it("should throw error for unknown job type", async () => {
     const job = {
+      id: "job-2",
       data: {
-        type: 'UNKNOWN_JOB_TYPE',
+        type: "UNKNOWN_TYPE",
         data: {},
       },
     };
-    await expect(emailJobConsumer(job)).rejects.toThrow(UnknownJobTypeError);
+
+    await expect(emailJobConsumer(job)).rejects.toThrow();
+  });
+
+  it("should handle processing errors", async () => {
+    const job = {
+      id: "job-3",
+      data: {
+        type: EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL,
+        data: {
+          user: { id: "u1", email: "test@example.com" },
+          token: "token123",
+        },
+      },
+    };
+
+    mockEmailService.sendVerificationEmail.mockRejectedValue(
+      new Error("Send failed")
+    );
+
+    await expect(emailJobConsumer(job)).rejects.toThrow(EmailDispatchError);
   });
 });

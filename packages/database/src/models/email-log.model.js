@@ -65,6 +65,10 @@ emailLogSchema.index({ userId: 1, type: 1 });
 emailLogSchema.index({ status: 1, createdAt: -1 });
 emailLogSchema.index({ to: 1, createdAt: -1 });
 
+// TTL index - automatically delete logs older than 30 days
+// This prevents unbounded database growth while keeping recent logs for debugging
+emailLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 }); // 30 days
+
 // Static methods
 emailLogSchema.statics.findByUser = function (userId, limit = 50) {
   return this.find({ userId }).sort({ createdAt: -1 }).limit(limit);

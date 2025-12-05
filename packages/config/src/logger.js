@@ -1,20 +1,30 @@
-import pino from "pino";
+/**
+ * Logger Factory
+ * Uses the observability module for production-grade logging
+ */
+
+import { getObservabilityLogger } from "./observability/logger.js";
 import config from "./env.js";
 
 let loggerInstance;
 
 export function getLogger() {
   if (!loggerInstance) {
-    loggerInstance = pino({
-      level: config.logLevel,
-      ...(config.isDevelopment && {
-        transport: {
-          target: "pino-pretty",
-          options: {
-            colorize: true,
-          },
-        },
-      }),
+    loggerInstance = getObservabilityLogger({
+      redact: {
+        paths: [
+          "password",
+          "token",
+          "secret",
+          "apiKey",
+          "authorization",
+          "cookie",
+          "*.password",
+          "*.token",
+          "*.secret",
+        ],
+        remove: true,
+      },
     });
   }
   return loggerInstance;

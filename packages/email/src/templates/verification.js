@@ -1,20 +1,28 @@
-import { config, logger, t as systemT } from "@auth/config";
-import { sendEmail } from "../index.js";
 import { compileTemplate } from "../template-engine.js";
-
-const verificationLogger = logger.child({ module: "email-verification" });
 
 /**
  * Sends a verification email to a user.
+ * @param {object} emailService - Email service instance
  * @param {object} user - User object containing email and name
  * @param {string} token - Verification token
  * @param {Function} t - Translation function
+ * @param {object} config - Configuration object
+ * @param {object} logger - Logger instance
  * @returns {Promise<object>} - Result from sendEmail
  */
-export const sendVerificationEmail = async (user, token, t) => {
+export const sendVerificationEmail = async (
+  emailService,
+  user,
+  token,
+  t,
+  config,
+  logger
+) => {
+  const verificationLogger = logger.child({ module: "email-verification" });
+
   verificationLogger.debug(
     { userId: user.id, email: user.email },
-    systemT("email:logs.preparingVerification")
+    t("email:logs.preparingVerification")
   );
 
   const verificationUrl = `${config.clientUrl}/verify-email?token=${token}`;
@@ -36,10 +44,10 @@ export const sendVerificationEmail = async (user, token, t) => {
 
   verificationLogger.debug(
     { userId: user.id },
-    systemT("email:logs.sendingVerification")
+    t("email:logs.sendingVerification")
   );
 
-  return sendEmail({
+  return emailService.sendEmail({
     to: user.email,
     subject: t("email:verification.subject"),
     html,

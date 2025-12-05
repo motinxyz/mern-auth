@@ -14,3 +14,4 @@ export { default as QueueError } from "./QueueError.js";
 export { default as EmailServiceInitializationError } from "./EmailServiceInitializationError.js";
 export { default as DatabaseConnectionError } from "./DatabaseConnectionError.js";
 export { default as ServiceUnavailableError } from "./ServiceUnavailableError.js";
+export { default as CircuitBreakerError } from "./CircuitBreakerError.js";

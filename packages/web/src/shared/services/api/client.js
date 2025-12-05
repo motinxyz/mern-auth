@@ -1,5 +1,6 @@
 import axios from "axios";
 import { API_BASE_URL } from "./endpoints";
+import { getSentryTraceHeaders } from "../../../config/sentry";
 
 // Create axios instance with default config
 const apiClient = axios.create({
@@ -10,13 +11,19 @@ const apiClient = axios.create({
   withCredentials: true, // Send cookies with requests
 });
 
-// Request interceptor - Add auth token to requests
+// Request interceptor - Add auth token and trace headers to requests
 apiClient.interceptors.request.use(
   (config) => {
+    // Add auth token
     const token = localStorage.getItem("accessToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Add Sentry trace headers for distributed tracing
+    const traceHeaders = getSentryTraceHeaders();
+    Object.assign(config.headers, traceHeaders);
+
     return config;
   },
   (error) => {

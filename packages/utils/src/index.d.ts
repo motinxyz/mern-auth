@@ -16,18 +16,19 @@ declare module "@auth/utils" {
     constructor(statusCode: number, message?: string, errors?: any[], stack?: string);
   }
 
-  export class ValidationError extends ApiError {}
-  export class NotFoundError extends ApiError {}
-  export class ConflictError extends ApiError {}
-  export class TooManyRequestsError extends ApiError {}
-  export class EnvironmentError extends ApiError {}
-  export class UnknownJobTypeError extends ApiError {}
-  export class InvalidJobDataError extends ApiError {}
-  export class EmailDispatchError extends ApiError {}
-  export class JobCreationError extends ApiError {}
-  export class TokenCreationError extends ApiError {}
-  export class RedisConnectionError extends ApiError {}
-  export class QueueError extends ApiError {}
+  export class ValidationError extends ApiError { }
+  export class NotFoundError extends ApiError { }
+  export class ConflictError extends ApiError { }
+  export class TooManyRequestsError extends ApiError { }
+  export class EnvironmentError extends ApiError { }
+  export class UnknownJobTypeError extends ApiError { }
+  export class InvalidJobDataError extends ApiError { }
+  export class EmailDispatchError extends ApiError { }
+  export class JobCreationError extends ApiError { }
+  export class TokenCreationError extends ApiError { }
+  export class RedisConnectionError extends ApiError { }
+  export class QueueError extends ApiError { }
+  export class ServiceUnavailableError extends ApiError { }
 
   export const HTTP_STATUS_CODES: {
     OK: 200;
@@ -40,6 +41,7 @@ declare module "@auth/utils" {
     UNPROCESSABLE_CONTENT: 422;
     TOO_MANY_REQUESTS: 429;
     INTERNAL_SERVER_ERROR: 500;
+    SERVICE_UNAVAILABLE: 503;
   };
 
   export const VALIDATION_RULES: {
@@ -49,6 +51,7 @@ declare module "@auth/utils" {
     PASSWORD: {
       MIN_LENGTH: number;
     };
+    EMAIL_REGEX: RegExp;
   };
 
   export const VERIFICATION_STATUS: {
@@ -60,17 +63,14 @@ declare module "@auth/utils" {
     VERIFY_EMAIL: number;
   };
 
-  export const HASHING_ALGORITHM: string;
-
-  export const AUTH_REDIS_PREFIXES: {
-    EMAIL_VERIFICATION: string;
-  };
-
-  export const TOKEN_REDIS_PREFIXES: {
-    ACCESS_TOKEN: string;
-    REFRESH_TOKEN: string;
-  };
+  export const REDIS_RATE_LIMIT_VALUE: string;
 
   export function createAuthRateLimitKey(prefix: string, email: string): string;
   export function createVerifyEmailKey(prefix: string, hashedToken: string): string;
+
+  export function normalizeEmail(email: string): string;
+  export function areEmailsEquivalent(email1: string, email2: string): boolean;
+
+  export const registerUserSchema: any;
+  export const loginUserSchema: any;
 }

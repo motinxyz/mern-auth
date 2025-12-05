@@ -1,42 +1,104 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import mongoose from "mongoose";
-import { connectDB, disconnectDB } from "./index.js";
-import { config } from "@auth/config";
+import DatabaseService from "./index.js";
 
-// Mock mongoose
-vi.mock("mongoose", async () => {
-  const actualMongoose = await vi.importActual("mongoose");
+// Mock mongoose with Schema.Types support
+vi.mock("mongoose", () => {
+  const MockSchema = class {
+    constructor() {
+      this.pre = vi.fn();
+      this.methods = {};
+      this.statics = {};
+      this.index = vi.fn();
+      this.set = vi.fn();
+      this.virtual = vi.fn().mockReturnValue({
+        get: vi.fn(),
+        set: vi.fn(),
+      });
+    }
+  };
+  MockSchema.Types = {
+    ObjectId: "ObjectId",
+    String: String,
+    Number: Number,
+    Boolean: Boolean,
+    Date: Date,
+  };
+
   return {
-    ...actualMongoose,
     default: {
-      ...actualMongoose.default,
-      connect: vi.fn(),
-      disconnect: vi.fn(),
+      connect: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn().mockResolvedValue(undefined),
       connection: {
-        ...actualMongoose.default.connection,
         on: vi.fn(),
+        readyState: 1,
+        db: {
+          admin: () => ({
+            ping: vi.fn().mockResolvedValue({ ok: 1 }),
+          }),
+        },
       },
+      models: {},
+      Schema: MockSchema,
+      model: vi.fn().mockImplementation((name) => ({
+        modelName: name,
+        findOne: vi.fn(),
+        findById: vi.fn(),
+        create: vi.fn(),
+        findByIdAndUpdate: vi.fn(),
+        findByIdAndDelete: vi.fn(),
+        countDocuments: vi.fn(),
+      })),
     },
   };
 });
 
-describe("Database Connection", () => {
+describe("DatabaseService", () => {
+  let service;
+  let mockLogger;
+  let mockConfig;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockLogger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn().mockReturnThis(),
+    };
+
+    mockConfig = {
+      dbURI: "mongodb://localhost:27017",
+      dbName: "test_db",
+      dbMaxRetries: 3,
+      dbInitialRetryDelayMs: 100,
+      dbPoolSize: 100,
+      dbMinPoolSize: 10,
+      dbMaxIdleTimeMs: 30000,
+      dbWaitQueueTimeoutMs: 10000,
+      serverSelectionTimeoutMs: 5000,
+      socketTimeoutMs: 45000,
+    };
+
+    service = new DatabaseService({
+      config: mockConfig,
+      logger: mockLogger,
+    });
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("should connect to MongoDB with correct URI and options", async () => {
-    mongoose.connect.mockResolvedValue(true);
-    await connectDB();
-    expect(mongoose.connect).toHaveBeenCalledWith(config.dbURI, {
-      dbName: config.dbName,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
+  it("should create DatabaseService with valid options", () => {
+    expect(service).toBeDefined();
+    expect(service.users).toBeDefined();
+    expect(service.emailLogs).toBeDefined();
+    expect(service.auditLogs).toBeDefined();
   });
 
-  it("should call mongoose.disconnect on disconnectDB", async () => {
-    await disconnectDB();
-    expect(mongoose.disconnect).toHaveBeenCalled();
+  it("should throw if config is missing", () => {
+    expect(() => new DatabaseService({ logger: mockLogger })).toThrow();
   });
 });

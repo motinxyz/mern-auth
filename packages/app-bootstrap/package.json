@@ -13,8 +13,10 @@
   "license": "ISC",
   "dependencies": {
     "@auth/config": "workspace:*",
+    "@auth/core": "workspace:*",
     "@auth/database": "workspace:*",
     "@auth/email": "workspace:*",
+    "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
     "mongoose": "^9.0.0"
   }

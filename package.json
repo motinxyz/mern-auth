@@ -9,7 +9,11 @@
     "dev:web": "pnpm --filter @auth/web dev",
     "test": "pnpm --filter @auth/api test && pnpm --filter @auth/core test && pnpm --filter @auth/email test && pnpm --filter @auth/queues test && pnpm --filter @auth/utils test && pnpm --filter @auth/worker test",
     "lint": "turbo run lint",
-    "build": "turbo run build"
+    "build": "turbo run build",
+    "agent:start": "docker compose -f docker-compose.grafana.yml up -d",
+    "agent:stop": "docker compose -f docker-compose.grafana.yml down",
+    "agent:logs": "docker compose -f docker-compose.grafana.yml logs -f grafana-agent",
+    "agent:restart": "pnpm agent:stop && pnpm agent:start"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -30,5 +34,19 @@
     "overrides": {
       "tmp": ">=0.2.4"
     }
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.67.2",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.208.0",
+    "@opentelemetry/resources": "^2.2.0",
+    "@opentelemetry/sdk-node": "^0.208.0",
+    "@opentelemetry/sdk-trace-base": "^2.2.0",
+    "@opentelemetry/semantic-conventions": "^1.38.0",
+    "compression": "^1.8.1",
+    "dotenv": "^17.2.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "tail": "^2.2.6"
   }
 }

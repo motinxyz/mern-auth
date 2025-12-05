@@ -23,12 +23,6 @@
     "serviceStartError": "Failed to start service: {{service}}.",
     "allServicesStarted": "All services started successfully."
   },
-  "auth": {
-    "verify": {
-      "success": "Your email has been verified successfully.",
-      "alreadyVerified": "This email address has already been verified."
-    }
-  },
   "process": {
     "shutdownSignal": "Received {{signal}}. Shutting down gracefully.",
     "errors": {

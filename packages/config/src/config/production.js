@@ -4,6 +4,11 @@
 
 export default {
   logLevel: "info",
+  worker: {
+    concurrency: 10,
+    attempts: 5,
+    stalledInterval: 30000,
+  },
   // In a production environment, sensitive variables like database credentials,
   // API keys, and SMTP passwords should be loaded from a secure secret management system
   // (e.g., AWS Secrets Manager, Google Secret Manager, HashiCorp Vault)

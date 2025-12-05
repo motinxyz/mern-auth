@@ -7,7 +7,9 @@
     ".": {
       "types": "./src/index.d.ts",
       "default": "./src/index.js"
-    }
+    },
+    "./constants/auth.constants": "./src/constants/auth.constants.js",
+    "./constants/token.constants": "./src/constants/token.constants.js"
   },
   "scripts": {
     "test": "vitest run --coverage"
@@ -18,14 +20,8 @@
     "@auth/email": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "express-rate-limit": "^8.2.1",
-    "helmet": "^8.1.0",
-    "hpp": "^0.2.3",
-    "pino-http": "^11.0.0",
-    "@exortek/express-mongo-sanitize": "^1.1.1",
-    "uuid": "^13.0.0",
+    "@sentry/node": "^10.27.0",
+    "awilix": "^12.0.5",
     "zod": "^4.1.12"
   },
   "devDependencies": {

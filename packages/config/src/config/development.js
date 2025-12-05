@@ -10,4 +10,9 @@ export default {
   // featureFlags: {
   //   newDashboard: true,
   // },
+  worker: {
+    concurrency: 2,
+    attempts: 2,
+    stalledInterval: 120000,
+  },
 };

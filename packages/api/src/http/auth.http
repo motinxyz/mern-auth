@@ -1,9 +1,0 @@
-### register user
-POST http://localhost:3001/api/v1/auth/register
-Content-Type: application/json
-
-{
-  "name": "avaa",
-  "email": "pirateotbb@gmail.com",
-  "password": "asea"
-}

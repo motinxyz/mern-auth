@@ -1,13 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ConfigurationError, I18N_MESSAGES } from "@auth/utils";
+import { ConfigurationError } from "@auth/utils";
 import i18next from "i18next";
 import Backend from "i18next-fs-backend";
 import i18nextMiddleware from "i18next-http-middleware";
-import { setT } from "./index.js"; // Import setT
+import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
 
-// --- Configuration ---
 const defaultLocale = "en";
 const defaultNamespace = "system"; // A default namespace for keys without one.
 
@@ -23,7 +22,7 @@ async function discoverI18nResources() {
       .map((dirent) => dirent.name);
 
     if (availableLocales.length === 0) {
-      throw new ConfigurationError(I18N_MESSAGES.NO_LANG_DIR);
+      throw new ConfigurationError(CONFIG_MESSAGES.I18N_NO_LOCALES);
     }
 
     const namespaceFiles = await fs.readdir(
@@ -39,7 +38,7 @@ async function discoverI18nResources() {
       throw error;
     }
     throw new ConfigurationError(
-      `${I18N_MESSAGES.DISCOVERY_FAILED} ${error.message}`
+      `${CONFIG_MESSAGES.I18N_DISCOVERY_FAILED}: ${error.message}`
     );
   }
 }
@@ -63,8 +62,13 @@ const i18nInitPromise = i18next
 
 export const i18nInstance = i18next;
 export const i18nMiddleware = i18nextMiddleware;
+
+// Export a mutable t function that defaults to a no-op until initialized
+export let t = (key) => key;
+
 export const initI18n = async () => {
   await i18nInitPromise;
-  setT(i18next.t.bind(i18next)); // Set the global t function after initialization
+  // Update the exported t function to use the initialized i18next instance
+  t = i18next.t.bind(i18next);
   return i18next;
 };

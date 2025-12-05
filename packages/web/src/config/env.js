@@ -5,4 +5,5 @@ export const env = {
   APP_URL: import.meta.env.VITE_APP_URL || "http://localhost:5173",
   isDevelopment: import.meta.env.DEV,
   isProduction: import.meta.env.PROD,
+  SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN,
 };

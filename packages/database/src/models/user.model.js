@@ -5,29 +5,48 @@ import { VALIDATION_RULES } from "@auth/utils";
 
 /**
  * Mongoose schema for the User model.
+ *
+ * DEFENSE IN DEPTH: This validation serves as the last line of defense.
+ * Primary validation happens at the API layer (Zod), but this ensures
+ * data integrity even if:
+ * - A developer forgets to add Zod validation
+ * - Data is inserted via scripts/migrations
+ * - There's a race condition
+ *
+ * If Mongoose validation triggers, it indicates a bug that should be investigated.
  */
 const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "validation:name.required"],
-      minlength: [VALIDATION_RULES.NAME.MIN_LENGTH, "validation:name.length"],
+      required: [true, "Name is required"],
+      minlength: [
+        VALIDATION_RULES.NAME.MIN_LENGTH,
+        `Name must be at least ${VALIDATION_RULES.NAME.MIN_LENGTH} characters`,
+      ],
       trim: true,
     },
     email: {
       type: String,
-      required: [true, "validation:email.required"],
+      required: [true, "Email is required"],
+      // unique: true, // Uniqueness is now enforced on normalizedEmail
+      trim: true,
+      lowercase: true,
+      match: [VALIDATION_RULES.EMAIL_REGEX, "Invalid email format"],
+    },
+    normalizedEmail: {
+      type: String,
+      required: true,
       unique: true,
       trim: true,
       lowercase: true,
-      match: [VALIDATION_RULES.EMAIL_REGEX, "validation:email.invalid"],
     },
     password: {
       type: String,
-      required: [true, "validation:password.required"],
+      required: [true, "Password is required"],
       minlength: [
         VALIDATION_RULES.PASSWORD.MIN_LENGTH,
-        "validation:password.length",
+        `Password must be at least ${VALIDATION_RULES.PASSWORD.MIN_LENGTH} characters`,
       ],
       select: false,
     },
@@ -57,6 +76,11 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Compound indexes for common query patterns
+userSchema.index({ email: 1, isVerified: 1 }); // Common query: find verified users by email
+userSchema.index({ createdAt: -1, role: 1 }); // Admin dashboards: recent users by role
+// Note: normalizedEmail unique index is defined in schema field definition
 
 /**
  * toJSON transform to customize the output of the user object.

@@ -1,71 +1,99 @@
 import mongoose from "mongoose";
-import { config } from "@auth/config";
-import { logger, t } from "@auth/config";
-import { ConfigurationError, DatabaseConnectionError } from "@auth/utils";
-
-mongoose.connection.on("connected", () => {
-  logger.info(t("system:db.connected"));
-});
-
-mongoose.connection.on("error", (err) => {
-  logger.error(t("system:db.connectionError"), err);
-  // In a real app, a critical connection error would typically trigger
-  // a graceful shutdown of the entire application, handled by the main entry point.
-});
-
-mongoose.connection.on("disconnected", () => {
-  logger.warn(t("system:db.disconnected"));
-});
-
-const connectDB = async () => {
-  for (let i = 0; i < config.dbMaxRetries; i++) {
-    // Use config.dbMaxRetries
-    try {
-      logger.debug({
-        msg: t("system:db.attemptingConnection"),
-        dbName: config.dbName,
-        attempt: i + 1,
-        maxAttempts: config.dbMaxRetries, // Use config.dbMaxRetries
-      });
-
-      await mongoose.connect(config.dbURI, {
-        dbName: config.dbName,
-        serverSelectionTimeoutMS: 5000, // 5 second timeout
-        socketTimeoutMS: 45000, // 45 second timeout
-      });
-
-      // Health Check Granularity: Ping the database to ensure responsiveness
-      await mongoose.connection.db.admin().ping();
-      logger.info(t("system:db.pingSuccess"));
-
-      logger.info(t("system:db.connectSuccess"));
-      return; // Connection successful, exit loop
-    } catch (error) {
-      logger.error(t("system:db.connectionError"), error);
-      if (i < config.dbMaxRetries - 1) {
-        // Use config.dbMaxRetries
-        const delay = config.dbInitialRetryDelayMs * Math.pow(2, i); // Use config.dbInitialRetryDelayMs
-        logger.warn(t("system:db.retryingConnection", { delay: delay / 1000 }));
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else {
-        throw new DatabaseConnectionError(error); // Last attempt failed, re-throw custom error
-      }
-    }
-  }
-};
-
+import { ConfigurationError } from "@auth/utils";
+import DatabaseConnectionManager from "./connection-manager.js";
+import UserRepository from "./repositories/user.repository.js";
+import EmailLogRepository from "./repositories/email-log.repository.js";
+import AuditLogRepository from "./repositories/audit-log.repository.js";
 import User from "./models/user.model.js";
 import EmailLog from "./models/email-log.model.js";
+import AuditLog from "./models/audit-log.model.js";
+import { DB_ERRORS } from "./constants/database.messages.js";
 
-const disconnectDB = async () => {
-  try {
-    await mongoose.disconnect();
-    logger.info(t("system:db.disconnected"));
-  } catch (error) {
-    logger.error(t("system:db.disconnectError"), error);
-    throw error; // Re-throw error
+/**
+ * Database Service
+ * Production-grade database layer with DI
+ */
+class DatabaseService {
+  constructor(options = {}) {
+    if (!options.config) {
+      throw new ConfigurationError(
+        DB_ERRORS.MISSING_CONFIG.replace("{option}", "config")
+      );
+    }
+
+    this.connectionManager = new DatabaseConnectionManager(options);
+
+    // Initialize repositories
+    this.userRepository = new UserRepository(User);
+    this.emailLogRepository = new EmailLogRepository(EmailLog);
+    this.auditLogRepository = new AuditLogRepository(AuditLog, options.logger);
   }
-};
 
-export { connectDB, disconnectDB, User, EmailLog };
-export default mongoose;
+  /**
+   * Connect to database
+   */
+  async connect() {
+    return this.connectionManager.connect();
+  }
+
+  /**
+   * Disconnect from database
+   */
+  async disconnect() {
+    return this.connectionManager.disconnect();
+  }
+
+  /**
+   * Get connection state
+   */
+  getConnectionState() {
+    return this.connectionManager.getConnectionState();
+  }
+
+  /**
+   * Health check
+   */
+  async healthCheck() {
+    return this.connectionManager.healthCheck();
+  }
+
+  /**
+   * Simple ping check
+   */
+  async ping() {
+    return this.connectionManager.ping();
+  }
+
+  /**
+   * Get user repository
+   */
+  get users() {
+    return this.userRepository;
+  }
+
+  /**
+   * Get email log repository
+   */
+  get emailLogs() {
+    return this.emailLogRepository;
+  }
+
+  /**
+   * Get audit log repository
+   */
+  get auditLogs() {
+    return this.auditLogRepository;
+  }
+}
+
+// Export DatabaseService as default
+export default DatabaseService;
+
+// Also export models and mongoose for testing and migrations
+export { User, EmailLog, AuditLog, mongoose };
+export {
+  UserRepository,
+  EmailLogRepository,
+  AuditLogRepository,
+  DatabaseConnectionManager,
+};

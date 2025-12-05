@@ -1,6 +1,6 @@
-import { defineConfig } from 'vitest/config';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { defineConfig } from "vitest/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -8,14 +8,15 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    environment: "node",
+    include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+    exclude: ["src/__tests__/integration/**"], // Exclude integration tests
     clearMocks: true, // Clear mock history before each test
     restoreMocks: true, // Restore original module implementations after each test
     isolate: true, // Run each test file in its own isolated environment
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      provider: "v8",
+      reporter: ["text", "json", "html"],
       lines: 80,
       functions: 80,
       branches: 80,

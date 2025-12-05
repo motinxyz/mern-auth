@@ -11,6 +11,5 @@ export const i18nMiddleware: i18nMiddleware;
 export function initI18n(): Promise<i18n>;
 
 export let t: (key: string, options?: Record<string, any>) => string;
-export const setT: (tFunction: (key: string, options?: Record<string, any>) => string) => void;
 
 export const redisConnection: Redis;
