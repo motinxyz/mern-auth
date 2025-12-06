@@ -10,6 +10,7 @@ import {
 } from "@auth/utils";
 import { metrics } from "@opentelemetry/api";
 import { QUEUE_MESSAGES, QUEUE_ERRORS } from "./constants/queue.messages.js";
+import { IQueueProducer } from "@auth/contracts";
 
 // OTel metrics for queue producer
 const meter = metrics.getMeter("auth-queues");
@@ -30,9 +31,13 @@ const producerLatency = meter.createHistogram(
 /**
  * Queue Producer Service
  * Generic queue management for producing jobs with DI
+ *
+ * @extends IQueueProducer
  */
-class QueueProducerService {
+class QueueProducerService extends IQueueProducer {
   constructor(options = {}) {
+    super();
+
     if (!options.queueName) {
       throw new ConfigurationError(
         QUEUE_ERRORS.MISSING_CONFIG.replace("{config}", "queueName")

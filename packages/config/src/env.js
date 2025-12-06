@@ -139,6 +139,13 @@ const envSchema = z.object({
   METRICS_ENABLED: z.string().default("false"),
   TRACING_ENABLED: z.string().default("false"),
 
+  // System
+  HOSTNAME: z.string().default(DEFAULTS.HOSTNAME),
+  REDIS_CIRCUIT_BREAKER_TIMEOUT: z.coerce
+    .number()
+    .default(DEFAULTS.REDIS_CIRCUIT_BREAKER_TIMEOUT),
+  SENTRY_DEV_ENABLED: z.string().default(DEFAULTS.SENTRY_DEV_ENABLED),
+
   // Grafana Cloud
   GRAFANA_LOKI_URL: z.string().optional(),
   GRAFANA_LOKI_USER: z.string().optional(),
@@ -180,7 +187,10 @@ try {
 const finalConfig = {
   env: envVars.NODE_ENV,
   isDevelopment: envVars.NODE_ENV === "development",
+  isProduction: envVars.NODE_ENV === "production",
+  isTest: envVars.NODE_ENV === "test",
   port: envVars.PORT,
+  hostname: envVars.HOSTNAME,
   dbURI: envVars.MONGO_URI,
   dbName: envVars.DB_NAME,
   clientUrl: envVars.CLIENT_URL,
@@ -203,6 +213,7 @@ const finalConfig = {
       verifyEmail: envVars.REDIS_PREFIX_VERIFY_EMAIL,
       verifyEmailRateLimit: envVars.REDIS_PREFIX_VERIFY_EMAIL_RATE_LIMIT,
     },
+    circuitBreakerTimeout: envVars.REDIS_CIRCUIT_BREAKER_TIMEOUT,
   },
   smtp: {
     host: envVars.SMTP_HOST,
@@ -213,6 +224,7 @@ const finalConfig = {
   resendApiKey: envVars.RESEND_API_KEY,
   resendWebhookSecret: envVars.RESEND_WEBHOOK_SECRET,
   sentryDsn: envVars.SENTRY_DSN,
+  sentryDevEnabled: envVars.SENTRY_DEV_ENABLED === "true",
   emailFrom: envVars.EMAIL_FROM,
   verificationTokenExpiresIn: envVars.VERIFICATION_TOKEN_EXPIRES_IN,
   logLevel: envVars.NODE_ENV === "development" ? "info" : envVars.LOG_LEVEL,

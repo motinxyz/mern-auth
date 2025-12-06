@@ -3,10 +3,15 @@
  *
  * A lightweight Pino logger for the startup phase, before the main logger is initialized.
  * Provides structured JSON logging with module context.
+ *
+ * NOTE: This logger intentionally uses process.env directly (not @auth/config)
+ * because it runs BEFORE the config module is fully initialized.
+ * Using config here would create a circular dependency.
  */
 
 import pino from "pino";
 
+// Must use process.env directly to avoid circular dependency with config module
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 /**

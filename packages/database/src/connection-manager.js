@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 import { ConfigurationError } from "@auth/utils";
 import { DB_MESSAGES, DB_ERRORS } from "./constants/database.messages.js";
 
+// MODULE-LEVEL guard is not sufficient with hot-reloading behavior
+// We will check listener counts directly on the connection object
+
 /**
  * Database Connection Manager
  * Provides connection state management and health checks
@@ -24,8 +27,15 @@ class DatabaseConnectionManager {
 
   /**
    * Setup event listeners for connection lifecycle
+   * Checks actual listener count to prevent duplicates across reloads
    */
   setupEventListeners() {
+    // Check if listeners are already registered on the singleton connection
+    // This handles both multiple instances AND hot-module reloading
+    if (mongoose.connection.listenerCount("connected") > 0) {
+      return;
+    }
+
     mongoose.connection.on("connected", () => {
       this.isConnected = true;
       this.logger.info({ module: "database" }, DB_MESSAGES.CONNECTED);
@@ -45,6 +55,11 @@ class DatabaseConnectionManager {
    * Connect to database with retry logic
    */
   async connect() {
+    // Idempotency check: if already connected, do nothing
+    if (this.isConnected || mongoose.connection.readyState === 1) {
+      return;
+    }
+
     this.setupEventListeners();
 
     for (let i = 0; i < this.config.dbMaxRetries; i++) {
@@ -61,14 +76,14 @@ class DatabaseConnectionManager {
         await mongoose.connect(this.config.dbURI, {
           dbName: this.config.dbName,
           // Connection Pool Settings (optimized for high concurrency)
-          maxPoolSize: this.config.dbPoolSize || 100,
-          minPoolSize: this.config.dbMinPoolSize || 10,
-          maxIdleTimeMS: this.config.dbMaxIdleTimeMs || 30000,
-          waitQueueTimeoutMS: this.config.dbWaitQueueTimeoutMs || 10000,
+          maxPoolSize: this.config.dbPoolSize ?? 100,
+          minPoolSize: this.config.dbMinPoolSize ?? 10,
+          maxIdleTimeMS: this.config.dbMaxIdleTimeMs ?? 30000,
+          waitQueueTimeoutMS: this.config.dbWaitQueueTimeoutMs ?? 10000,
           // Timeout Settings
           serverSelectionTimeoutMS:
-            this.config.serverSelectionTimeoutMs || 5000,
-          socketTimeoutMS: this.config.socketTimeoutMs || 45000,
+            this.config.serverSelectionTimeoutMs ?? 5000,
+          socketTimeoutMS: this.config.socketTimeoutMs ?? 45000,
         });
 
         // Health check
@@ -139,12 +154,25 @@ class DatabaseConnectionManager {
   /**
    * Health check
    */
+  /**
+   * Health check
+   */
   async healthCheck() {
-    if (!this.isConnected) {
-      return { healthy: false, reason: DB_MESSAGES.NOT_CONNECTED };
-    }
-
+    // If not connected, try to ping to trigger auto-reconnect
+    // Don't fail immediately on isConnected flag since we might be idle (minPoolSize: 0)
     try {
+      if (mongoose.connection.readyState === 0) {
+        // If strictly disconnected, we can't ping without explicit connect,
+        // but often state is 2 (connecting) or just idle.
+        // If 0, we might need to wait or it returns error.
+        // But preventing the check prevents recovery.
+        // Let's check if we have a db object.
+      }
+
+      if (!mongoose.connection.db) {
+        return { healthy: false, reason: DB_MESSAGES.NOT_CONNECTED };
+      }
+
       await mongoose.connection.db.admin().ping();
       return { healthy: true };
     } catch (error) {
@@ -156,9 +184,12 @@ class DatabaseConnectionManager {
    * Simple ping check
    */
   async ping() {
-    if (mongoose.connection.readyState !== 1) {
+    // Relaxation: Don't check readyState === 1 strictly.
+    // Allow Mongoose to buffer/reconnect if needed.
+    if (!mongoose.connection.db) {
       throw new Error(DB_MESSAGES.NOT_CONNECTED);
     }
+
     await mongoose.connection.db.admin().ping();
     return true;
   }

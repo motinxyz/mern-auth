@@ -57,7 +57,7 @@ export function initializeTracing() {
       [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: environment,
       // Additional production-grade attributes
       "service.namespace": "auth",
-      "host.name": process.env.HOSTNAME || "localhost",
+      "host.name": observabilityConfig.tracing.hostname || "localhost",
       "process.pid": process.pid,
     });
 

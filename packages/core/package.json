@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@auth/config": "workspace:*",
+    "@auth/contracts": "workspace:*",
     "@auth/database": "workspace:*",
     "@auth/email": "workspace:*",
     "@auth/queues": "workspace:*",

@@ -10,26 +10,25 @@ import { CONFIG_MESSAGES } from "./constants/config.messages.js";
  * @param {Object} redisConnection - IORedis instance
  * @param {Object} logger - Pino logger instance
  * @param {Object} sentry - Sentry instance (optional)
+ * @param {Object} options - Configuration options
  * @returns {Object} Circuit breaker wrapped Redis client
  */
 export const createRedisCircuitBreaker = (
   redisConnection,
   logger,
-  sentry = null
+  sentry = null,
+  options = {}
 ) => {
   const circuitBreakerLogger = logger.child({
     module: "redis-circuit-breaker",
   });
 
-  // Get timeout from environment or use default
+  // Get timeout from options (preferred) or default
   // Upstash Redis (serverless) needs longer timeouts due to sleep/wake cycles
-  const timeout = parseInt(
-    process.env.REDIS_CIRCUIT_BREAKER_TIMEOUT || "10000",
-    10
-  );
+  const timeout = options.timeout || 10000;
 
   // Circuit breaker options
-  const options = {
+  const cbOptions = {
     timeout, // Configurable timeout (default 10s for Upstash)
     errorThresholdPercentage: 50, // Open circuit if 50% of requests fail
     resetTimeout: 30000, // Try again after 30 seconds
@@ -45,7 +44,7 @@ export const createRedisCircuitBreaker = (
     return await redisConnection[command](...args);
   };
 
-  const breaker = new CircuitBreaker(executeCommand, options);
+  const breaker = new CircuitBreaker(executeCommand, cbOptions);
 
   // Event handlers
   breaker.on("open", () => {

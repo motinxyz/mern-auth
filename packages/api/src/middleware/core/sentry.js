@@ -4,6 +4,9 @@
  * IMPORTANT: This MUST be imported FIRST before any other modules
  * Sentry needs to instrument Node.js before your application code runs
  *
+ * NOTE: This module INTENTIONALLY uses process.env directly instead of @auth/config.
+ * Importing config would trigger Redis/DB initialization which must happen AFTER Sentry.
+ *
  * Features:
  * - Release tracking with version numbers
  * - Custom fingerprinting for intelligent error grouping
@@ -15,6 +18,14 @@
 import * as Sentry from "@sentry/node";
 import { nodeProfilingIntegration } from "@sentry/profiling-node";
 import crypto from "crypto";
+
+// Read from process.env directly - DO NOT import @auth/config here
+// Sentry must be initialized before any other modules load
+const SENTRY_DSN = process.env.SENTRY_DSN;
+const NODE_ENV = process.env.NODE_ENV || "development";
+const IS_PRODUCTION = NODE_ENV === "production";
+const IS_DEVELOPMENT = NODE_ENV === "development";
+const SENTRY_DEV_ENABLED = process.env.SENTRY_DEV_ENABLED === "true";
 
 /**
  * Hash sensitive data (PII) for Sentry
@@ -30,22 +41,22 @@ function hashPII(value) {
 
 // Only initialize Sentry if DSN is provided (not in tests)
 export const initSentry = () => {
-  if (process.env.SENTRY_DSN) {
+  if (SENTRY_DSN) {
     Sentry.init({
-      dsn: process.env.SENTRY_DSN,
-      environment: process.env.NODE_ENV || "development",
+      dsn: SENTRY_DSN,
+      environment: NODE_ENV,
 
       // Release tracking - critical for debugging
-      release: `auth-api@${process.env.npm_package_version || "1.0.0"}`,
+      release: `auth-api@${process.env.npm_package_version || "1.0.0"}`, // NPM version is standard env
 
       // Performance Monitoring
-      tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+      tracesSampleRate: IS_PRODUCTION ? 0.1 : 1.0,
 
       // Session tracking for user impact analysis
       autoSessionTracking: true,
 
       // Profiling
-      profilesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+      profilesSampleRate: IS_PRODUCTION ? 0.1 : 1.0,
       integrations: [nodeProfilingIntegration()],
 
       // Filter out noise
@@ -59,10 +70,7 @@ export const initSentry = () => {
       // Custom fingerprinting for intelligent error grouping
       beforeSend(event, hint) {
         // Don't send events in development unless explicitly enabled
-        if (
-          process.env.NODE_ENV === "development" &&
-          !process.env.SENTRY_DEV_ENABLED
-        ) {
+        if (IS_DEVELOPMENT && !SENTRY_DEV_ENABLED) {
           return null;
         }
 
@@ -160,7 +168,7 @@ export const captureSentryException = (error, context = {}) => {
 };
 
 // Export Sentry with mock handlers for test environment
-const SentryInstance = process.env.SENTRY_DSN
+const SentryInstance = SENTRY_DSN
   ? Sentry
   : {
       setupExpressErrorHandler: () => {},

@@ -1,0 +1,10 @@
+{
+    "name": "@auth/contracts",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "src/index.js",
+    "exports": {
+        ".": "./src/index.js"
+    },
+    "description": "Abstract interfaces/contracts for dependency injection"
+}

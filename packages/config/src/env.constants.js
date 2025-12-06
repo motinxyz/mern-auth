@@ -16,8 +16,8 @@ export const DEFAULTS = {
 
   // MongoDB Connection Pool (optimized for 10K concurrent users)
   DB_POOL_SIZE: 100, // Max connections in pool
-  DB_MIN_POOL_SIZE: 10, // Min connections kept open
-  DB_MAX_IDLE_TIME_MS: 30000, // Close idle connections after 30s
+  DB_MIN_POOL_SIZE: 5, // Keep 5 connections ready (instant response)
+  DB_MAX_IDLE_TIME_MS: 0, // Disable idle timeout to prevent flapping
   DB_WAIT_QUEUE_TIMEOUT_MS: 10000, // Wait max 10s for available connection
   DB_SERVER_SELECTION_TIMEOUT_MS: 5000, // 5s to select server
   DB_SOCKET_TIMEOUT_MS: 45000, // 45s socket timeout
@@ -27,6 +27,11 @@ export const DEFAULTS = {
   WORKER_MAX_RETRIES: 3,
   WORKER_BACKOFF_DELAY_MS: 1000,
   WORKER_STALLED_INTERVAL_MS: 60000,
+
+  // System
+  HOSTNAME: "localhost",
+  REDIS_CIRCUIT_BREAKER_TIMEOUT: 10000,
+  SENTRY_DEV_ENABLED: "false",
 };
 
 export const urlRegex = /^(https?|ftp|redis|rediss):\/\/[^\s/$.?#].*$/i;

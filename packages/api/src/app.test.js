@@ -50,8 +50,25 @@ vi.mock("./middleware/core/loggerMiddleware.js", () => ({
 
 vi.mock("@auth/config", async (importActual) => {
   const actual = await importActual();
+
+  // Create a modified config object with dynamic environment getters
+  const modifiedConfig = {
+    ...actual.config,
+    get isTest() {
+      return process.env.NODE_ENV === "test";
+    },
+    get isDevelopment() {
+      return process.env.NODE_ENV === "development";
+    },
+    get isProduction() {
+      return process.env.NODE_ENV === "production";
+    },
+  };
+
   return {
     ...actual,
+    config: modifiedConfig,
+    // Override named exports
     i18nMiddleware: {
       handle: mockI18nMiddlewareHandle,
     },

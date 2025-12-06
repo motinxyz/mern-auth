@@ -279,11 +279,16 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0
 
+  packages/contracts: {}
+
   packages/core:
     dependencies:
       '@auth/config':
         specifier: workspace:*
         version: link:../config
+      '@auth/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@auth/database':
         specifier: workspace:*
         version: link:../database
@@ -362,6 +367,9 @@ importers:
       '@auth/config':
         specifier: workspace:*
         version: link:../config
+      '@auth/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@auth/utils':
         specifier: workspace:*
         version: link:../utils

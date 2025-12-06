@@ -2,15 +2,19 @@ import crypto from "node:crypto";
 import { TokenCreationError } from "@auth/utils";
 import { HASHING_ALGORITHM } from "@auth/core/constants/token.constants";
 import { TOKEN_MESSAGES } from "../../constants/core.messages.js";
+import { ITokenService } from "@auth/contracts";
 
 /**
  * TokenService
  *
  * Handles all token-related operations for the authentication system.
  * Follows production-grade patterns with dependency injection.
+ *
+ * @extends ITokenService
  */
-export class TokenService {
+export class TokenService extends ITokenService {
   constructor({ redis, config, logger }) {
+    super();
     this.redis = redis;
     this.config = config;
     this.logger = logger.child({ module: "token-service" });

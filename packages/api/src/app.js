@@ -12,7 +12,12 @@ import { metricsMiddleware } from "./metrics/index.js";
 // core imports
 import { errorHandler, configureMiddleware } from "./middleware/index.js";
 import { NotFoundError, HTTP_STATUS_CODES } from "@auth/utils";
-import { i18nInstance, i18nMiddleware, redisConnection } from "@auth/config";
+import {
+  i18nInstance,
+  i18nMiddleware,
+  redisConnection,
+  config,
+} from "@auth/config";
 import { getDatabaseService } from "@auth/app-bootstrap";
 import { apiLimiter } from "./middleware/index.js";
 import {
@@ -31,7 +36,7 @@ const app = express();
 app.use(...createTimeoutMiddleware(30000));
 
 // Apply i18n middleware before any other middleware that might need it.
-if (process.env.NODE_ENV === "test") {
+if (config.isTest) {
   app.use((req, res, next) => {
     req.t = (key) => key;
     next();
@@ -63,10 +68,17 @@ app.use(
 // Add metrics middleware to track HTTP requests
 app.use(metricsMiddleware);
 
-// Infrastructure health check for load balancers (Liveness)
-app.get("/healthz", (req, res) => {
-  res.status(HTTP_STATUS_CODES.OK).json({ status: "OK" });
-});
+// Health check endpoints (for load balancers/Kubernetes)
+import {
+  livenessHandler,
+  readinessHandler,
+} from "./features/health/health.handlers.js";
+
+// Liveness probe - Is the process running?
+app.get("/healthz", livenessHandler);
+
+// Readiness probe - Are dependencies ready to serve traffic?
+app.get("/readyz", readinessHandler);
 
 // Webhooks mounted at root to avoid body-parsing middleware interference
 app.use("/webhooks", webhookRoutes);

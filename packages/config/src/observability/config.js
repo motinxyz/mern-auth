@@ -39,6 +39,7 @@ export const observabilityConfig = {
     serviceName: config.observability.serviceName,
     serviceVersion: config.observability.serviceVersion,
     environment: config.env,
+    hostname: config.hostname,
     tempo: {
       url: config.observability.grafana.tempo.url?.startsWith("http")
         ? config.observability.grafana.tempo.url

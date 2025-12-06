@@ -92,7 +92,8 @@ export class RedisService {
       this.connection = createRedisCircuitBreaker(
         rawConnection,
         this.logger,
-        this.sentry
+        this.sentry,
+        { timeout: this.config.redis.circuitBreakerTimeout }
       );
 
       return this.connection;
