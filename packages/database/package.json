@@ -2,10 +2,12 @@
   "name": "@auth/database",
   "version": "1.0.0",
   "type": "module",
-  "main": "src/index.js",
-  "types": "src/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/config": "workspace:*",
@@ -14,6 +16,8 @@
     "mongoose": "^9.0.1"
   },
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0"
+    "@types/bcrypt": "^6.0.0",
+    "@types/mongoose": "^5.11.97",
+    "@types/node": "^24.10.1"
   }
 }

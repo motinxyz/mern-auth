@@ -1,0 +1,43 @@
+{
+  "db": {
+    "connected": "MongoDB connected",
+    "connectionError": "MongoDB connection error:",
+    "disconnected": "MongoDB disconnected",
+    "attemptingConnection": "Attempting MongoDB connection",
+    "connectSuccess": "MongoDB connected successfully",
+    "disconnectError": "Error disconnecting from MongoDB:",
+    "retryingConnection": "Retrying connection in {{delay}} seconds...",
+    "pingSuccess": "Database ping successful.",
+    "connectionFailedAfterRetries": "Failed to connect to the database after multiple retries."
+  },
+  "redis": {
+    "connected": "Redis connected",
+    "connectionError": "Redis connection error:",
+    "connectionClosed": "Redis connection closed. Attempting to shut down gracefully."
+  },
+  "server": {
+    "startSuccess": "Server is listening on port {{port}}.",
+    "startError": "Server failed to start.",
+    "closeSuccess": "HTTP server closed.",
+    "healthCheck": "System is healthy and operational",
+    "serviceStartError": "Failed to start service: {{service}}.",
+    "allServicesStarted": "All services started successfully."
+  },
+  "process": {
+    "shutdownSignal": "Received {{signal}}. Shutting down gracefully.",
+    "errors": {
+      "uncaughtException": "Uncaught Exception. The application will now exit.",
+      "unhandledRejection": "Unhandled Rejection. The application will now exit.",
+      "unexpected": "An unexpected internal server error occurred.",
+      "tooManyRequests": "Too many requests. Please try again later.",
+      "notFound": "The requested resource was not found."
+    }
+  },
+  "health": {
+    "healthCheck": "Health check successful."
+  },
+  "rateLimit": {
+    "apiTooManyRequests": "Too many requests from this IP, please try again after {{retryAfterMinutes}} minutes.",
+    "authTooManyAttempts": "Too many authentication attempts from this IP, please try again after {{retryAfterMinutes}} minutes."
+  }
+}

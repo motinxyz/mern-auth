@@ -1,0 +1,1 @@
+{"version":3,"file":"RedisConnectionError.d.ts","sourceRoot":"","sources":["../../src/errors/RedisConnectionError.ts"],"names":[],"mappings":"AAAA;;GAEG;AACH,MAAM,CAAC,OAAO,OAAO,oBAAqB,SAAQ,KAAK;IACrD,SAAgB,aAAa,EAAE,KAAK,GAAG,IAAI,CAAC;gBAEhC,aAAa,GAAE,KAAK,GAAG,IAAW;CAK/C"}

@@ -2,14 +2,18 @@
   "name": "@auth/utils",
   "version": "1.0.0",
   "type": "module",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "default": "./src/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsc --watch",
     "lint": "eslint .",
     "test": "vitest run --coverage"
   },
@@ -17,6 +21,9 @@
     "opossum": "^9.0.0",
     "uuid": "^13.0.0",
     "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.0.0"

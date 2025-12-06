@@ -1,0 +1,7 @@
+{
+  "addingJob": "Adding new job to the queue.",
+  "queueError": "An error occurred in the queue.",
+  "errors": {
+    "jobCreationFailed": "Failed to create a new job in the queue."
+  }
+}

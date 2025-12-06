@@ -1,0 +1,36 @@
+{
+  "verification": {
+    "subject": "Verify Your Email Address for Mern Auth",
+    "text": "Welcome to Mern Auth!\n\nHello {{name}},\n\nThank you for registering. Please use the following link to verify your email address.\n\n{{verificationUrl}}\n\nThis link will expire in {{count}} minutes."
+  },
+  "logs": {
+    "smtpConfigured": "SMTP transport configured",
+    "smtpConnectionVerified": "SMTP connection verified successfully",
+    "attemptingSend": "Attempting to send email",
+    "sendSuccess": "Email sent successfully",
+    "preparingVerification": "Preparing verification email",
+    "sendingVerification": "Sending verification email",
+    "circuitBreakerOpen": "Circuit breaker opened - email service failing",
+    "circuitBreakerHalfOpen": "Circuit breaker half-open - testing email service recovery",
+    "circuitBreakerClosed": "Circuit breaker closed - email service recovered",
+    "circuitBreakerSuccess": "Email sent successfully through circuit breaker",
+    "circuitBreakerFailure": "Email sending failed through circuit breaker",
+    "circuitBreakerTimeout": "Email sending timed out",
+    "circuitBreakerReject": "Email request rejected - circuit is open or at capacity",
+    "resendRetrying": "Retrying Resend API call",
+    "resendSent": "Email sent via Resend API",
+    "resendAttempting": "Attempting to send via Resend API"
+  },
+  "errors": {
+    "smtpConnectionFailed": "Failed to verify SMTP connection",
+    "dispatchFailed": "Failed to dispatch email",
+    "circuitBreakerOpen": "Email service temporarily unavailable - circuit breaker is open",
+    "resendTimeout": "Resend API request timed out",
+    "resendFailed": "Failed to send email via Resend API",
+    "resendApiError": "Resend API returned an error",
+    "resendApiKeyMissing": "Resend API key is not configured",
+    "resendApiKeyInvalid": "Resend API key format appears invalid",
+    "noProvidersConfigured": "No email providers are configured",
+    "allProvidersFailed": "All email providers failed"
+  }
+}

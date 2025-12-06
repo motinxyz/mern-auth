@@ -10,6 +10,7 @@
     "test": "pnpm --filter @auth/api test && pnpm --filter @auth/core test && pnpm --filter @auth/email test && pnpm --filter @auth/queues test && pnpm --filter @auth/utils test && pnpm --filter @auth/worker test",
     "lint": "turbo run lint",
     "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
     "agent:start": "docker compose -f docker-compose.grafana.yml up -d",
     "agent:stop": "docker compose -f docker-compose.grafana.yml down",
     "agent:logs": "docker compose -f docker-compose.grafana.yml logs -f grafana-agent",
@@ -17,6 +18,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@typescript-eslint/eslint-plugin": "^8.48.1",
+    "@typescript-eslint/parser": "^8.48.1",
     "@vitest/coverage-v8": "^4.0.15",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
@@ -26,7 +30,10 @@
     "eslint-plugin-security": "^3.0.1",
     "globals": "^16.5.0",
     "prettier": "^3.7.4",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
     "turbo": "^2.6.3",
+    "typescript": "^5.9.3",
     "vitest": "^4.0.15"
   },
   "packageManager": "pnpm@10.19.0",

@@ -1,0 +1,33 @@
+import { HTTP_STATUS_CODES, ApiResponse } from "@auth/utils";
+import { t as systemT } from "@auth/config";
+
+/**
+ * Controller for user registration
+ * Single Responsibility: Handle registration HTTP requests
+ */
+export class RegistrationController {
+  registrationService: any;
+
+  constructor(registrationService: any) {
+    this.registrationService = registrationService;
+  }
+
+  /**
+   * Register a new user
+   * @param {RegisterUserDto} dto - User registration data
+   * @param {string} locale - User locale for i18n
+   * @returns {Promise<ControllerResult>}
+   */
+  async registerUser(dto, locale = "en") {
+    const user = await this.registrationService.register(dto);
+
+    return {
+      statusCode: HTTP_STATUS_CODES.CREATED,
+      data: new ApiResponse(
+        HTTP_STATUS_CODES.CREATED,
+        user,
+        (systemT as any)("auth:register.success", { lng: locale })
+      ),
+    };
+  }
+}

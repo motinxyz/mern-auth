@@ -1,7 +1,8 @@
 {
   "name": "@auth/email",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
   "dependencies": {
     "@auth/config": "workspace:*",
@@ -17,6 +18,8 @@
     "vitest": "^4.0.15"
   },
   "scripts": {
-    "test": "vitest run --coverage"
+    "test": "vitest run --coverage",
+    "build": "tsc && cp -r src/templates dist/",
+    "typecheck": "tsc --noEmit"
   }
 }

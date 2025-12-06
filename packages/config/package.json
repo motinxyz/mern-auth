@@ -1,19 +1,23 @@
 {
   "name": "@auth/config",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "default": "./src/index.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./observability": {
-      "default": "./src/observability/index.js"
+      "types": "./dist/observability/index.d.ts",
+      "default": "./dist/observability/index.js"
     }
   },
   "type": "module",
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "build": "tsc && cp -r src/locales dist/",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/utils": "workspace:*",

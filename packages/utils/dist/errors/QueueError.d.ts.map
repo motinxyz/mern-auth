@@ -1,0 +1,1 @@
+{"version":3,"file":"QueueError.d.ts","sourceRoot":"","sources":["../../src/errors/QueueError.ts"],"names":[],"mappings":"AAAA,OAAO,QAAQ,MAAM,gBAAgB,CAAC;AAGtC;;GAEG;AACH,cAAM,UAAW,SAAQ,QAAQ;IAC/B,SAAgB,aAAa,EAAE,KAAK,GAAG,IAAI,CAAC;gBAEhC,aAAa,EAAE,KAAK,GAAG,MAAM,GAAG,IAAI;CAWjD;AAED,eAAe,UAAU,CAAC"}

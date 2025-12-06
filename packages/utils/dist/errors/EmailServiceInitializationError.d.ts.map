@@ -1,0 +1,1 @@
+{"version":3,"file":"EmailServiceInitializationError.d.ts","sourceRoot":"","sources":["../../src/errors/EmailServiceInitializationError.ts"],"names":[],"mappings":"AAAA,OAAO,QAAQ,MAAM,gBAAgB,CAAC;AAGtC;;;;GAIG;AACH,cAAM,+BAAgC,SAAQ,QAAQ;IACpD;;;;OAIG;gBACS,OAAO,KAAA,EAAE,aAAa,KAAA;CAQnC;AAED,eAAe,+BAA+B,CAAC"}

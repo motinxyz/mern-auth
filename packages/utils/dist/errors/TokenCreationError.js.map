@@ -1,0 +1,1 @@
+{"version":3,"file":"TokenCreationError.js","sourceRoot":"","sources":["../../src/errors/TokenCreationError.ts"],"names":[],"mappings":"AAAA;;GAEG;AACH,MAAM,CAAC,OAAO,OAAO,kBAAmB,SAAQ,KAAK;IACnC,aAAa,CAAe;IAE5C,YAAY,OAAe,EAAE,gBAA8B,IAAI;QAC7D,KAAK,CAAC,OAAO,CAAC,CAAC;QACf,IAAI,CAAC,IAAI,GAAG,oBAAoB,CAAC;QACjC,IAAI,CAAC,aAAa,GAAG,aAAa,CAAC;IACrC,CAAC;CACF"}

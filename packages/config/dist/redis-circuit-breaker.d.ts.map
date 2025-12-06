@@ -1,0 +1,1 @@
+{"version":3,"file":"redis-circuit-breaker.d.ts","sourceRoot":"","sources":["../src/redis-circuit-breaker.ts"],"names":[],"mappings":"AAGA;;;;;;;;;;;GAWG;AACH,eAAO,MAAM,yBAAyB,GACpC,oBAAe,EACf,WAAM,EACN,YAAa,EACb,YAAY,QAqKb,CAAC"}

@@ -2,22 +2,26 @@
   "name": "@auth/worker",
   "version": "1.0.0",
   "private": true,
-  "main": "src/worker.service.js",
+  "main": "dist/worker.service.js",
   "bin": {
-    "worker": "./src/index.js"
+    "worker": "./dist/index.js"
   },
   "exports": {
     ".": {
-      "import": "./src/worker.service.js",
-      "default": "./src/worker.service.js"
+      "import": "./dist/worker.service.js",
+      "default": "./dist/worker.service.js"
     },
-    "./worker.service": "./src/worker.service.js",
-    "./consumers/email": "./src/consumers/email.consumer.js"
+    "./worker.service": "./dist/worker.service.js",
+    "./consumers/email": "./dist/consumers/email.consumer.js"
   },
   "type": "module",
   "scripts": {
     "lint": "eslint .",
-    "test": "vitest run --coverage"
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run --coverage",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/app-bootstrap": "workspace:*",
@@ -32,5 +36,9 @@
     "@sentry/profiling-node": "^10.29.0",
     "bullmq": "^5.65.1",
     "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/bull": "^4.10.4",
+    "@types/node": "^24.10.1"
   }
 }
