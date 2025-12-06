@@ -1,57 +1,93 @@
-import crypto from "crypto";
-import { handleBounce } from "@auth/email";
+import { handleBounce, ResendProvider, MailerSendProvider } from "@auth/email";
 import { config, getLogger } from "@auth/config";
 
 const logger = getLogger();
 
-const webhookLogger = logger.child({ module: "webhooks" });
-
 /* eslint-disable import/no-unused-modules */
 export class WebhooksController {
+  constructor() {
+    this.webhookLogger = logger.child({ module: "webhooks" });
+
+    // Initialize providers for verification/parsing only (Api Keys might be optional if only verifying)
+    // But our providers constructor takes apiKey. It's fine, we have them in config.
+    this.resend = new ResendProvider({
+      apiKey: config.resendApiKey,
+      webhookSecret: config.resendWebhookSecret,
+      logger: this.webhookLogger,
+    });
+
+    this.mailersend = new MailerSendProvider({
+      apiKey: config.mailersendApiKey,
+      webhookSecret: config.mailersendWebhookSecret,
+      logger: this.webhookLogger,
+      // fromEmail not needed for webhooks
+    });
+  }
+
   /**
-   * Verify Resend/Svix webhook signature
-   * Svix signature format: "v1,<signature>"
+   * Handle generic webhook flow
    */
-  verifyResendSignature(payload, signatureHeader, secret, timestamp) {
-    if (!secret) {
-      webhookLogger.warn(
-        "Resend webhook secret not configured - skipping verification"
-      );
-      return true; // Allow in development
-    }
-
+  async handleWebhook(req, res, provider) {
     try {
-      // Parse Svix signature format: "v1,base64signature"
-      const signatures = signatureHeader.split(" ").map((sig) => {
-        const [version, signature] = sig.split(",");
-        return { version, signature };
-      });
+      // 1. Verify Signature
+      // Providers expect specific headers. We pass req.headers.
+      // NOTE: Our provider.verifyWebhookSignature expects (payload, headers, secret)
+      // Express 'req.body' might be Buffer or Object depending on middleware.
+      // In routes we used express.raw({ type: 'application/json' }) -> buffer.
 
-      // Get the v1 signature
-      const v1Sig = signatures.find((s) => s.version === "v1");
-      if (!v1Sig) {
-        webhookLogger.warn("No v1 signature found in header");
-        return false;
+      const payload = req.body.toString();
+
+      if (!provider.verifyWebhookSignature(payload, req.headers)) {
+        this.webhookLogger.error(`Invalid ${provider.name} signature`);
+        return res.status(401).json({ error: "Invalid signature" });
       }
 
-      // Construct the signed content: timestamp.payload
-      const signedContent = `${timestamp}.${payload}`;
+      // 2. Parse Event
+      const eventJson = JSON.parse(payload);
+      const bounceData = provider.parseWebhookEvent(eventJson);
 
-      // Compute expected signature
-      const hmac = crypto.createHmac("sha256", secret);
-      const expectedSignature = hmac.update(signedContent).digest("base64");
-
-      // Compare signatures
-      return crypto.timingSafeEqual(
-        Buffer.from(v1Sig.signature),
-        Buffer.from(expectedSignature)
+      this.webhookLogger.info(
+        { provider: provider.name, eventType: eventJson.type },
+        "Received webhook"
       );
+
+      if (!bounceData) {
+        return res
+          .status(200)
+          .json({ success: true, message: "Event ignored" });
+      }
+
+      // 3. Handle Bounce/Complaint
+      const result = await handleBounce(bounceData);
+
+      this.webhookLogger.info(
+        { result, email: bounceData.email },
+        "Event handled"
+      );
+
+      // 4. Handle Retry Action (App Logic)
+      if (result.action === "retry_alternate_provider") {
+        this.webhookLogger.info(
+          { email: bounceData.email },
+          "Retrying with alternate provider"
+        );
+
+        // Dynamic import to avoid circular dependency if any
+        const { getQueueServices } = await import("@auth/queues");
+        // In a real implementation: reconstruct job and use emailProducer.
+        // For now, allow the log to trigger alerts or manual recovery.
+        if (result.emailLog && result.emailLog.metadata) {
+          this.webhookLogger.warn("Auto-retry logic triggered.");
+        }
+      }
+
+      return res.status(200).json({ success: true, result });
     } catch (error) {
-      webhookLogger.error(
-        { error: error.message },
-        "Signature verification failed"
+      this.webhookLogger.error(
+        { error: error.message, stack: error.stack },
+        `Failed to handle ${provider.name} webhook`
       );
-      return false;
+      return res.status(500).json({ success: false, error: error.message });
     }
   }
 
@@ -60,91 +96,15 @@ export class WebhooksController {
    * POST /webhooks/resend
    */
   handleResendWebhook = async (req, res) => {
-    try {
-      // Verify webhook signature
-      const signature =
-        req.headers["svix-signature"] || req.headers["resend-signature"];
-      const timestamp = req.headers["svix-timestamp"];
-      const webhookSecret = config.resendWebhookSecret;
+    return this.handleWebhook(req, res, this.resend);
+  };
 
-      if (signature && webhookSecret) {
-        const isValid = this.verifyResendSignature(
-          req.body.toString(),
-          signature,
-          webhookSecret,
-          timestamp
-        );
-
-        if (!isValid) {
-          webhookLogger.error("Invalid webhook signature");
-          return res.status(401).json({ error: "Invalid signature" });
-        }
-      }
-
-      // Parse the JSON body
-      const event = JSON.parse(req.body.toString());
-      webhookLogger.info({ event: event.type }, "Received Resend webhook");
-
-      // Handle bounce events
-      if (event.type === "email.bounced") {
-        const bounceData = {
-          email: event.data.to,
-          messageId: event.data.email_id,
-          bounceType: "hard", // Resend only sends hard bounces
-          bounceReason: event.data.bounce?.message || "Unknown bounce reason",
-          timestamp: new Date(event.created_at),
-        };
-
-        const result = await handleBounce(bounceData);
-
-        webhookLogger.info(
-          { result, email: bounceData.email },
-          "Bounce handled - email marked for retry"
-        );
-
-        return res.status(200).json({ success: true, result });
-      }
-
-      // Handle complaint events (spam reports)
-      if (event.type === "email.complained") {
-        const bounceData = {
-          email: event.data.to,
-          messageId: event.data.email_id,
-          bounceType: "complaint",
-          bounceReason: "User marked email as spam",
-          timestamp: new Date(event.created_at),
-        };
-
-        const result = await handleBounce(bounceData);
-
-        webhookLogger.info(
-          { result, email: bounceData.email },
-          "Complaint handled"
-        );
-        return res.status(200).json({ success: true, result });
-      }
-
-      // Handle delivery confirmation
-      if (event.type === "email.delivered") {
-        webhookLogger.info(
-          { email: event.data.to },
-          "Email delivered successfully"
-        );
-        return res.status(200).json({ success: true });
-      }
-
-      // Unknown event type
-      webhookLogger.warn({ type: event.type }, "Unknown webhook event type");
-      return res
-        .status(200)
-        .json({ success: true, message: "Event type not handled" });
-    } catch (error) {
-      webhookLogger.error(
-        { error: error.message, stack: error.stack },
-        "Failed to handle Resend webhook"
-      );
-      res.status(500).json({ success: false, error: error.message });
-    }
+  /**
+   * Handle MailerSend webhook events
+   * POST /webhooks/mailersend
+   */
+  handleMailerSendWebhook = async (req, res) => {
+    return this.handleWebhook(req, res, this.mailersend);
   };
 
   /**

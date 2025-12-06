@@ -61,13 +61,12 @@ const envSchema = z.object({
     }),
 
   RESEND_API_KEY: z.string().optional(),
+  MAILERSEND_API_KEY: z.string().optional(),
+  MAILERSEND_EMAIL_FROM: z.string().optional(),
+  MAILERSEND_WEBHOOK_SECRET: z.string().optional(),
   RESEND_WEBHOOK_SECRET: z.string().optional(),
   SENTRY_DSN: z.string().url().optional(),
 
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.coerce.number().optional(),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z
     .string()
     .refine(
@@ -215,14 +214,12 @@ const finalConfig = {
     },
     circuitBreakerTimeout: envVars.REDIS_CIRCUIT_BREAKER_TIMEOUT,
   },
-  smtp: {
-    host: envVars.SMTP_HOST,
-    port: envVars.SMTP_PORT,
-    user: envVars.SMTP_USER,
-    pass: envVars.SMTP_PASS,
-  },
   resendApiKey: envVars.RESEND_API_KEY,
   resendWebhookSecret: envVars.RESEND_WEBHOOK_SECRET,
+  mailersendApiKey: envVars.MAILERSEND_API_KEY,
+  mailersendWebhookSecret: envVars.MAILERSEND_WEBHOOK_SECRET,
+  // Allow overriding "From" address for MailerSend (if using specific subdomain)
+  mailersendEmailFrom: envVars.MAILERSEND_EMAIL_FROM || envVars.EMAIL_FROM,
   sentryDsn: envVars.SENTRY_DSN,
   sentryDevEnabled: envVars.SENTRY_DEV_ENABLED === "true",
   emailFrom: envVars.EMAIL_FROM,

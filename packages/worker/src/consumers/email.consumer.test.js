@@ -75,7 +75,8 @@ describe("Email Consumer", () => {
     expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
       job.data.data.user,
       job.data.data.token,
-      "en"
+      "en",
+      expect.objectContaining({ preferredProvider: undefined })
     );
   });
 

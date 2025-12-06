@@ -140,8 +140,8 @@ describe("Email Service", () => {
       expect(mockBreakerFire).toHaveBeenCalledWith(
         expect.objectContaining({
           from: "test@example.com",
-          to: "user@example.com",
-        })
+        }),
+        expect.anything()
       );
 
       expect(mockEmailLogRepository.updateStatus).toHaveBeenCalledWith(

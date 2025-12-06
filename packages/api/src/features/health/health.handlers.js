@@ -119,25 +119,3 @@ export async function readinessHandler(req, res) {
 
   res.status(isReady ? HTTP_STATUS_CODES.OK : 503).json(response);
 }
-
-/**
- * Deep health check - Detailed health info (for diagnostics, not load balancers)
- * Only exposed in non-production or behind auth
- */
-export async function deepHealthHandler(req, res) {
-  const redisHealth = await checkRedis();
-  const dbHealth = await checkDatabase();
-  const queueHealth = await checkQueue();
-
-  res.json({
-    status: "OK",
-    version: process.env.npm_package_version || "unknown",
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    checks: {
-      redis: redisHealth,
-      database: dbHealth,
-      queue: queueHealth,
-    },
-  });
-}

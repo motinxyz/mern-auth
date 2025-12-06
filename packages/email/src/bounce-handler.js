@@ -42,11 +42,14 @@ export async function handleBounce(
     if (wasSentViaResend) {
       bounceLogger.info(
         { email, messageId, bounceReason },
-        EMAIL_MESSAGES.BOUNCE_HARD_RETRY_SMTP
+        EMAIL_MESSAGES.BOUNCE_HARD_RETRY_SMTP.replace(
+          "SMTP",
+          "Alternate Provider"
+        )
       );
       return {
         success: true,
-        action: "retry_smtp",
+        action: "retry_alternate_provider",
         emailLog,
       };
     }
@@ -83,9 +86,11 @@ export async function handleBounce(
       EMAIL_MESSAGES.BOUNCE_SOFT_RECORDED
     );
 
+    // If it was MailerSend, we should retry with Resend (or vice versa)
+    // The WebhooksController will determine which provider to use based on this action
     return {
       success: true,
-      action: "retry_later",
+      action: "retry_alternate_provider",
       emailLog,
     };
   }

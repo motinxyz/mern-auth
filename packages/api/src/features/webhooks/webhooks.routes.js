@@ -20,6 +20,16 @@ router.post(
 );
 
 /**
+ * Webhook endpoint for MailerSend email events
+ * POST /webhooks/mailersend
+ */
+router.post(
+  "/mailersend",
+  express.raw({ type: "application/json" }),
+  webhooksController.handleMailerSendWebhook
+);
+
+/**
  * Health check endpoint for webhooks
  * GET /webhooks/health
  */

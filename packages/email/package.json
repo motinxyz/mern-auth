@@ -5,10 +5,11 @@
   "type": "module",
   "dependencies": {
     "@auth/config": "workspace:*",
+    "@auth/contracts": "workspace:*",
     "@auth/database": "workspace:*",
     "@auth/utils": "workspace:*",
     "handlebars": "^4.7.8",
-    "nodemailer": "^7.0.11",
+    "mailersend": "^2.2.0",
     "opossum": "^9.0.0",
     "resend": "^6.5.2"
   },

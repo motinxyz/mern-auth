@@ -241,6 +241,7 @@ class EmailService {
     userId,
     type = "notification",
     metadata = {},
+    options = {}, // New options argument (e.g. preferredProvider)
   }) {
     return withSpan(
       "email-service.send-email",
@@ -250,6 +251,7 @@ class EmailService {
           "email.type": type,
           "email.recipient_hash": hashSensitiveData(to),
           "user.id": userId || "anonymous",
+          "email.options_present": Object.keys(options).length > 0,
         });
 
         const mailOptions = {
@@ -273,6 +275,9 @@ class EmailService {
               ...metadata,
               html,
               text,
+              ...(options.preferredProvider
+                ? { preferredProvider: options.preferredProvider }
+                : {}),
             },
           });
 
@@ -297,7 +302,8 @@ class EmailService {
         const startTime = Date.now();
 
         try {
-          const info = await this.emailBreaker.fire(mailOptions);
+          // Pass options to circuit breaker / provider service
+          const info = await this.emailBreaker.fire(mailOptions, options);
           const duration = Date.now() - startTime;
 
           // Add delivery success attributes
@@ -406,9 +412,10 @@ class EmailService {
    * @param {object} user - User object containing email and name
    * @param {string} token - Verification token
    * @param {string} locale - User's locale
+   * @param {object} options - Extra options (e.g. preferredProvider)
    * @returns {Promise<object>} - Result from sendEmail
    */
-  async sendVerificationEmail(user, token, locale = "en") {
+  async sendVerificationEmail(user, token, locale = "en", options = {}) {
     return withSpan(
       "email-service.send-verification",
       async (span) => {
@@ -462,6 +469,7 @@ class EmailService {
           userId: user.id,
           type: "verification",
           metadata: { tokenExpiry: expiryMinutes },
+          options,
         });
       },
       { tracerName: "email-service", component: "email" }

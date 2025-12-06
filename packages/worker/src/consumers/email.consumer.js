@@ -98,7 +98,8 @@ class EmailConsumer extends BaseConsumer {
       await this.emailService.sendVerificationEmail(
         data.user,
         data.token,
-        data.locale || "en"
+        data.locale || "en",
+        { preferredProvider: data.preferredProvider } // Pass options
       );
 
       jobLogger.info(

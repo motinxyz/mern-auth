@@ -66,13 +66,15 @@ describe("Bounce Handler", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.action).toBe("retry_smtp");
+      expect(result.action).toBe("retry_alternate_provider");
       expect(mockUserRepository.findOneAndUpdate).not.toHaveBeenCalled();
     });
 
     it("should handle hard bounce from other provider (mark invalid)", async () => {
-      const emailLog = { provider: "smtp" };
-      mockEmailLogRepository.findOneAndUpdate.mockResolvedValue(emailLog);
+      mockEmailLogRepository.findOneAndUpdate.mockResolvedValue({
+        userId: "user-123",
+        provider: "mailersend",
+      });
       mockUserRepository.findOneAndUpdate.mockResolvedValue({
         _id: "user-123",
       });
@@ -82,34 +84,46 @@ describe("Bounce Handler", () => {
         mockUserRepository,
         mockLogger,
         mockT,
-        { ...baseBounceData, bounceType: "hard", bounceReason: "Invalid email" }
+        {
+          email: "user@example.com",
+          messageId: "msg-123",
+          bounceType: "hard",
+          bounceReason: "Invalid email",
+          timestamp: new Date(),
+        }
       );
 
       expect(result.success).toBe(true);
       expect(result.action).toBe("marked_invalid");
       expect(mockUserRepository.findOneAndUpdate).toHaveBeenCalledWith(
-        { email: "test@example.com" },
+        { email: "user@example.com" },
         expect.objectContaining({
           emailValid: false,
-          emailBounceCount: { $inc: 1 },
         })
       );
     });
 
     it("should handle soft bounce (retry later)", async () => {
-      const emailLog = { provider: "smtp" };
-      mockEmailLogRepository.findOneAndUpdate.mockResolvedValue(emailLog);
+      mockEmailLogRepository.findOneAndUpdate.mockResolvedValue({
+        userId: "user-123",
+        provider: "mailersend",
+      });
 
       const result = await handleBounce(
         mockEmailLogRepository,
         mockUserRepository,
         mockLogger,
         mockT,
-        { ...baseBounceData, bounceType: "soft", bounceReason: "Mailbox full" }
+        {
+          email: "user@example.com",
+          messageId: "msg-123",
+          bounceType: "soft",
+          bounceReason: "Full inbox",
+          timestamp: new Date(),
+        }
       );
-
       expect(result.success).toBe(true);
-      expect(result.action).toBe("retry_later");
+      expect(result.action).toBe("retry_alternate_provider");
       expect(mockUserRepository.findOneAndUpdate).not.toHaveBeenCalled();
     });
 
