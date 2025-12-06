@@ -17,6 +17,10 @@ export interface ICacheService {
      */
     del(key: string): Promise<number>;
     /**
+     * Get TTL of a key
+     */
+    ttl(key: string): Promise<number>;
+    /**
      * Check if a key exists
      */
     exists(key: string): Promise<number>;

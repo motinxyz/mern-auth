@@ -15,6 +15,21 @@ import { VALIDATION_RULES } from "@auth/utils";
  *
  * If Mongoose validation triggers, it indicates a bug that should be investigated.
  */
+export interface UserDocument extends mongoose.Document {
+  name: string;
+  email: string;
+  normalizedEmail: string;
+  password?: string;
+  role: string;
+  isVerified: boolean;
+  emailValid: boolean;
+  emailBounceReason?: string;
+  emailBouncedAt?: Date;
+  emailComplaint: boolean;
+  emailComplaintAt?: Date;
+  comparePassword(candidatePassword: string): Promise<boolean>;
+}
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -90,7 +105,7 @@ userSchema.index({ createdAt: -1, role: 1 }); // Admin dashboards: recent users 
  */
 userSchema.set("toJSON", {
   transform: (doc, ret) => {
-    (ret as any).id = ret._id.toString();
+    (ret as Record<string, unknown>).id = ret._id.toString();
     delete ret._id;
     delete ret.__v;
     // Ensure the password hash is never sent, even by accident

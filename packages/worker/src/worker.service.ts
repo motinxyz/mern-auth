@@ -1,6 +1,7 @@
 import QueueProcessorService from "./queue-processor.service.js";
 import { WORKER_MESSAGES, WORKER_ERRORS } from "./constants/worker.messages.js";
 import { ConfigurationError } from "@auth/utils";
+import type { ILogger } from "@auth/contracts";
 import { initSentry } from "./monitoring/sentry.js";
 import { WorkerConfigSchema } from "./schemas/config.schema.js";
 
@@ -10,7 +11,7 @@ import { WorkerConfigSchema } from "./schemas/config.schema.js";
  */
 class WorkerService {
   sentry: any;
-  logger: any;
+  logger: ILogger;
   redisConnection: any;
   processors: any[];
   databaseService: any;

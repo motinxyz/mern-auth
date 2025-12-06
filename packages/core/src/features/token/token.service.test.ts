@@ -39,7 +39,7 @@ describe("Token Service", () => {
     mockRedis = {
       data: mockRedisData,
       set: vi.fn().mockImplementation(async (key, value, ...args) => {
-        console.log("[TEST DEBUG] set called", key);
+
         mockRedisData.set(key, value);
         return "OK";
       }),

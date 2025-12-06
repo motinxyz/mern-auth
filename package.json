@@ -17,6 +17,7 @@
     "agent:restart": "pnpm agent:stop && pnpm agent:start"
   },
   "devDependencies": {
+    "@auth/eslint-config": "workspace:*",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.48.1",

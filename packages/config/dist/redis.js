@@ -2,13 +2,6 @@ import { Redis } from "ioredis";
 import { ConfigurationError } from "@auth/utils";
 import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
 import { createRedisCircuitBreaker } from "./redis-circuit-breaker.js";
-/**
- * RedisService - Manages Redis connection lifecycle with circuit breaker
- *
- * Class-based pattern for consistency with DatabaseService, EmailService, etc.
- * Provides proper dependency injection and lifecycle management.
- * Includes circuit breaker for graceful degradation when Redis fails.
- */
 export class RedisService {
     config;
     logger;

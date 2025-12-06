@@ -1,7 +1,7 @@
 import { User } from "@auth/database";
 import { normalizeEmail, ConflictError, TooManyRequestsError, createAuthRateLimitKey, ServiceUnavailableError, ApiError, HTTP_STATUS_CODES, withSpan, addSpanAttributes, hashSensitiveData, getTraceContext, } from "@auth/utils";
 import { RATE_LIMIT_DURATIONS, REDIS_RATE_LIMIT_VALUE, } from "../../../constants/auth.constants.js";
-import { EMAIL_JOB_TYPES } from "@auth/config";
+import { EMAIL_JOB_TYPES, t } from "@auth/config";
 import { REGISTRATION_MESSAGES, REGISTRATION_ERRORS, } from "../../../constants/core.messages.js";
 /**
  * RegistrationService

@@ -4,6 +4,22 @@ import mongoose from "mongoose";
  * Audit Log Model
  * Tracks security-relevant user actions for compliance and security monitoring
  */
+export interface AuditLogMetadata {
+  [key: string]: unknown;
+}
+
+export interface AuditLogDocument extends mongoose.Document {
+  userId: mongoose.Types.ObjectId;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  status: "success" | "failure";
+  ip: string;
+  userAgent?: string;
+  metadata?: AuditLogMetadata;
+  timestamp: Date;
+}
+
 const auditLogSchema = new mongoose.Schema(
   {
     userId: {
@@ -40,7 +56,7 @@ const auditLogSchema = new mongoose.Schema(
       type: String,
     },
     metadata: {
-      type: mongoose.Schema.Types.Mixed,
+      type: mongoose.Schema.Types.Mixed as unknown as AuditLogMetadata,
       // Additional context-specific data
     },
     timestamp: {

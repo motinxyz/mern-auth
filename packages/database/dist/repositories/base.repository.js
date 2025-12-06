@@ -1,5 +1,6 @@
 import { ConfigurationError, withSpan } from "@auth/utils";
 import { DB_ERRORS } from "../constants/database.messages.js";
+import mongoose from "mongoose";
 /**
  * Base Repository
  * Implements generic CRUD operations with observability and error handling.
@@ -22,11 +23,14 @@ class BaseRepository {
     /**
      * Create a new document
      * @param {object} data - Document data
-     * @returns {Promise<import("mongoose").Document>}
+     * @returns {Promise<T>}
      */
     async create(data) {
         return withSpan(`${this.name}.create`, async () => {
-            return this.model.create(data);
+            // Mongoose.create can return an array or object. We assume object here.
+            // If array is passed, the caller should likely use a different method or we should update types.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return (await this.model.create(data));
         });
     }
     /**
@@ -66,6 +70,34 @@ class BaseRepository {
                 query.limit(options.limit);
             return query.exec();
         });
+    }
+    /**
+     * Find multiple documents matching filter with pagination
+     * @param {Record<string, unknown>} query - Query filter
+     * @param {object} [options] - Pagination and sort options
+     * @returns {Promise<{ items: T[]; total: number; page: number; limit: number; totalPages: number; }>}
+     */
+    async findWithPagination(query, options = {}) {
+        const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
+        const skip = (page - 1) * limit;
+        const [items, total] = await Promise.all([
+            this.model
+                .find(query)
+                .sort(sort) // Cast to satisfy mongoose type checker if strictly required
+                .skip(skip)
+                .limit(limit)
+                .exec(),
+            this.model.countDocuments(query).exec(),
+        ]);
+        return {
+            items,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit),
+            },
+        };
     }
     /**
      * Update document by ID

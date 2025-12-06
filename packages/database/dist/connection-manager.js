@@ -11,7 +11,7 @@ class DatabaseConnectionManager {
     config;
     logger;
     isConnected;
-    constructor(options = {}) {
+    constructor(options) {
         if (!options.config) {
             throw new ConfigurationError(DB_ERRORS.MISSING_CONFIG.replace("{option}", "config"));
         }

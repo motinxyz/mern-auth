@@ -67,7 +67,7 @@ class UserRepository extends BaseRepository {
                 this.model.countDocuments(filter),
             ]);
             return {
-                users,
+                items: users,
                 pagination: {
                     page,
                     limit,

@@ -1,6 +1,7 @@
 import { Worker, Queue } from "bullmq";
 import { WORKER_MESSAGES, WORKER_ERRORS } from "./constants/worker.messages.js";
 import { ConfigurationError } from "@auth/utils";
+import type { ILogger } from "@auth/contracts";
 import { captureJobError } from "./monitoring/sentry.js";
 import {
   workerJobDuration,
@@ -18,7 +19,7 @@ class QueueProcessorService {
   queueName: string;
   connection: any;
   processor: any;
-  logger: any;
+  logger: ILogger;
   workerConfig: any;
   deadLetterQueueName: string | undefined;
   sentry: any;

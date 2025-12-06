@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import crypto from "crypto";
+import type { ILogger } from "@auth/contracts";
 
 /**
  * Resend Email Provider
@@ -9,7 +10,7 @@ class ResendProvider {
   name: string;
   client: Resend | undefined;
   webhookSecret: string;
-  logger: any;
+  logger: ILogger;
 
   constructor({ apiKey, webhookSecret, logger }: any) {
     this.name = "resend-api";

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { validate } from "../../middleware/index.js";
 import { registrationSchema } from "@auth/core";
-import { authLimiter } from "../../middleware/index.js";
+
 import { authController } from "./auth.adapter.instance.js";
 import { AUTH_ROUTES } from "@auth/utils";
 
@@ -33,7 +33,6 @@ const router = Router();
  */
 router.post(
   AUTH_ROUTES.REGISTER,
-  authLimiter,
   validate(registrationSchema),
   authController.register
 );

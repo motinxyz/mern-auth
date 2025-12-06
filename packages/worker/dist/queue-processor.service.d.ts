@@ -1,4 +1,5 @@
 import { Worker, Queue } from "bullmq";
+import type { ILogger } from "@auth/contracts";
 /**
  * Generic Queue Processor Service
  * Handles any BullMQ job processing with metrics and health checks
@@ -7,7 +8,7 @@ declare class QueueProcessorService {
     queueName: string;
     connection: any;
     processor: any;
-    logger: any;
+    logger: ILogger;
     workerConfig: any;
     deadLetterQueueName: string | undefined;
     sentry: any;

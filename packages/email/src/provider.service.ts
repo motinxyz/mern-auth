@@ -4,6 +4,7 @@ import {
   withSpan,
   addSpanAttributes,
 } from "@auth/utils";
+import type { ILogger } from "@auth/contracts";
 import { EMAIL_MESSAGES, EMAIL_ERRORS } from "./constants/email.messages.js";
 import ResendProvider from "./providers/resend.provider.js";
 import MailerSendProvider from "./providers/mailersend.provider.js";
@@ -14,7 +15,7 @@ import MailerSendProvider from "./providers/mailersend.provider.js";
  */
 class ProviderService {
   config: any;
-  logger: any;
+  logger: ILogger;
   providers: any[];
 
   constructor(options: any = {}) {

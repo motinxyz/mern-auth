@@ -23,7 +23,7 @@ app.use(...createTimeoutMiddleware(30000));
 // Apply i18n middleware before any other middleware that might need it.
 if (config.isTest) {
     app.use((req, res, next) => {
-        req.t = (key) => key;
+        req.t = ((key) => key);
         next();
     });
 }

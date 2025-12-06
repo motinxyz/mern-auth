@@ -12,11 +12,20 @@ import {
   hashSensitiveData,
   getTraceContext,
 } from "@auth/utils";
+import type {
+  ILogger,
+  IConfig,
+  ICacheService,
+  IQueueProducer,
+  ITokenService,
+} from "@auth/contracts";
+import type { Model } from "mongoose";
+import type { UserDocument } from "@auth/database";
 import {
   RATE_LIMIT_DURATIONS,
   REDIS_RATE_LIMIT_VALUE,
 } from "../../../constants/auth.constants.js";
-import { EMAIL_JOB_TYPES } from "@auth/config";
+import { EMAIL_JOB_TYPES, t } from "@auth/config";
 import {
   REGISTRATION_MESSAGES,
   REGISTRATION_ERRORS,
@@ -39,13 +48,13 @@ export class RegistrationService {
    * @param {Object} deps.sentry - Sentry error tracking
    * @param {Object} deps.logger - Pino logger
    */
-  User: any;
-  redis: any;
-  config: any;
-  emailProducer: any;
-  tokenService: any;
-  sentry: any;
-  logger: any;
+  User: Model<UserDocument>;
+  redis: ICacheService;
+  config: IConfig;
+  emailProducer: IQueueProducer;
+  tokenService: ITokenService;
+  sentry: unknown;
+  logger: ILogger;
 
   constructor({
     userModel,
@@ -55,7 +64,15 @@ export class RegistrationService {
     tokenService,
     sentry,
     logger,
-  }: any) {
+  }: {
+    userModel: Model<UserDocument>;
+    redis: ICacheService;
+    config: IConfig;
+    emailProducer: IQueueProducer;
+    tokenService: ITokenService;
+    sentry: unknown;
+    logger: ILogger;
+  }) {
     this.User = userModel;
     this.redis = redis;
     this.config = config;
@@ -161,7 +178,7 @@ export class RegistrationService {
 
                   // Alert via Sentry if available
                   if (this.sentry) {
-                    this.sentry.captureException(dbError, {
+                    (this.sentry as any).captureException(dbError, {
                       tags: {
                         alert: "defense_in_depth_triggered",
                         layer: "database",

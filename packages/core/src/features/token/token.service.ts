@@ -1,7 +1,13 @@
 import crypto from "node:crypto";
 import { TokenCreationError } from "@auth/utils";
+import type { ILogger, IConfig, ICacheService } from "@auth/contracts";
 import { HASHING_ALGORITHM } from "@auth/core/constants/token.constants";
 import { TOKEN_MESSAGES } from "../../constants/core.messages.js";
+
+interface UserIdentity {
+  _id: string | { toString(): string };
+  email: string;
+}
 
 /**
  * TokenService
@@ -12,11 +18,11 @@ import { TOKEN_MESSAGES } from "../../constants/core.messages.js";
  * @implements {import('@auth/contracts').ITokenService}
  */
 export class TokenService {
-  redis: any;
-  config: any;
-  logger: any;
+  redis: ICacheService;
+  config: IConfig;
+  logger: ILogger;
 
-  constructor({ redis, config, logger }: any) {
+  constructor({ redis, config, logger }: { redis: ICacheService; config: IConfig; logger: ILogger }) {
     this.redis = redis;
     this.config = config;
     this.logger = logger.child({ module: "token-service" });
@@ -29,7 +35,7 @@ export class TokenService {
    * @returns {Promise<string>} - The verification token (unhashed)
    * @throws {TokenCreationError} - If token creation fails
    */
-  async createVerificationToken(user) {
+  async createVerificationToken(user: UserIdentity) {
     try {
       // Generate a secure, random token
       const verificationToken = crypto.randomBytes(32).toString("hex");
@@ -78,6 +84,20 @@ export class TokenService {
       // Wrap the original error in our custom error class for better context
       throw new TokenCreationError("Token creation failed", error);
     }
+  }
+
+  /**
+   * Verify and consume a token
+   */
+  async verifyToken(token: string): Promise<{ userId: string; type: string }> {
+    throw new Error("Method not implemented.");
+  }
+
+  /**
+   * Delete a token
+   */
+  async deleteToken(token: string): Promise<void> {
+    throw new Error("Method not implemented.");
   }
 
   /**

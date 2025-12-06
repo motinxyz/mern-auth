@@ -1,3 +1,4 @@
+import type { ILogger } from "@auth/contracts";
 /**
  * Base Consumer
  * Provides common functionality for all job consumers:
@@ -13,7 +14,7 @@ declare class BaseConsumer {
      * @param {object} options.logger - Pino logger instance
      * @param {string} options.name - Consumer name for tracing/logging
      */
-    logger: any;
+    logger: ILogger;
     name: string;
     constructor(options: any);
     /**
@@ -22,7 +23,7 @@ declare class BaseConsumer {
      * @param {string} jobType - Type of job being processed
      * @returns {object} Child logger with context
      */
-    createJobLogger(job: any, jobType: any): any;
+    createJobLogger(job: any, jobType: any): ILogger;
     /**
      * Wrap job processing in a span with trace context linking
      * @param {object} job - BullMQ job

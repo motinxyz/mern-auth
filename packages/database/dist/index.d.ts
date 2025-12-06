@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import type { ILogger, IConfig } from "@auth/contracts";
 import DatabaseConnectionManager from "./connection-manager.js";
 import UserRepository from "./repositories/user.repository.js";
 import EmailLogRepository from "./repositories/email-log.repository.js";
@@ -15,7 +16,11 @@ declare class DatabaseService {
     userRepository: UserRepository;
     emailLogRepository: EmailLogRepository;
     auditLogRepository: AuditLogRepository;
-    constructor(options?: any);
+    constructor(options: {
+        config: IConfig;
+        logger: ILogger;
+        t?: (key: string, params?: unknown) => string;
+    });
     /**
      * Connect to database
      */
@@ -62,4 +67,7 @@ declare class DatabaseService {
 export default DatabaseService;
 export { User, EmailLog, AuditLog, mongoose };
 export { UserRepository, EmailLogRepository, AuditLogRepository, DatabaseConnectionManager, };
+export type { UserDocument } from "./models/user.model.js";
+export type { EmailLogDocument } from "./models/email-log.model.js";
+export type { AuditLogDocument } from "./models/audit-log.model.js";
 //# sourceMappingURL=index.d.ts.map

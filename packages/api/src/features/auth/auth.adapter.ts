@@ -1,4 +1,11 @@
 import { RegistrationDto, VerificationDto } from "@auth/core";
+import type { Request, Response } from "express";
+import type { ILogger, IConfig } from "@auth/contracts";
+
+interface ControllerResult {
+  statusCode: number;
+  data: unknown;
+}
 
 /**
  * Adapter to convert between Express requests/responses and Core DTOs
@@ -7,20 +14,20 @@ import { RegistrationDto, VerificationDto } from "@auth/core";
  * Uses Dependency Injection for testability and flexibility
  */
 export class AuthAdapter {
-  logger: any;
-  config: any;
+  logger: ILogger;
+  config: IConfig;
 
-  constructor({ logger, config }: any = {}) {
+  constructor({ logger, config }: { logger: ILogger; config: IConfig }) {
     this.logger = logger;
     this.config = config;
   }
 
   /**
    * Convert Express request to RegistrationDto
-   * @param {import('express').Request} req
+   * @param {Request} req
    * @returns {RegistrationDto}
    */
-  toRegisterDto(req) {
+  toRegisterDto(req: Request): RegistrationDto {
     return new RegistrationDto({
       name: req.body.name,
       email: req.body.email,
@@ -30,12 +37,12 @@ export class AuthAdapter {
 
   /**
    * Convert Express request to VerificationDto
-   * @param {import('express').Request} req
+   * @param {Request} req
    * @returns {VerificationDto}
    */
-  toVerifyEmailDto(req) {
+  toVerifyEmailDto(req: Request): VerificationDto {
     return new VerificationDto({
-      token: req.query.token,
+      token: req.query.token as string,
     });
   }
 
@@ -45,9 +52,9 @@ export class AuthAdapter {
    * @param {Response} res - Express response
    * @returns {Response}
    */
-  toExpressResponse(result, res) {
+  toExpressResponse(result: ControllerResult, res: Response): Response {
     if (this.logger) {
-      this.logger.debug("Sending response", { statusCode: result.statusCode });
+      this.logger.debug({ statusCode: result.statusCode }, "Sending response");
     }
     return res.status(result.statusCode).json(result.data);
   }
@@ -57,7 +64,7 @@ export class AuthAdapter {
    * @param {Request} req - Express request
    * @returns {string}
    */
-  getLocale(req) {
-    return req.locale || req.headers["accept-language"]?.split(",")[0] || "en";
+  getLocale(req: Request): string {
+    return (req as any).locale || req.headers["accept-language"]?.split(",")[0] || "en";
   }
 }

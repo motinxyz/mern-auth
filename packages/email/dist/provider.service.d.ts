@@ -1,10 +1,11 @@
+import type { ILogger } from "@auth/contracts";
 /**
  * Provider Service
  * Manages email providers (Resend, MailerSend) with failover support
  */
 declare class ProviderService {
     config: any;
-    logger: any;
+    logger: ILogger;
     providers: any[];
     constructor(options?: any);
     /**

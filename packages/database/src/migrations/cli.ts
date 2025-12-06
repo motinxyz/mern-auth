@@ -34,17 +34,18 @@ async function main() {
         await migrationRunner.status();
         break;
       default:
-        console.log("Unknown command. Use: up, down, or status");
+        logger.warn("Unknown command. Use: up, down, or status");
         process.exit(1);
     }
 
     await databaseService.disconnect();
     process.exit(0);
   } catch (error) {
-    console.error("Migration failed:", error);
+    logger.error({ err: error }, "Migration failed");
     await databaseService.disconnect();
     process.exit(1);
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 main();

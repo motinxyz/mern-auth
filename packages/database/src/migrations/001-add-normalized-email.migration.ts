@@ -8,7 +8,9 @@
 import { normalizeEmail } from "@auth/utils";
 /* eslint-disable import/no-unused-modules */
 
-export async function up(db, session) {
+import type { ILogger } from "@auth/contracts";
+
+export async function up(db, session, logger: ILogger) {
   const users = await db.collection("users").find({}).toArray();
 
   for (const user of users) {
@@ -24,10 +26,10 @@ export async function up(db, session) {
     .collection("users")
     .createIndex({ normalizedEmail: 1 }, { unique: true, session });
 
-  console.log(`✅ Normalized ${users.length} user emails`);
+  logger.info(`✅ Normalized ${users.length} user emails`);
 }
 
-export async function down(db, session) {
+export async function down(db, session, logger: ILogger) {
   // Drop the unique index
   await db.collection("users").dropIndex("normalizedEmail_1", { session });
 
@@ -36,5 +38,5 @@ export async function down(db, session) {
     .collection("users")
     .updateMany({}, { $unset: { normalizedEmail: "" } }, { session });
 
-  console.log("✅ Removed normalizedEmail field");
+  logger.info("✅ Removed normalizedEmail field");
 }

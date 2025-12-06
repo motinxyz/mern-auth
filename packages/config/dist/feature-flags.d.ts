@@ -1,13 +1,14 @@
+import type { ILogger, IRedisConnection } from "@auth/contracts";
 /**
  * Feature Flag Service
  * Enables/disables features dynamically using Redis
  */
 export declare class FeatureFlagService {
-    redis: any;
-    logger: any;
+    redis: IRedisConnection;
+    logger: ILogger;
     constructor({ redis, logger }: {
-        redis: any;
-        logger: any;
+        redis: IRedisConnection;
+        logger: ILogger;
     });
     /**
      * Check if a feature is enabled

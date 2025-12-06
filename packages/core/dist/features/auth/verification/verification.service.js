@@ -9,13 +9,6 @@ import { t } from "@auth/config";
  * Single Responsibility: Handle email verification process
  */
 export class VerificationService {
-    /**
-     * @param {Object} deps - Dependencies
-     * @param {import("mongoose").Model} deps.userModel - Mongoose User model
-     * @param {import("@auth/contracts").ICacheService} deps.redis - Cache service (Redis)
-     * @param {Object} deps.config - Application configuration
-     * @param {Object} deps.logger - Pino logger
-     */
     User;
     redis;
     config;
@@ -58,7 +51,7 @@ export class VerificationService {
         // Check if already verified
         if (user.isVerified) {
             await this.redis.del(verifyKey);
-            this.logger.info({ userId: user.id }, VERIFICATION_MESSAGES.USER_ALREADY_VERIFIED);
+            this.logger.info({ userId: user._id }, VERIFICATION_MESSAGES.USER_ALREADY_VERIFIED);
             return { status: VERIFICATION_STATUS.ALREADY_VERIFIED };
         }
         // Mark user as verified
@@ -66,7 +59,7 @@ export class VerificationService {
         await user.save();
         // Clean up token
         await this.redis.del(verifyKey);
-        this.logger.info({ userId: user.id }, VERIFICATION_MESSAGES.VERIFY_SUCCESS);
+        this.logger.info({ userId: user._id }, VERIFICATION_MESSAGES.VERIFY_SUCCESS);
         return { status: VERIFICATION_STATUS.VERIFIED };
     }
 }

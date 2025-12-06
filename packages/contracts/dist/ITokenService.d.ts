@@ -3,7 +3,7 @@
  */
 export interface TokenUser {
     _id: string;
-    email?: string;
+    email: string;
 }
 /**
  * Token verification result

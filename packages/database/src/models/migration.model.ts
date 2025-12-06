@@ -1,7 +1,11 @@
 import mongoose from "mongoose";
-import { getLogger } from "@auth/config";
 
-const logger = getLogger();
+export interface MigrationDocument extends mongoose.Document {
+  name: string;
+  appliedAt: Date;
+  status: "pending" | "applied" | "failed";
+  error?: string;
+}
 
 /**
  * Migration tracking schema

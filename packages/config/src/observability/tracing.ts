@@ -29,6 +29,9 @@ const {
   SEMRESATTRS_DEPLOYMENT_ENVIRONMENT,
 } = require("@opentelemetry/semantic-conventions");
 import { observabilityConfig, isTracingEnabled } from "./config.js";
+import type { IncomingMessage, ServerResponse } from "http";
+import type { Span } from "@opentelemetry/api";
+import type { Request } from "express";
 
 const log = createModuleLogger("tracing");
 
@@ -125,13 +128,13 @@ export function initializeTracing() {
           // ========================================
           "@opentelemetry/instrumentation-http": {
             enabled: true,
-            ignoreIncomingRequestHook: (req: any) => {
+            ignoreIncomingRequestHook: (req: IncomingMessage) => {
               // Don't trace health checks and metrics endpoints
               const url = req.url || "";
               return url.includes("/health") || url.includes("/metrics");
             },
             // Hook for incoming requests (server-side)
-            requestHook: (span: any, request: any) => {
+            requestHook: (span: Span, request: IncomingMessage) => {
               // Add request details
               span.setAttribute("http.url", request.url);
               span.setAttribute(
@@ -155,7 +158,7 @@ export function initializeTracing() {
               return { name: `HTTP ${method}` };
             },
             // This hook runs after response is complete - route info is available
-            applyCustomAttributesOnSpan: (span: any, request: any, response: any) => {
+            applyCustomAttributesOnSpan: (span: Span, request: Request, response: ServerResponse) => {
               // For incoming requests: Update HTTP span name with Express route
               const route = request.route?.path;
               const baseUrl = request.baseUrl || "";

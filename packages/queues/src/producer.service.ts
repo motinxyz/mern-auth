@@ -1,4 +1,5 @@
 import { ConfigurationError, withSpan, addSpanAttributes } from "@auth/utils";
+import type { ILogger } from "@auth/contracts";
 import { QUEUE_MESSAGES, QUEUE_ERRORS } from "./constants/queue.messages.js";
 
 /**
@@ -7,7 +8,7 @@ import { QUEUE_MESSAGES, QUEUE_ERRORS } from "./constants/queue.messages.js";
  */
 class ProducerService {
   public queueService: any;
-  public logger: any;
+  public logger: ILogger;
 
   constructor(options: any = {}) {
     if (!options.queueService) {

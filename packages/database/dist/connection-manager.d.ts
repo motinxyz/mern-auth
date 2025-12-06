@@ -1,13 +1,17 @@
 import mongoose from "mongoose";
+import type { ILogger } from "@auth/contracts";
 /**
  * Database Connection Manager
  * Provides connection state management and health checks
  */
 declare class DatabaseConnectionManager {
     config: any;
-    logger: any;
+    logger: ILogger;
     isConnected: boolean;
-    constructor(options?: any);
+    constructor(options: {
+        config: any;
+        logger: ILogger;
+    });
     /**
      * Setup event listeners for connection lifecycle
      * Checks actual listener count to prevent duplicates across reloads

@@ -1,3 +1,6 @@
+import type { ILogger, IConfig, ICacheService, IQueueProducer, ITokenService } from "@auth/contracts";
+import type { Model } from "mongoose";
+import type { UserDocument } from "@auth/database";
 /**
  * RegistrationService
  *
@@ -15,14 +18,22 @@ export declare class RegistrationService {
      * @param {Object} deps.sentry - Sentry error tracking
      * @param {Object} deps.logger - Pino logger
      */
-    User: any;
-    redis: any;
-    config: any;
-    emailProducer: any;
-    tokenService: any;
-    sentry: any;
-    logger: any;
-    constructor({ userModel, redis, config, emailProducer, tokenService, sentry, logger, }: any);
+    User: Model<UserDocument>;
+    redis: ICacheService;
+    config: IConfig;
+    emailProducer: IQueueProducer;
+    tokenService: ITokenService;
+    sentry: unknown;
+    logger: ILogger;
+    constructor({ userModel, redis, config, emailProducer, tokenService, sentry, logger, }: {
+        userModel: Model<UserDocument>;
+        redis: ICacheService;
+        config: IConfig;
+        emailProducer: IQueueProducer;
+        tokenService: ITokenService;
+        sentry: unknown;
+        logger: ILogger;
+    });
     register(registerUserDto: any): Promise<any>;
 }
 //# sourceMappingURL=registration.service.d.ts.map

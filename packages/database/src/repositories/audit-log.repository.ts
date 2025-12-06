@@ -1,31 +1,43 @@
 import BaseRepository from "./base.repository.js";
 import { withSpan } from "@auth/utils";
+import type { ILogger } from "@auth/contracts";
+import type { Model } from "mongoose";
+import type { AuditLogDocument } from "../models/audit-log.model.js";
+
+interface AuditLogQueryOptions {
+  limit?: number;
+  skip?: number;
+  since?: Date;
+}
 
 /**
  * Audit Log Repository
  * Encapsulates all database operations for AuditLog model
  */
-class AuditLogRepository extends BaseRepository {
-  public logger: any;
+class AuditLogRepository extends BaseRepository<AuditLogDocument> {
+  public logger: ILogger;
 
-  constructor(model: any, logger: any) {
+  constructor(model: Model<AuditLogDocument>, logger: ILogger) {
     super(model, "AuditLogRepository");
-    this.logger = logger?.child({ module: "audit-log-repository" });
+    this.logger = logger.child({ module: "audit-log-repository" });
   }
 
   /**
    * Create audit log entry
    * @param {Object} logData - Audit log data
    */
-  async create(logData) {
+  async create(logData: Partial<AuditLogDocument>): Promise<AuditLogDocument | null> {
     return withSpan("AuditLogRepository.create", async () => {
       try {
-        const auditLog = await this.model.create(logData);
+        const result = await this.model.create(logData);
+        // Mongoose create returns array if input is array, single doc if object.
+        // We assume logData is object here.
+        const auditLog = (Array.isArray(result) ? result[0] : result) as AuditLogDocument;
 
         if (this.logger) {
           this.logger.info(
             {
-              auditLogId: auditLog._id,
+              auditLogId: auditLog._id.toString(),
               userId: logData.userId,
               action: logData.action,
             },
@@ -50,13 +62,13 @@ class AuditLogRepository extends BaseRepository {
   /**
    * Get audit logs for a user
    * @param {string} userId - User ID
-   * @param {Object} options - Query options
+   * @param {AuditLogQueryOptions} options - Query options
    */
-  async findByUser(userId: string, options: any = {}) {
+  async findByUser(userId: string, options: AuditLogQueryOptions = {}) {
     return withSpan("AuditLogRepository.findByUser", async () => {
       const { limit = 50, skip = 0, since = null } = options;
 
-      const query: any = { userId };
+      const query: Record<string, unknown> = { userId };
       if (since) {
         query.timestamp = { $gte: since };
       }
@@ -73,13 +85,13 @@ class AuditLogRepository extends BaseRepository {
   /**
    * Get audit logs by action
    * @param {string} action - Action to filter by
-   * @param {Object} options - Query options
+   * @param {AuditLogQueryOptions} options - Query options
    */
-  async findByAction(action: string, options: any = {}) {
+  async findByAction(action: string, options: AuditLogQueryOptions = {}) {
     return withSpan("AuditLogRepository.findByAction", async () => {
       const { limit = 100, skip = 0, since = null } = options;
 
-      const query: any = { action };
+      const query: Record<string, unknown> = { action };
       if (since) {
         query.timestamp = { $gte: since };
       }
@@ -95,9 +107,9 @@ class AuditLogRepository extends BaseRepository {
 
   /**
    * Get failed actions for security monitoring
-   * @param {Object} options - Query options
+   * @param {AuditLogQueryOptions} options - Query options
    */
-  async getFailedActions(options: any = {}) {
+  async getFailedActions(options: AuditLogQueryOptions = {}) {
     return withSpan("AuditLogRepository.getFailedActions", async () => {
       const {
         limit = 100,

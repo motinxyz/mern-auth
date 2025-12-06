@@ -1,214 +1,35 @@
 import mongoose from "mongoose";
-declare const EmailLog: mongoose.Model<any, {}, {}, {}, any, any, any> | mongoose.Model<{
+/**
+ * EmailLog model for tracking all email sends
+ * Tracks delivery status, bounces, and provides audit trail
+ */
+export interface EmailLogMetadata {
+    [key: string]: unknown;
+}
+export interface EmailLogDocument extends mongoose.Document {
+    userId?: mongoose.Types.ObjectId;
     type: "verification" | "passwordReset" | "welcome" | "notification";
     to: string;
     subject: string;
-    status: "bounced" | "failed" | "sent" | "delivered" | "queued";
-    provider: string;
-    error?: string;
-    sentAt?: NativeDate;
-    deliveredAt?: NativeDate;
-    bouncedAt?: NativeDate;
-    failedAt?: NativeDate;
-    bounceReason?: string;
-    metadata?: any;
-    userId?: mongoose.Types.ObjectId;
     messageId?: string;
-    bounceType?: "hard" | "soft" | "complaint";
-} & mongoose.DefaultTimestampProps, {}, {}, {
-    id: string;
-}, mongoose.Document<unknown, {}, {
-    type: "verification" | "passwordReset" | "welcome" | "notification";
-    to: string;
-    subject: string;
-    status: "bounced" | "failed" | "sent" | "delivered" | "queued";
+    status: "queued" | "sent" | "delivered" | "bounced" | "failed";
     provider: string;
+    sentAt?: Date;
+    deliveredAt?: Date;
+    bouncedAt?: Date;
+    failedAt?: Date;
     error?: string;
-    sentAt?: NativeDate;
-    deliveredAt?: NativeDate;
-    bouncedAt?: NativeDate;
-    failedAt?: NativeDate;
-    bounceReason?: string;
-    metadata?: any;
-    userId?: mongoose.Types.ObjectId;
-    messageId?: string;
     bounceType?: "hard" | "soft" | "complaint";
-} & mongoose.DefaultTimestampProps, {
-    id: string;
-}, {
-    timestamps: true;
-}> & Omit<{
-    type: "verification" | "passwordReset" | "welcome" | "notification";
-    to: string;
-    subject: string;
-    status: "bounced" | "failed" | "sent" | "delivered" | "queued";
-    provider: string;
-    error?: string;
-    sentAt?: NativeDate;
-    deliveredAt?: NativeDate;
-    bouncedAt?: NativeDate;
-    failedAt?: NativeDate;
     bounceReason?: string;
-    metadata?: any;
-    userId?: mongoose.Types.ObjectId;
-    messageId?: string;
-    bounceType?: "hard" | "soft" | "complaint";
-} & mongoose.DefaultTimestampProps & {
-    _id: mongoose.Types.ObjectId;
-} & {
-    __v: number;
-}, "id"> & {
-    id: string;
-}, mongoose.Schema<any, mongoose.Model<any, any, any, any, any, any, any>, {}, {}, {}, {}, {
-    timestamps: true;
-}, {
-    type: "verification" | "passwordReset" | "welcome" | "notification";
-    to: string;
-    subject: string;
-    status: "bounced" | "failed" | "sent" | "delivered" | "queued";
-    provider: string;
-    error?: string;
-    sentAt?: NativeDate;
-    deliveredAt?: NativeDate;
-    bouncedAt?: NativeDate;
-    failedAt?: NativeDate;
-    bounceReason?: string;
-    metadata?: any;
-    userId?: mongoose.Types.ObjectId;
-    messageId?: string;
-    bounceType?: "hard" | "soft" | "complaint";
-} & mongoose.DefaultTimestampProps, mongoose.Document<unknown, {}, {
-    type: "verification" | "passwordReset" | "welcome" | "notification";
-    to: string;
-    subject: string;
-    status: "bounced" | "failed" | "sent" | "delivered" | "queued";
-    provider: string;
-    error?: string;
-    sentAt?: NativeDate;
-    deliveredAt?: NativeDate;
-    bouncedAt?: NativeDate;
-    failedAt?: NativeDate;
-    bounceReason?: string;
-    metadata?: any;
-    userId?: mongoose.Types.ObjectId;
-    messageId?: string;
-    bounceType?: "hard" | "soft" | "complaint";
-} & mongoose.DefaultTimestampProps, {
-    id: string;
-}, mongoose.ResolveSchemaOptions<{
-    timestamps: true;
-}>> & Omit<{
-    type: "verification" | "passwordReset" | "welcome" | "notification";
-    to: string;
-    subject: string;
-    status: "bounced" | "failed" | "sent" | "delivered" | "queued";
-    provider: string;
-    error?: string;
-    sentAt?: NativeDate;
-    deliveredAt?: NativeDate;
-    bouncedAt?: NativeDate;
-    failedAt?: NativeDate;
-    bounceReason?: string;
-    metadata?: any;
-    userId?: mongoose.Types.ObjectId;
-    messageId?: string;
-    bounceType?: "hard" | "soft" | "complaint";
-} & mongoose.DefaultTimestampProps & {
-    _id: mongoose.Types.ObjectId;
-} & {
-    __v: number;
-}, "id"> & {
-    id: string;
-}, {
-    [path: string]: mongoose.SchemaDefinitionProperty<undefined, any, any>;
-} | {
-    [x: string]: mongoose.SchemaDefinitionProperty<any, any, mongoose.Document<unknown, {}, {
-        type: "verification" | "passwordReset" | "welcome" | "notification";
-        to: string;
-        subject: string;
-        status: "bounced" | "failed" | "sent" | "delivered" | "queued";
-        provider: string;
-        error?: string;
-        sentAt?: NativeDate;
-        deliveredAt?: NativeDate;
-        bouncedAt?: NativeDate;
-        failedAt?: NativeDate;
-        bounceReason?: string;
-        metadata?: any;
-        userId?: mongoose.Types.ObjectId;
-        messageId?: string;
-        bounceType?: "hard" | "soft" | "complaint";
-    } & mongoose.DefaultTimestampProps, {
-        id: string;
-    }, mongoose.ResolveSchemaOptions<{
-        timestamps: true;
-    }>> & Omit<{
-        type: "verification" | "passwordReset" | "welcome" | "notification";
-        to: string;
-        subject: string;
-        status: "bounced" | "failed" | "sent" | "delivered" | "queued";
-        provider: string;
-        error?: string;
-        sentAt?: NativeDate;
-        deliveredAt?: NativeDate;
-        bouncedAt?: NativeDate;
-        failedAt?: NativeDate;
-        bounceReason?: string;
-        metadata?: any;
-        userId?: mongoose.Types.ObjectId;
-        messageId?: string;
-        bounceType?: "hard" | "soft" | "complaint";
-    } & mongoose.DefaultTimestampProps & {
-        _id: mongoose.Types.ObjectId;
-    } & {
-        __v: number;
-    }, "id"> & {
-        id: string;
-    }>;
-}, {
-    type: "verification" | "passwordReset" | "welcome" | "notification";
-    to: string;
-    subject: string;
-    status: "bounced" | "failed" | "sent" | "delivered" | "queued";
-    provider: string;
-    error?: string;
-    sentAt?: NativeDate;
-    deliveredAt?: NativeDate;
-    bouncedAt?: NativeDate;
-    failedAt?: NativeDate;
-    bounceReason?: string;
-    metadata?: any;
-    userId?: mongoose.Types.ObjectId;
-    messageId?: string;
-    bounceType?: "hard" | "soft" | "complaint";
-    createdAt: NativeDate;
-    updatedAt: NativeDate;
-} & {
-    _id: mongoose.Types.ObjectId;
-} & {
-    __v: number;
-}>, {
-    type: "verification" | "passwordReset" | "welcome" | "notification";
-    to: string;
-    subject: string;
-    status: "bounced" | "failed" | "sent" | "delivered" | "queued";
-    provider: string;
-    error?: string;
-    sentAt?: NativeDate;
-    deliveredAt?: NativeDate;
-    bouncedAt?: NativeDate;
-    failedAt?: NativeDate;
-    bounceReason?: string;
-    metadata?: any;
-    userId?: mongoose.Types.ObjectId;
-    messageId?: string;
-    bounceType?: "hard" | "soft" | "complaint";
-    createdAt: NativeDate;
-    updatedAt: NativeDate;
-} & {
-    _id: mongoose.Types.ObjectId;
-} & {
-    __v: number;
-}>;
+    metadata?: EmailLogMetadata;
+    createdAt: Date;
+    updatedAt: Date;
+}
+export interface EmailLogModel extends mongoose.Model<EmailLogDocument> {
+    findByUser(userId: string, limit?: number): Promise<EmailLogDocument[]>;
+    findByStatus(status: string, limit?: number): Promise<EmailLogDocument[]>;
+    getStats(userId: string | null): Promise<Record<string, number>>;
+}
+declare const EmailLog: mongoose.Model<any, {}, {}, {}, any, any, any>;
 export default EmailLog;
 //# sourceMappingURL=email-log.model.d.ts.map

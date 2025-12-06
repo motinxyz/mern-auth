@@ -1,3 +1,10 @@
+import type { ILogger, IConfig, ICacheService } from "@auth/contracts";
+interface UserIdentity {
+    _id: string | {
+        toString(): string;
+    };
+    email: string;
+}
 /**
  * TokenService
  *
@@ -7,10 +14,14 @@
  * @implements {import('@auth/contracts').ITokenService}
  */
 export declare class TokenService {
-    redis: any;
-    config: any;
-    logger: any;
-    constructor({ redis, config, logger }: any);
+    redis: ICacheService;
+    config: IConfig;
+    logger: ILogger;
+    constructor({ redis, config, logger }: {
+        redis: ICacheService;
+        config: IConfig;
+        logger: ILogger;
+    });
     /**
      * Create a verification token for email verification
      *
@@ -18,6 +29,18 @@ export declare class TokenService {
      * @returns {Promise<string>} - The verification token (unhashed)
      * @throws {TokenCreationError} - If token creation fails
      */
-    createVerificationToken(user: any): Promise<string>;
+    createVerificationToken(user: UserIdentity): Promise<string>;
+    /**
+     * Verify and consume a token
+     */
+    verifyToken(token: string): Promise<{
+        userId: string;
+        type: string;
+    }>;
+    /**
+     * Delete a token
+     */
+    deleteToken(token: string): Promise<void>;
 }
+export {};
 //# sourceMappingURL=token.service.d.ts.map

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { ConfigurationError } from "@auth/utils";
+import type { ILogger } from "@auth/contracts";
 import { DB_MESSAGES, DB_ERRORS } from "./constants/database.messages.js";
 
 // MODULE-LEVEL guard is not sufficient with hot-reloading behavior
@@ -11,10 +12,10 @@ import { DB_MESSAGES, DB_ERRORS } from "./constants/database.messages.js";
  */
 class DatabaseConnectionManager {
   public config: any;
-  public logger: any;
+  public logger: ILogger;
   public isConnected: boolean;
 
-  constructor(options: any = {}) {
+  constructor(options: { config: any; logger: ILogger }) {
     if (!options.config) {
       throw new ConfigurationError(
         DB_ERRORS.MISSING_CONFIG.replace("{option}", "config")

@@ -8,7 +8,7 @@ class AuditLogRepository extends BaseRepository {
     logger;
     constructor(model, logger) {
         super(model, "AuditLogRepository");
-        this.logger = logger?.child({ module: "audit-log-repository" });
+        this.logger = logger.child({ module: "audit-log-repository" });
     }
     /**
      * Create audit log entry
@@ -17,10 +17,13 @@ class AuditLogRepository extends BaseRepository {
     async create(logData) {
         return withSpan("AuditLogRepository.create", async () => {
             try {
-                const auditLog = await this.model.create(logData);
+                const result = await this.model.create(logData);
+                // Mongoose create returns array if input is array, single doc if object.
+                // We assume logData is object here.
+                const auditLog = (Array.isArray(result) ? result[0] : result);
                 if (this.logger) {
                     this.logger.info({
-                        auditLogId: auditLog._id,
+                        auditLogId: auditLog._id.toString(),
                         userId: logData.userId,
                         action: logData.action,
                     }, "Audit log created");
@@ -39,7 +42,7 @@ class AuditLogRepository extends BaseRepository {
     /**
      * Get audit logs for a user
      * @param {string} userId - User ID
-     * @param {Object} options - Query options
+     * @param {AuditLogQueryOptions} options - Query options
      */
     async findByUser(userId, options = {}) {
         return withSpan("AuditLogRepository.findByUser", async () => {
@@ -59,7 +62,7 @@ class AuditLogRepository extends BaseRepository {
     /**
      * Get audit logs by action
      * @param {string} action - Action to filter by
-     * @param {Object} options - Query options
+     * @param {AuditLogQueryOptions} options - Query options
      */
     async findByAction(action, options = {}) {
         return withSpan("AuditLogRepository.findByAction", async () => {
@@ -78,7 +81,7 @@ class AuditLogRepository extends BaseRepository {
     }
     /**
      * Get failed actions for security monitoring
-     * @param {Object} options - Query options
+     * @param {AuditLogQueryOptions} options - Query options
      */
     async getFailedActions(options = {}) {
         return withSpan("AuditLogRepository.getFailedActions", async () => {

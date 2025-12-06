@@ -1,5 +1,6 @@
 import { Redis } from "ioredis";
 import { ConfigurationError } from "@auth/utils";
+import type { ILogger, IConfig } from "@auth/contracts";
 import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
 import { createRedisCircuitBreaker } from "./redis-circuit-breaker.js";
 
@@ -10,13 +11,18 @@ import { createRedisCircuitBreaker } from "./redis-circuit-breaker.js";
  * Provides proper dependency injection and lifecycle management.
  * Includes circuit breaker for graceful degradation when Redis fails.
  */
-export class RedisService {
-  config: any;
-  logger: any;
-  sentry: any;
-  connection: any;
+export interface ExtendedRedis extends Redis {
+  getCircuitBreakerStats(): any;
+  getCircuitBreakerState(): string;
+}
 
-  constructor({ config, logger, sentry = null }: { config: any; logger: any; sentry?: any }) {
+export class RedisService {
+  config: IConfig;
+  logger: ILogger;
+  sentry: unknown;
+  connection: ExtendedRedis | null;
+
+  constructor({ config, logger, sentry = null }: { config: IConfig; logger: ILogger; sentry?: unknown }) {
     if (!config) {
       throw new ConfigurationError(CONFIG_ERRORS.MISSING_CONFIG);
     }
@@ -34,7 +40,7 @@ export class RedisService {
    * Initialize and return Redis connection with circuit breaker
    * @returns {Redis} Redis instance wrapped in circuit breaker
    */
-  connect() {
+  connect(): ExtendedRedis {
     if (this.connection) {
       return this.connection;
     }
@@ -99,7 +105,7 @@ export class RedisService {
         this.logger,
         this.sentry,
         { timeout: this.config.redis.circuitBreakerTimeout }
-      );
+      ) as ExtendedRedis;
 
       return this.connection;
     } catch (error) {
@@ -114,7 +120,7 @@ export class RedisService {
    * Get existing connection or create new one
    * @returns {Redis} Redis instance with circuit breaker
    */
-  getConnection() {
+  getConnection(): ExtendedRedis {
     if (!this.connection) {
       return this.connect();
     }

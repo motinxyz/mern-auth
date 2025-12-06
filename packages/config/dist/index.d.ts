@@ -5,5 +5,5 @@ export { RedisService } from "./redis.js";
 export * from "./constants/queue.js";
 export { FeatureFlagService } from "./feature-flags.js";
 export * from "./observability/index.js";
-export declare const redisConnection: any;
+export declare const redisConnection: import("./redis.js").ExtendedRedis;
 //# sourceMappingURL=index.d.ts.map

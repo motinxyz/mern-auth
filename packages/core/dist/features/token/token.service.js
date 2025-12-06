@@ -58,5 +58,17 @@ export class TokenService {
             throw new TokenCreationError("Token creation failed", error);
         }
     }
+    /**
+     * Verify and consume a token
+     */
+    async verifyToken(token) {
+        throw new Error("Method not implemented.");
+    }
+    /**
+     * Delete a token
+     */
+    async deleteToken(token) {
+        throw new Error("Method not implemented.");
+    }
 }
 //# sourceMappingURL=token.service.js.map

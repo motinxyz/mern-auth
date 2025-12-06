@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { validate } from "../../middleware/index.js";
 import { verificationSchema } from "@auth/core";
-import { authLimiter } from "../../middleware/index.js";
+
 import { authController } from "./auth.adapter.instance.js";
 import { AUTH_ROUTES } from "@auth/utils";
 

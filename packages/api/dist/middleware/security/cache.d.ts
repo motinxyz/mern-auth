@@ -34,5 +34,5 @@ export declare const cacheMiddleware: (duration: any, options?: {}) => (req: any
  * // Invalidate all user caches
  * await invalidateCache('cache:/api/v1/users/*');
  */
-export declare const invalidateCache: (pattern: any) => Promise<any>;
+export declare const invalidateCache: (pattern: any) => Promise<number>;
 //# sourceMappingURL=cache.d.ts.map

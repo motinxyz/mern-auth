@@ -1,10 +1,11 @@
+import type { ILogger } from "@auth/contracts";
 /**
  * Producer Service
  * Generic job producer with DI
  */
 declare class ProducerService {
     queueService: any;
-    logger: any;
+    logger: ILogger;
     constructor(options?: any);
     /**
      * Add a job to the queue

@@ -1,10 +1,11 @@
+import type { ILogger } from "@auth/contracts";
 /**
  * Email Service
  * Production-grade email service with circuit breaker, provider failover, and delivery tracking
  */
 declare class EmailService {
     config: any;
-    logger: any;
+    logger: ILogger;
     emailLogRepository: any;
     providerService: any;
     circuitBreakerOptions: any;

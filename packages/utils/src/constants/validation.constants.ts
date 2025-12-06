@@ -6,7 +6,7 @@ export const VALIDATION_RULES = {
     MIN_LENGTH: 4,
   },
   PASSWORD: {
-    MIN_LENGTH: 4,
+    MIN_LENGTH: 8,
   },
   /**
    * Stricter email regex that prevents:

@@ -35,7 +35,6 @@ const verificationService = new VerificationService({
     userModel: User,
     redis: redisConnection,
     config,
-    tokenService,
     logger,
 });
 // Instantiate controllers with services

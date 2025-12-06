@@ -1,6 +1,4 @@
 import mongoose from "mongoose";
-import { getLogger } from "@auth/config";
-const logger = getLogger();
 /**
  * Migration tracking schema
  * Keeps track of which migrations have been run

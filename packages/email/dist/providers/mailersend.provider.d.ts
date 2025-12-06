@@ -1,4 +1,5 @@
 import { MailerSend } from "mailersend";
+import type { ILogger } from "@auth/contracts";
 /**
  * MailerSend Email Provider
  * @implements {import('@auth/contracts').IEmailProvider}
@@ -8,7 +9,7 @@ declare class MailerSendProvider {
     client: MailerSend | undefined;
     webhookSecret: string;
     fromEmail: string;
-    logger: any;
+    logger: ILogger;
     constructor({ apiKey, webhookSecret, fromEmail, logger }: any);
     send(mailOptions: any): Promise<{
         messageId: any;

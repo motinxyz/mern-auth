@@ -11,7 +11,8 @@ export const apiLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   store: new RedisStore({
-    sendCommand: (...args) => redisConnection.call(...args),
+    // @ts-expect-error - Redis call spread args mismatch
+    sendCommand: (...args) => redisConnection.call(...(args as unknown as any[])),
     prefix: "rl:api:",
   }),
   message: (req, res) => {
@@ -28,7 +29,8 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   store: new RedisStore({
-    sendCommand: (...args) => redisConnection.call(...args),
+    // @ts-expect-error - Redis call spread args mismatch
+    sendCommand: (...args) => redisConnection.call(...(args as unknown as any[])),
     prefix: "rl:auth:",
   }),
   message: (req, res) => {

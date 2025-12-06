@@ -1,11 +1,12 @@
 import QueueProcessorService from "./queue-processor.service.js";
+import type { ILogger } from "@auth/contracts";
 /**
  * Worker Service
  * Generic orchestrator for any queue processors
  */
 declare class WorkerService {
     sentry: any;
-    logger: any;
+    logger: ILogger;
     redisConnection: any;
     processors: any[];
     databaseService: any;

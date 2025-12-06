@@ -5,8 +5,7 @@
  * to support Gmail dot-ignoring and prevent duplicate accounts
  */
 import { normalizeEmail } from "@auth/utils";
-/* eslint-disable import/no-unused-modules */
-export async function up(db, session) {
+export async function up(db, session, logger) {
     const users = await db.collection("users").find({}).toArray();
     for (const user of users) {
         const normalizedEmail = normalizeEmail(user.email);
@@ -18,15 +17,15 @@ export async function up(db, session) {
     await db
         .collection("users")
         .createIndex({ normalizedEmail: 1 }, { unique: true, session });
-    console.log(`✅ Normalized ${users.length} user emails`);
+    logger.info(`✅ Normalized ${users.length} user emails`);
 }
-export async function down(db, session) {
+export async function down(db, session, logger) {
     // Drop the unique index
     await db.collection("users").dropIndex("normalizedEmail_1", { session });
     // Remove the normalizedEmail field
     await db
         .collection("users")
         .updateMany({}, { $unset: { normalizedEmail: "" } }, { session });
-    console.log("✅ Removed normalizedEmail field");
+    logger.info("✅ Removed normalizedEmail field");
 }
 //# sourceMappingURL=001-add-normalized-email.migration.js.map

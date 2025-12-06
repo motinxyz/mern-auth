@@ -1,14 +1,16 @@
-declare module '@auth/email/templates/verification' {
-  interface User {
-    id: string;
-    name: string;
-    email: string;
-  }
-  type TFunction = (key: string, options?: Record<string, any>) => string;
-
-  export function sendVerificationEmail(user: User, token: string, t: TFunction): Promise<any>; // TODO: Add proper return type
-  const _default: {
-    sendVerificationEmail: typeof sendVerificationEmail;
-  };
-  export default _default;
-}
+/**
+ * Sends a verification email to a user.
+ * @param {object} emailService - Email service instance
+ * @param {object} user - User object containing email and name
+ * @param {string} token - Verification token
+ * @param {Function} t - Translation function
+ * @param {object} config - Configuration object
+ * @param {object} logger - Logger instance
+ * @returns {Promise<object>} - Result from sendEmail
+ */
+export declare const sendVerificationEmail: (emailService: any, user: any, token: any, t: any, config: any, logger: any) => Promise<any>;
+declare const _default: {
+    sendVerificationEmail: (emailService: any, user: any, token: any, t: any, config: any, logger: any) => Promise<any>;
+};
+export default _default;
+//# sourceMappingURL=verification.d.ts.map

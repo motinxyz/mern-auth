@@ -1,8 +1,4 @@
 import mongoose from "mongoose";
-/**
- * Audit Log Model
- * Tracks security-relevant user actions for compliance and security monitoring
- */
 const auditLogSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,

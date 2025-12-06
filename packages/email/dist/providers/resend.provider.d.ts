@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import type { ILogger } from "@auth/contracts";
 /**
  * Resend Email Provider
  * @implements {import('@auth/contracts').IEmailProvider}
@@ -7,7 +8,7 @@ declare class ResendProvider {
     name: string;
     client: Resend | undefined;
     webhookSecret: string;
-    logger: any;
+    logger: ILogger;
     constructor({ apiKey, webhookSecret, logger }: any);
     send(mailOptions: any): Promise<{
         messageId: string;

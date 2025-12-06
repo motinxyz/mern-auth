@@ -7,6 +7,7 @@ import {
   addSpanAttributes,
   hashSensitiveData,
 } from "@auth/utils";
+import type { ILogger } from "@auth/contracts";
 import { i18nInstance } from "@auth/config";
 import {
   emailSendTotal,
@@ -22,7 +23,7 @@ import { compileTemplate, initializeTemplates } from "./template-engine.js";
  */
 class EmailService {
   config: any;
-  logger: any;
+  logger: ILogger;
   emailLogRepository: any;
   providerService: any;
   circuitBreakerOptions: any;

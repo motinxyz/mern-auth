@@ -2,18 +2,6 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import { config } from "@auth/config";
 import { VALIDATION_RULES } from "@auth/utils";
-/**
- * Mongoose schema for the User model.
- *
- * DEFENSE IN DEPTH: This validation serves as the last line of defense.
- * Primary validation happens at the API layer (Zod), but this ensures
- * data integrity even if:
- * - A developer forgets to add Zod validation
- * - Data is inserted via scripts/migrations
- * - There's a race condition
- *
- * If Mongoose validation triggers, it indicates a bug that should be investigated.
- */
 const userSchema = new mongoose.Schema({
     name: {
         type: String,

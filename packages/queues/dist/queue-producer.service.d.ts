@@ -1,4 +1,5 @@
 import { Queue } from "bullmq";
+import type { ILogger } from "@auth/contracts";
 /**
  * Queue Producer Service
  * Generic queue management for producing jobs with DI
@@ -8,7 +9,7 @@ import { Queue } from "bullmq";
 declare class QueueProducerService {
     queueName: string;
     connection: any;
-    logger: any;
+    logger: ILogger;
     defaultJobOptions: any;
     jobSchema: any;
     enableCircuitBreaker: boolean;

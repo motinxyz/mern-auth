@@ -42,7 +42,6 @@ const verificationService = new VerificationService({
   userModel: User,
   redis: redisConnection,
   config,
-  tokenService,
   logger,
 });
 

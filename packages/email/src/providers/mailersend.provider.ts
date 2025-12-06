@@ -1,5 +1,6 @@
 import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
 import crypto from "crypto";
+import type { ILogger } from "@auth/contracts";
 
 /**
  * MailerSend Email Provider
@@ -10,7 +11,7 @@ class MailerSendProvider {
   client: MailerSend | undefined;
   webhookSecret: string;
   fromEmail: string;
-  logger: any;
+  logger: ILogger;
 
   constructor({ apiKey, webhookSecret, fromEmail, logger }: any) {
     this.name = "mailersend-api";

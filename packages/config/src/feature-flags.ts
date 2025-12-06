@@ -1,4 +1,5 @@
 import { ConfigurationError } from "@auth/utils";
+import type { ILogger, IRedisConnection } from "@auth/contracts";
 import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
 
 /**
@@ -6,10 +7,10 @@ import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
  * Enables/disables features dynamically using Redis
  */
 export class FeatureFlagService {
-  redis: any;
-  logger: any;
+  redis: IRedisConnection;
+  logger: ILogger;
 
-  constructor({ redis, logger }: { redis: any; logger: any }) {
+  constructor({ redis, logger }: { redis: IRedisConnection; logger: ILogger }) {
     if (!redis) {
       throw new ConfigurationError(CONFIG_ERRORS.FF_REDIS_REQUIRED);
     }

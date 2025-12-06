@@ -1,8 +1,4 @@
 import mongoose from "mongoose";
-/**
- * EmailLog model for tracking all email sends
- * Tracks delivery status, bounces, and provides audit trail
- */
 const emailLogSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,

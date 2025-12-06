@@ -1,10 +1,10 @@
-import { Router } from "express";
+import { Router, type Router as IRouter } from "express";
 import { authRoutes } from "./features/auth/index.js";
 import { healthRoutes } from "./features/health/index.js";
 import testEmailRoutes from "./features/test-email/test-email.routes.js";
 import { authLimiter } from "./middleware/index.js";
 
-const router = Router();
+const router: IRouter = Router();
 
 const apiVersion = "v1";
 // API Version 1 Routes - Apply stricter auth rate limiter

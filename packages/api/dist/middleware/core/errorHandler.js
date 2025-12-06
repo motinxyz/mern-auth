@@ -10,6 +10,7 @@ const errorHandlerLogger = logger.child({ module: "errorHandler" });
  * @param {Error} err - The error to convert.
  * @returns {ApiError|null} An ApiError instance if the error is recognized, otherwise null.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function convertExternalError(err, req) {
     // Handle Mongoose Validation Errors
     // If the error is a ValidationError from our `validate` middleware, it's already structured correctly.
@@ -45,11 +46,6 @@ function convertExternalError(err, req) {
 }
 // Fields that should not have their 'oldValue' exposed in error responses for security reasons.
 const SENSITIVE_FIELDS = ["password", "confirmPassword"]; // Define sensitive fields once
-/**
- * Express error handling middleware.
- * This middleware centralizes error handling and formats the error response.
- * It should be the last middleware in the chain.
- */
 /**
  * Express error handling middleware.
  * This middleware centralizes error handling and formats the error response.

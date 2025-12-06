@@ -1,3 +1,7 @@
+import type { Request, Response, NextFunction } from "express";
+import type { RegistrationController, VerificationController } from "@auth/core";
+import type { AuthAdapter } from "./auth.adapter.js";
+
 /**
  * Auth Controller
  *
@@ -5,11 +9,19 @@
  * Orchestrates the flow: Request -> Adapter -> Core Controller -> Response
  */
 export class AuthController {
-  authAdapter: any;
-  registrationController: any;
-  verificationController: any;
+  authAdapter: AuthAdapter;
+  registrationController: RegistrationController;
+  verificationController: VerificationController;
 
-  constructor({ authAdapter, registrationController, verificationController }: any) {
+  constructor({
+    authAdapter,
+    registrationController,
+    verificationController,
+  }: {
+    authAdapter: AuthAdapter;
+    registrationController: RegistrationController;
+    verificationController: VerificationController;
+  }) {
     this.authAdapter = authAdapter;
     this.registrationController = registrationController;
     this.verificationController = verificationController;
@@ -19,7 +31,7 @@ export class AuthController {
    * Handle user registration
    * POST /api/v1/auth/register
    */
-  register = async (req, res, next) => {
+  register = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const dto = this.authAdapter.toRegisterDto(req);
       const locale = this.authAdapter.getLocale(req);
@@ -37,7 +49,7 @@ export class AuthController {
    * Handle email verification
    * GET /api/v1/auth/verify-email
    */
-  verifyEmail = async (req, res, next) => {
+  verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const dto = this.authAdapter.toVerifyEmailDto(req);
       const locale = this.authAdapter.getLocale(req);

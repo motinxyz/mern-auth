@@ -8,13 +8,13 @@ import { RegistrationDto, VerificationDto } from "@auth/core";
 export class AuthAdapter {
     logger;
     config;
-    constructor({ logger, config } = {}) {
+    constructor({ logger, config }) {
         this.logger = logger;
         this.config = config;
     }
     /**
      * Convert Express request to RegistrationDto
-     * @param {import('express').Request} req
+     * @param {Request} req
      * @returns {RegistrationDto}
      */
     toRegisterDto(req) {
@@ -26,7 +26,7 @@ export class AuthAdapter {
     }
     /**
      * Convert Express request to VerificationDto
-     * @param {import('express').Request} req
+     * @param {Request} req
      * @returns {VerificationDto}
      */
     toVerifyEmailDto(req) {

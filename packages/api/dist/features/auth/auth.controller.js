@@ -8,7 +8,7 @@ export class AuthController {
     authAdapter;
     registrationController;
     verificationController;
-    constructor({ authAdapter, registrationController, verificationController }) {
+    constructor({ authAdapter, registrationController, verificationController, }) {
         this.authAdapter = authAdapter;
         this.registrationController = registrationController;
         this.verificationController = verificationController;

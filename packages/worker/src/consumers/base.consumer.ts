@@ -4,6 +4,7 @@ import {
   addSpanAttributes,
   hashSensitiveData,
 } from "@auth/utils";
+import type { ILogger } from "@auth/contracts";
 
 /**
  * Base Consumer
@@ -20,7 +21,7 @@ class BaseConsumer {
    * @param {object} options.logger - Pino logger instance
    * @param {string} options.name - Consumer name for tracing/logging
    */
-  logger: any;
+  logger: ILogger;
   name: string;
 
   constructor(options: any) {

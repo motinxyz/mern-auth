@@ -40,6 +40,7 @@ class MigrationRunner {
    * Get list of applied migrations from database
    */
   async getAppliedMigrations() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const applied = await Migration.find({ status: "applied" } as any).sort({
       name: 1,
     });
@@ -79,6 +80,7 @@ class MigrationRunner {
   async down() {
     logger.info("⏪ Rolling back last migration...");
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const appliedMigrations = await Migration.find({ status: "applied" } as any)
       .sort({ appliedAt: -1 })
       .limit(1);
@@ -116,7 +118,7 @@ class MigrationRunner {
 
       // Run the migration
       // eslint-disable-next-line security/detect-object-injection
-      await migration[direction](mongoose.connection.db, session);
+      await migration[direction](mongoose.connection.db, session, logger);
 
       // Update migration status
       if (direction === "up") {
@@ -131,12 +133,15 @@ class MigrationRunner {
       logger.info(`✅ ${filename} completed`);
     } catch (error) {
       await session.abortTransaction();
-      logger.error(`❌ Migration ${filename} failed:`, error);
+      logger.error({ err: error }, `❌ Migration ${filename} failed`);
 
       // Record failure
       await Migration.findOneAndUpdate(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         { name: filename } as any,
-        { status: "failed", error: error.message } as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { status: "failed", error: error instanceof Error ? error.message : String(error) } as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         { upsert: true } as any
       );
 

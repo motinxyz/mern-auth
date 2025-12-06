@@ -245,9 +245,7 @@ class QueueProducerService {
     async pause() {
         if (this.queue) {
             await this.queue.pause();
-            this.logger.info(QUEUE_MESSAGES.QUEUE_PAUSED, {
-                queueName: this.queueName,
-            });
+            this.logger.info({ queueName: this.queueName }, QUEUE_MESSAGES.QUEUE_PAUSED);
         }
     }
     /**
@@ -256,9 +254,7 @@ class QueueProducerService {
     async resume() {
         if (this.queue) {
             await this.queue.resume();
-            this.logger.info(QUEUE_MESSAGES.QUEUE_RESUMED, {
-                queueName: this.queueName,
-            });
+            this.logger.info({ queueName: this.queueName }, QUEUE_MESSAGES.QUEUE_RESUMED);
         }
     }
     /**
@@ -267,9 +263,7 @@ class QueueProducerService {
     async close() {
         if (this.queue) {
             await this.queue.close();
-            this.logger.info(QUEUE_MESSAGES.QUEUE_CLOSED, {
-                queueName: this.queueName,
-            });
+            this.logger.info({ queueName: this.queueName }, QUEUE_MESSAGES.QUEUE_CLOSED);
         }
     }
     /**
