@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { NotFoundError, ApiError, HTTP_STATUS_CODES, createVerifyEmailKey, } from "@auth/utils";
+import { NotFoundError, HttpError, HTTP_STATUS_CODES, createVerifyEmailKey, } from "@auth/utils";
 import { HASHING_ALGORITHM } from "../../../constants/token.constants.js";
 import { VERIFICATION_STATUS } from "../../../constants/auth.constants.js";
 import { VERIFICATION_MESSAGES } from "../../../constants/core.messages.js";
@@ -39,7 +39,7 @@ export class VerificationService {
         }
         catch (error) {
             this.logger.error({ error, redisData: userDataJSON }, VERIFICATION_MESSAGES.PARSE_REDIS_DATA_FAILED);
-            throw new ApiError(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "auth:errors.invalidDataFormat");
+            throw new HttpError(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "auth:errors.invalidDataFormat");
         }
         // Find user
         const user = await this.User.findById(userData.userId);

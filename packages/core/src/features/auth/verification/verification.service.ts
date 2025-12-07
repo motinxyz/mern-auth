@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import {
   NotFoundError,
-  ApiError,
+  HttpError,
   HTTP_STATUS_CODES,
   createVerifyEmailKey,
 } from "@auth/utils";
@@ -70,7 +70,7 @@ export class VerificationService {
         { error, redisData: userDataJSON },
         VERIFICATION_MESSAGES.PARSE_REDIS_DATA_FAILED
       );
-      throw new ApiError(
+      throw new HttpError(
         HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
         "auth:errors.invalidDataFormat"
       );

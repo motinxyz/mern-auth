@@ -1,19 +1,21 @@
-import ApiError from "../ApiError.js";
-import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
 /**
- * @class EmailServiceInitializationError
- * @augments ApiError
- * @description Custom error class for email service initialization failures.
+ * EmailServiceInitializationError - Email service startup failure
+ *
+ * Thrown when email service fails to initialize.
  */
-class EmailServiceInitializationError extends ApiError {
-    /**
-     * Creates an instance of EmailServiceInitializationError.
-     * @param {string} message - The error message.
-     * @param {Error} [originalError] - The original error that caused this error.
-     */
-    constructor(message, originalError) {
-        super(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, message, originalError);
-        this.name = "EmailServiceInitializationError";
+import { BaseError } from "./BaseError.js";
+import { ERROR_CODES } from "../types/index.js";
+/**
+ * Email service initialization error (non-HTTP, critical)
+ *
+ * @example
+ * ```typescript
+ * throw new EmailServiceInitializationError("No providers configured", originalError);
+ * ```
+ */
+export class EmailServiceInitializationError extends BaseError {
+    constructor(message = "email:errors.initFailed", cause) {
+        super(message, ERROR_CODES.CONFIGURATION_ERROR, cause);
     }
 }
 export default EmailServiceInitializationError;

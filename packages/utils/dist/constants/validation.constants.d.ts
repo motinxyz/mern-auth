@@ -1,23 +1,47 @@
 /**
- * Validation rules and constants
+ * Validation Rules and Constants
+ *
+ * Centralized validation configuration for consistent enforcement.
+ * Uses `as const` for type safety.
  */
 export declare const VALIDATION_RULES: {
-    NAME: {
-        MIN_LENGTH: number;
+    readonly NAME: {
+        readonly MIN_LENGTH: 4;
+        readonly MAX_LENGTH: 100;
     };
-    PASSWORD: {
-        MIN_LENGTH: number;
+    readonly PASSWORD: {
+        readonly MIN_LENGTH: 8;
+        readonly MAX_LENGTH: 128;
     };
     /**
-     * Stricter email regex that prevents:
-     * - Consecutive dots (..)
-     * - Leading or trailing dots
-     * - Special characters at start/end of local part
-     * - Invalid domain formats
+     * RFC 5322 compliant email regex
      *
-     * Valid: user@example.com, user.name@example.com, user+tag@example.co.uk
-     * Invalid: user..name@example.com, .user@example.com, user.@example.com
+     * Validates:
+     * - Local part: alphanumeric, dots, hyphens, underscores, plus signs
+     * - Domain: alphanumeric, dots, hyphens
+     * - TLD: 2-63 characters
+     *
+     * @see https://emailregex.com/
      */
-    EMAIL_REGEX: RegExp;
+    readonly EMAIL_REGEX: RegExp;
+};
+/**
+ * Validation error messages (i18n keys)
+ */
+export declare const VALIDATION_MESSAGES: {
+    readonly NAME: {
+        readonly REQUIRED: "validation:name.required";
+        readonly LENGTH: "validation:name.length";
+    };
+    readonly EMAIL: {
+        readonly REQUIRED: "validation:email.required";
+        readonly INVALID: "validation:email.invalid";
+        readonly IN_USE: "validation:email.inUse";
+    };
+    readonly PASSWORD: {
+        readonly REQUIRED: "validation:password.required";
+        readonly LENGTH: "validation:password.length";
+        readonly WEAK: "validation:password.weak";
+    };
 };
 //# sourceMappingURL=validation.constants.d.ts.map

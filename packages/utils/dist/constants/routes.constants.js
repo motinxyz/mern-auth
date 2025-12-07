@@ -1,3 +1,9 @@
+/**
+ * Route Constants
+ *
+ * Centralized route paths for the application.
+ * Uses `as const` for type safety and inference.
+ */
 export const AUTH_ROUTES = {
     BASE: "/auth",
     REGISTER: "/register",
@@ -15,4 +21,10 @@ export const USER_ROUTES = {
     PROFILE: "/profile",
     CHANGE_PASSWORD: "/change-password",
 };
+/**
+ * Build a full route path
+ */
+export function buildRoute(base, path) {
+    return `${base}${path}`;
+}
 //# sourceMappingURL=routes.constants.js.map

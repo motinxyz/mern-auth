@@ -1,8 +1,19 @@
 /**
- * Custom error for failures that occur while trying to add a job to the BullMQ queue.
+ * JobCreationError - Job creation failure
+ *
+ * Thrown when job creation fails.
  */
-export default class JobCreationError extends Error {
-    readonly originalError: Error | null;
-    constructor(message: string, originalError?: Error | null);
+import { BaseError } from "./BaseError.js";
+/**
+ * Job creation error (non-HTTP, operational)
+ *
+ * @example
+ * ```typescript
+ * throw new JobCreationError("Failed to create email job", originalError);
+ * ```
+ */
+export declare class JobCreationError extends BaseError {
+    constructor(message?: string, cause?: Error);
 }
+export default JobCreationError;
 //# sourceMappingURL=JobCreationError.d.ts.map

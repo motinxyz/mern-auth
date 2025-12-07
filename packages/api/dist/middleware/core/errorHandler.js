@@ -1,6 +1,6 @@
 import { getLogger } from "@auth/config";
 const logger = getLogger();
-import { HTTP_STATUS_CODES, ApiError, ValidationError, ConflictError, } from "@auth/utils";
+import { HTTP_STATUS_CODES, HttpError, ValidationError, ConflictError, BaseError, } from "@auth/utils";
 const errorHandlerLogger = logger.child({ module: "errorHandler" });
 function convertExternalError(err) {
     // Handle Mongoose Validation Errors
@@ -30,9 +30,7 @@ function convertExternalError(err) {
     if (err.name === "MongoServerError" && err.code === 11000) {
         const mongoErr = err;
         const field = Object.keys(mongoErr.keyPattern)[0] ?? "unknown";
-        // eslint-disable-next-line security/detect-object-injection
-        const value = mongoErr.keyValue[field];
-        const errors = [{ field, issue: "validation:duplicateValue", value }];
+        const errors = [{ field, message: "validation:duplicateValue" }];
         return new ConflictError("auth:errors.duplicateKey", errors);
     }
     // Add other converters here for libraries like Stripe, AWS SDK, etc.
@@ -59,12 +57,12 @@ export const errorHandler = (err, req, res, _next) => {
         apiError.statusCode !== undefined) {
         // It's already a ValidationError, no conversion needed.
     }
-    else if (!(apiError instanceof ApiError)) {
-        // If it's not our custom ValidationError and not a generic ApiError, try to convert it.
+    else if (!(apiError instanceof HttpError) && !(apiError instanceof BaseError)) {
+        // If it's not our custom ValidationError and not a HttpError/BaseError, try to convert it.
         apiError = convertExternalError(err);
-        // If it's still not an ApiError after conversion, it's an unexpected internal error.
+        // If it's still not an HttpError after conversion, it's an unexpected internal error.
         if (apiError === null) {
-            apiError = new ApiError(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "system:process.errors.unexpected");
+            apiError = new HttpError(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "system:process.errors.unexpected");
         }
     }
     // Log the error with appropriate severity.
@@ -91,7 +89,7 @@ export const errorHandler = (err, req, res, _next) => {
         const loggerInstance = req.log ?? errorHandlerLogger;
         loggerInstance.warn(logData, logMessage);
     }
-    // By now, we always have an ApiError instance in apiError.
+    // By now, we always have an HttpError instance in apiError.
     const response = {
         success: false,
         statusCode: apiError.statusCode, // Include statusCode in the response body

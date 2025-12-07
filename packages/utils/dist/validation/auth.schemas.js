@@ -1,5 +1,12 @@
+/**
+ * Authentication Validation Schemas
+ *
+ * Zod schemas for user authentication.
+ * Uses VALIDATION_RULES for consistent enforcement.
+ * Uses VALIDATION_MESSAGES for i18n keys.
+ */
 import { z } from "zod";
-import { VALIDATION_RULES } from "../constants/validation.constants.js";
+import { VALIDATION_RULES, VALIDATION_MESSAGES } from "../constants/validation.constants.js";
 /**
  * Base schema for user registration fields.
  * This can be used on both frontend and backend.
@@ -9,19 +16,25 @@ import { VALIDATION_RULES } from "../constants/validation.constants.js";
  */
 export const registerUserSchema = z.object({
     name: z
-        .string({ error: "validation:name.required" })
+        .string({ error: VALIDATION_MESSAGES.NAME.REQUIRED })
         .min(VALIDATION_RULES.NAME.MIN_LENGTH, {
-        message: "validation:name.length",
+        message: VALIDATION_MESSAGES.NAME.LENGTH,
+    })
+        .max(VALIDATION_RULES.NAME.MAX_LENGTH, {
+        message: VALIDATION_MESSAGES.NAME.LENGTH,
     }),
     email: z
-        .string({ error: "validation:email.required" })
+        .string({ error: VALIDATION_MESSAGES.EMAIL.REQUIRED })
         .regex(VALIDATION_RULES.EMAIL_REGEX, {
-        message: "validation:email.invalid",
+        message: VALIDATION_MESSAGES.EMAIL.INVALID,
     }),
     password: z
-        .string({ error: "validation:password.required" })
+        .string({ error: VALIDATION_MESSAGES.PASSWORD.REQUIRED })
         .min(VALIDATION_RULES.PASSWORD.MIN_LENGTH, {
-        message: "validation:password.length",
+        message: VALIDATION_MESSAGES.PASSWORD.LENGTH,
+    })
+        .max(VALIDATION_RULES.PASSWORD.MAX_LENGTH, {
+        message: VALIDATION_MESSAGES.PASSWORD.LENGTH,
     }),
 });
 /**
@@ -29,12 +42,12 @@ export const registerUserSchema = z.object({
  */
 export const loginUserSchema = z.object({
     email: z
-        .string({ error: "validation:email.required" })
+        .string({ error: VALIDATION_MESSAGES.EMAIL.REQUIRED })
         .regex(VALIDATION_RULES.EMAIL_REGEX, {
-        message: "validation:email.invalid",
+        message: VALIDATION_MESSAGES.EMAIL.INVALID,
     }),
     password: z
-        .string({ error: "validation:password.required" })
-        .min(1, { message: "validation:password.required" }),
+        .string({ error: VALIDATION_MESSAGES.PASSWORD.REQUIRED })
+        .min(1, { message: VALIDATION_MESSAGES.PASSWORD.REQUIRED }),
 });
 //# sourceMappingURL=auth.schemas.js.map

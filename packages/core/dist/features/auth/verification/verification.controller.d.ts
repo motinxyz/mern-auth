@@ -15,7 +15,7 @@ export declare class VerificationController {
      * @returns {Promise<ControllerResult>}
      */
     verifyEmail(dto: VerificationDto, locale?: string): Promise<{
-        statusCode: number;
+        statusCode: 200;
         data: ApiResponse<{
             status: "VERIFIED" | "ALREADY_VERIFIED";
         }>;

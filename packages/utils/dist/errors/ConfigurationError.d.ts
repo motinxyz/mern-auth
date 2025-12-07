@@ -1,10 +1,19 @@
-import ApiError from "../ApiError.js";
 /**
- * Custom error for handling application configuration issues.
- * This error should be thrown when the application is misconfigured.
+ * ConfigurationError - Configuration/setup error
+ *
+ * Thrown when there's a configuration or initialization issue.
  */
-declare class ConfigurationError extends ApiError {
-    constructor(message: any);
+import { BaseError } from "./BaseError.js";
+/**
+ * Configuration error (non-HTTP, operational)
+ *
+ * @example
+ * ```typescript
+ * throw new ConfigurationError("Missing required config: DATABASE_URL");
+ * ```
+ */
+export declare class ConfigurationError extends BaseError {
+    constructor(message: string, cause?: Error);
 }
 export default ConfigurationError;
 //# sourceMappingURL=ConfigurationError.d.ts.map

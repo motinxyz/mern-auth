@@ -1,4 +1,4 @@
-import { normalizeEmail, ConflictError, TooManyRequestsError, createAuthRateLimitKey, ServiceUnavailableError, ApiError, HTTP_STATUS_CODES, withSpan, addSpanAttributes, hashSensitiveData, getTraceContext, } from "@auth/utils";
+import { normalizeEmail, ConflictError, TooManyRequestsError, createAuthRateLimitKey, ServiceUnavailableError, HttpError, HTTP_STATUS_CODES, withSpan, addSpanAttributes, hashSensitiveData, getTraceContext, } from "@auth/utils";
 import { RATE_LIMIT_DURATIONS, REDIS_RATE_LIMIT_VALUE, } from "../../../constants/auth.constants.js";
 import { EMAIL_JOB_TYPES } from "@auth/config";
 import { REGISTRATION_MESSAGES, } from "../../../constants/core.messages.js";
@@ -126,18 +126,15 @@ export class RegistrationService {
                             }
                             // Return a generic error to the user to avoid exposing internal details
                             // while alerting the team via logs/monitoring
-                            throw new ApiError(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "auth:errors.registrationFailed");
+                            throw new HttpError(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "auth:errors.registrationFailed");
                         }
                         if (dbError.code === 11000) {
                             this.logger.warn({ dbError, email, normalizedEmail }, REGISTRATION_MESSAGES.DUPLICATE_KEY_DETECTED);
                             const errors = Object.keys(dbError.keyPattern).map((key) => ({
                                 field: key === "normalizedEmail" ? "email" : key,
-                                issue: key === "email" || key === "normalizedEmail"
+                                message: key === "email" || key === "normalizedEmail"
                                     ? "validation:email.inUse"
                                     : "validation:duplicateValue",
-                                value: 
-                                // eslint-disable-next-line security/detect-object-injection
-                                key === "normalizedEmail" ? email : dbError.keyValue[key],
                             }));
                             throw new ConflictError("auth:logs.registerDuplicateKey", errors);
                         }
@@ -158,7 +155,7 @@ export class RegistrationService {
                 }
                 catch (tokenError) {
                     this.logger.error({ tokenError, userId: newUser._id }, REGISTRATION_MESSAGES.CREATE_TOKEN_FAILED);
-                    throw new ApiError(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "auth:errors.createTokenFailed");
+                    throw new HttpError(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "auth:errors.createTokenFailed");
                 }
                 // Queue verification email
                 await withSpan("registration-service.queue-email", async () => {

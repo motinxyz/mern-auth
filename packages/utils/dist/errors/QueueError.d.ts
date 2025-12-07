@@ -1,10 +1,22 @@
-import ApiError from "../ApiError.js";
 /**
- * Custom error for asynchronous errors occurring within a BullMQ Queue instance.
+ * QueueError - Queue operation failure
+ *
+ * Thrown when a queue operation fails.
  */
-declare class QueueError extends ApiError {
-    readonly originalError: Error | null;
-    constructor(originalError: Error | string | null);
+import { BaseError } from "./BaseError.js";
+/**
+ * Queue error (non-HTTP, operational)
+ *
+ * @example
+ * ```typescript
+ * throw new QueueError("emailQueue", "Failed to add job", originalError);
+ * ```
+ */
+export declare class QueueError extends BaseError {
+    /** Name of the queue that failed */
+    readonly queueName: string;
+    constructor(queueName: string, message?: string, cause?: Error);
+    toJSON(): Record<string, unknown>;
 }
 export default QueueError;
 //# sourceMappingURL=QueueError.d.ts.map

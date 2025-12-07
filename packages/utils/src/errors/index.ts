@@ -1,17 +1,8 @@
-export { default as ConfigurationError } from "./ConfigurationError.js";
-export { default as ValidationError } from "./ValidationError.js";
-export { default as NotFoundError } from "./NotFoundError.js";
-export { default as ConflictError } from "./ConflictError.js";
-export { default as TooManyRequestsError } from "./TooManyRequestsError.js";
-export { default as EnvironmentError } from "./EnvironmentError.js";
-export { default as UnknownJobTypeError } from "./UnknownJobTypeError.js";
-export { default as InvalidJobDataError } from "./InvalidJobDataError.js";
-export { default as EmailDispatchError } from "./EmailDispatchError.js";
-export { default as JobCreationError } from "./JobCreationError.js";
-export { default as TokenCreationError } from "./TokenCreationError.js";
-export { default as RedisConnectionError } from "./RedisConnectionError.js";
-export { default as QueueError } from "./QueueError.js";
-export { default as EmailServiceInitializationError } from "./EmailServiceInitializationError.js";
-export { default as DatabaseConnectionError } from "./DatabaseConnectionError.js";
-export { default as ServiceUnavailableError } from "./ServiceUnavailableError.js";
-export { default as CircuitBreakerError } from "./CircuitBreakerError.js";
+// Base classes
+export * from "./base/index.js";
+
+// HTTP errors (API responses)
+export * from "./http/index.js";
+
+// Operational errors (internal)
+export * from "./operational/index.js";

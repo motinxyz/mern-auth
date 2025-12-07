@@ -1,31 +1,30 @@
-/* eslint-disable security/detect-object-injection */
-import ApiError from "../ApiError.js";
-import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
 /**
- * EnvironmentError
- * Thrown during application startup if environment configuration is invalid
+ * EnvironmentError - Environment variable errors
+ *
+ * Thrown when required environment variables are missing or invalid.
+ */
+import { BaseError } from "./BaseError.js";
+import { ERROR_CODES } from "../types/index.js";
+/**
+ * Environment variable error (non-HTTP, operational)
  *
  * @example
- * throw new EnvironmentError([
- *   { path: ['DATABASE_URL'], message: 'Required' },
- *   { path: ['PORT'], message: 'Must be a number' }
- * ]);
+ * ```typescript
+ * throw new EnvironmentError("Missing required env: DATABASE_URL", ["DATABASE_URL", "REDIS_URL"]);
+ * ```
  */
-class EnvironmentError extends ApiError {
-    constructor(validationErrors = []) {
-        // Convert Zod validation errors to standard format
-        const formattedErrors = validationErrors.map((issue) => {
-            const field = Array.isArray(issue.path)
-                ? issue.path.join(".")
-                : issue.path;
-            return {
-                field,
-                message: issue.message,
-                value: process.env[field], // Include the invalid value for debugging
-            };
-        });
-        super(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "Invalid environment configuration", formattedErrors);
-        this.name = "EnvironmentError";
+export class EnvironmentError extends BaseError {
+    /** List of missing or invalid environment variables */
+    missingVariables;
+    constructor(message, missingVariables = []) {
+        super(message, ERROR_CODES.ENVIRONMENT_ERROR);
+        this.missingVariables = missingVariables;
+    }
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            missingVariables: this.missingVariables,
+        };
     }
 }
 export default EnvironmentError;

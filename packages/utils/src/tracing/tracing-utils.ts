@@ -12,7 +12,6 @@ import {
   type AttributeValue,
   type SpanOptions,
 } from "@opentelemetry/api";
-import crypto from "crypto";
 
 /**
  * Options for withSpan function
@@ -129,18 +128,6 @@ export function recordError(
   });
 }
 
-/**
- * Hash sensitive data for safe inclusion in span attributes
- */
-export function hashSensitiveData(value: string | undefined | null): string {
-  if (value === undefined || value === null || value === "") return "";
-
-  return crypto
-    .createHash("sha256")
-    .update(value.toLowerCase().trim())
-    .digest("hex")
-    .substring(0, 16);
-}
 
 /**
  * Get trace context for propagation (e.g., to queue jobs)

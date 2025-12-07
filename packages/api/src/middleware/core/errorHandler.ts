@@ -3,9 +3,10 @@ import { getLogger } from "@auth/config";
 const logger = getLogger();
 import {
   HTTP_STATUS_CODES,
-  ApiError,
+  HttpError,
   ValidationError,
   ConflictError,
+  BaseError,
 } from "@auth/utils";
 
 const errorHandlerLogger = logger.child({ module: "errorHandler" });
@@ -24,7 +25,7 @@ interface MongoServerError extends Error {
   keyValue: Record<string, unknown>;
 }
 
-function convertExternalError(err: Error): ApiError | null {
+function convertExternalError(err: Error): HttpError | null {
   // Handle Mongoose Validation Errors
   // If the error is a ValidationError from our `validate` middleware, it's already structured correctly.
   if (err instanceof ValidationError) {
@@ -53,9 +54,7 @@ function convertExternalError(err: Error): ApiError | null {
   if (err.name === "MongoServerError" && (err as MongoServerError).code === 11000) {
     const mongoErr = err as MongoServerError;
     const field = Object.keys(mongoErr.keyPattern)[0] ?? "unknown";
-    // eslint-disable-next-line security/detect-object-injection
-    const value = mongoErr.keyValue[field];
-    const errors = [{ field, issue: "validation:duplicateValue", value }];
+    const errors = [{ field, message: "validation:duplicateValue" }];
     return new ConflictError("auth:errors.duplicateKey", errors);
   }
 
@@ -95,13 +94,13 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     apiError.statusCode !== undefined
   ) {
     // It's already a ValidationError, no conversion needed.
-  } else if (!(apiError instanceof ApiError)) {
-    // If it's not our custom ValidationError and not a generic ApiError, try to convert it.
+  } else if (!(apiError instanceof HttpError) && !(apiError instanceof BaseError)) {
+    // If it's not our custom ValidationError and not a HttpError/BaseError, try to convert it.
     apiError = convertExternalError(err);
 
-    // If it's still not an ApiError after conversion, it's an unexpected internal error.
+    // If it's still not an HttpError after conversion, it's an unexpected internal error.
     if (apiError === null) {
-      apiError = new ApiError(
+      apiError = new HttpError(
         HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
         "system:process.errors.unexpected"
       );
@@ -135,7 +134,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     loggerInstance.warn(logData, logMessage);
   }
 
-  // By now, we always have an ApiError instance in apiError.
+  // By now, we always have an HttpError instance in apiError.
   const response = {
     success: false,
     statusCode: apiError.statusCode, // Include statusCode in the response body

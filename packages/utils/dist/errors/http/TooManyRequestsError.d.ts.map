@@ -1,0 +1,1 @@
+{"version":3,"file":"TooManyRequestsError.d.ts","sourceRoot":"","sources":["../../../src/errors/http/TooManyRequestsError.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,OAAO,EAAE,SAAS,EAAE,MAAM,sBAAsB,CAAC;AAIjD;;;;;;;GAOG;AACH,qBAAa,oBAAqB,SAAQ,SAAS;IACjD,yCAAyC;IACzC,SAAgB,UAAU,EAAE,MAAM,CAAC;gBAEvB,iBAAiB,SAAK,EAAE,OAAO,SAAkC;CAQ9E;AAED,eAAe,oBAAoB,CAAC"}

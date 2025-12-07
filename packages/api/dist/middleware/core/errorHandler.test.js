@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ApiError, ValidationError, HTTP_STATUS_CODES } from "@auth/utils";
+import { HttpError, ValidationError, HTTP_STATUS_CODES } from "@auth/utils";
 // Mock dependencies
 vi.mock("@auth/config", () => ({
     getLogger: vi.fn(() => ({
@@ -57,8 +57,8 @@ describe("Error Handler Middleware", () => {
         };
         next = vi.fn();
     });
-    it("should handle ApiError correctly", () => {
-        const error = new ApiError(HTTP_STATUS_CODES.NOT_FOUND, "Not Found");
+    it("should handle HttpError correctly", () => {
+        const error = new HttpError(HTTP_STATUS_CODES.NOT_FOUND, "Not Found");
         errorHandler(error, req, res, next);
         expect(res.status).toHaveBeenCalledWith(HTTP_STATUS_CODES.NOT_FOUND);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
@@ -76,7 +76,7 @@ describe("Error Handler Middleware", () => {
             errors: expect.any(Array),
         }));
     });
-    it("should convert Mongoose ValidationError to ApiError", () => {
+    it("should convert Mongoose ValidationError to HttpError", () => {
         const mongooseError = {
             name: "ValidationError",
             errors: {

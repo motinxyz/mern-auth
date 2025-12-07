@@ -1,36 +1,50 @@
-import ApiError from "../ApiError.js";
-import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
 /**
- * ValidationError
- * Thrown when request validation fails
+ * ValidationError - Request validation failures
+ *
+ * Thrown when request data fails validation (Zod, custom, etc.)
+ */
+import { HttpError } from "./HttpError.js";
+import { HTTP_STATUS_CODES } from "../http/index.js";
+import { ERROR_CODES, } from "../types/index.js";
+/**
+ * Validation error for failed input validation
  *
  * @example
+ * ```typescript
  * throw new ValidationError([
- *   { field: 'email', message: 'Invalid email format' },
- *   { field: 'password', message: 'Password too short' }
+ *   { field: 'email', message: 'validation:email.invalid' },
+ *   { field: 'password', message: 'validation:password.length' }
  * ]);
+ * ```
  */
-class ValidationError extends ApiError {
-    constructor(errors = [], message = "Validation failed") {
-        // Process the errors array to ensure consistent format
-        const formattedErrors = errors.map((err) => {
-            // Support both Zod error format and custom format
-            if (err.path && err.message) {
-                // Zod format
+export class ValidationError extends HttpError {
+    constructor(issues = [], message = "validation:failed") {
+        const errors = ValidationError.formatIssues(issues);
+        super(HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT, message, ERROR_CODES.VALIDATION_FAILED, errors);
+    }
+    /**
+     * Convert validation issues to consistent format
+     */
+    static formatIssues(issues) {
+        return issues.map((issue) => {
+            // Zod format: has 'path' property
+            if ("path" in issue) {
+                const path = issue.path;
                 return {
-                    field: Array.isArray(err.path) ? err.path.join(".") : err.path,
-                    message: err.message,
+                    field: Array.isArray(path) ? path.join(".") : String(path),
+                    message: issue.message,
                 };
             }
             // Custom format
-            return {
-                field: err.field || "unknown",
-                message: err.message || "Validation error",
-                context: err.context, // Preserve context for i18n interpolation
+            const result = {
+                field: issue.field ?? "unknown",
+                message: issue.message ?? "validation:error",
             };
+            if (issue.context !== undefined) {
+                return { ...result, context: issue.context };
+            }
+            return result;
         });
-        super(HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT, message, formattedErrors);
-        this.name = "ValidationError";
     }
 }
 export default ValidationError;

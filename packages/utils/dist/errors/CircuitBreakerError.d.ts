@@ -1,10 +1,19 @@
 /**
- * Circuit Breaker Error
- * Thrown when circuit breaker is open (service unavailable)
+ * CircuitBreakerError - Circuit breaker is open
+ *
+ * Thrown when a circuit breaker is open and requests are rejected.
  */
-export default class CircuitBreakerError extends Error {
-    readonly code: string;
-    readonly statusCode: number;
+import { HttpError } from "./HttpError.js";
+/**
+ * Circuit breaker open error (503)
+ *
+ * @example
+ * ```typescript
+ * throw new CircuitBreakerError("email:errors.circuitOpen");
+ * ```
+ */
+export declare class CircuitBreakerError extends HttpError {
     constructor(message?: string);
 }
+export default CircuitBreakerError;
 //# sourceMappingURL=CircuitBreakerError.d.ts.map

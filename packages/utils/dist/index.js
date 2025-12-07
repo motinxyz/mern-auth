@@ -1,15 +1,57 @@
-export { default as ApiResponse } from "./ApiResponse.js";
+/**
+ * @auth/utils - Shared Utilities Package
+ *
+ * Production-grade utilities for the auth monorepo.
+ *
+ * Module Structure:
+ * - types/       - Shared type definitions
+ * - errors/      - Error class hierarchy
+ * - http/        - API response & status codes
+ * - redis/       - Redis key utilities
+ * - circuit-breaker/ - Circuit breaker wrapper
+ * - crypto/      - Cryptographic utilities
+ * - validation/  - Zod schemas
+ * - helpers/     - Email normalization
+ * - tracing/     - OpenTelemetry utilities
+ */
+// =============================================================================
+// Types
+// =============================================================================
+export * from "./types/index.js";
+// =============================================================================
+// Errors
+// =============================================================================
 export * from "./errors/index.js";
-export { default as ApiError } from "./ApiError.js";
+// =============================================================================
+// HTTP (Status Codes & Response)
+// =============================================================================
+export * from "./http/index.js";
+// =============================================================================
+// Redis Utilities
+// =============================================================================
+export * from "./redis/index.js";
+// =============================================================================
+// Circuit Breaker
+// =============================================================================
+export * from "./circuit-breaker/index.js";
+// =============================================================================
+// Crypto Utilities
+// =============================================================================
+export * from "./crypto/index.js";
+// =============================================================================
 // Constants
-export * from "./constants/httpStatusCodes.js";
-export * from "./constants/messages.constants.js";
-export * from "./constants/routes.constants.js";
-export * from "./constants/validation.constants.js";
-export * from "./redis.utils.js";
-export * from "./validation/auth.schemas.js";
-export * from "./helpers/email.helpers.js";
-export * from "./circuit-breaker.js";
-// Tracing
-export * from "./tracing/tracing-utils.js";
+// =============================================================================
+export * from "./constants/index.js";
+// =============================================================================
+// Helpers
+// =============================================================================
+export * from "./helpers/index.js";
+// =============================================================================
+// Validation Schemas
+// =============================================================================
+export * from "./validation/index.js";
+// =============================================================================
+// Tracing Utilities
+// =============================================================================
+export * from "./tracing/index.js";
 //# sourceMappingURL=index.js.map

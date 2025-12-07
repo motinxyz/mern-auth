@@ -15,7 +15,7 @@ export declare class RegistrationController {
      * @returns {Promise<ControllerResult>}
      */
     registerUser(dto: RegistrationDto, locale?: string): Promise<{
-        statusCode: number;
+        statusCode: 201;
         data: ApiResponse<any>;
     }>;
 }

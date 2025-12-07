@@ -5,21 +5,20 @@
  * Follows OpenTelemetry semantic conventions and best practices.
  */
 import { trace, SpanStatusCode, } from "@opentelemetry/api";
-import crypto from "crypto";
 /**
  * Execute a function within a new span
  */
 export async function withSpan(name, fn, options = {}) {
-    const tracerName = options.tracerName || "auth-service";
+    const tracerName = options.tracerName ?? "auth-service";
     const tracer = trace.getTracer(tracerName);
     return tracer.startActiveSpan(name, options, async (span) => {
         try {
             // Add service component for differentiation in Tempo
-            if (options.component) {
+            if (options.component != null) {
                 span.setAttribute("service.component", options.component);
             }
             // Add initial attributes if provided
-            if (options.attributes) {
+            if (options.attributes != null) {
                 Object.entries(options.attributes).forEach(([key, value]) => {
                     if (value !== undefined) {
                         span.setAttribute(key, value);
@@ -70,29 +69,17 @@ export function recordError(span, error, additionalAttributes = {}) {
     // Add error attributes following semantic conventions
     span.setAttribute("error.type", error.name || "Error");
     span.setAttribute("error.message", error.message);
-    if (error.stack) {
+    if (error.stack !== undefined) {
         span.setAttribute("error.stack", error.stack);
     }
     // Add HTTP status code if available (for API errors)
-    if (error.statusCode) {
+    if (error.statusCode != null) {
         span.setAttribute("http.status_code", error.statusCode);
     }
     // Add any additional context
     Object.entries(additionalAttributes).forEach(([key, value]) => {
         span.setAttribute(key, value);
     });
-}
-/**
- * Hash sensitive data for safe inclusion in span attributes
- */
-export function hashSensitiveData(value) {
-    if (!value)
-        return "";
-    return crypto
-        .createHash("sha256")
-        .update(value.toLowerCase().trim())
-        .digest("hex")
-        .substring(0, 16);
 }
 /**
  * Get trace context for propagation (e.g., to queue jobs)

@@ -170,7 +170,16 @@ const configSchema = z.object({
 const parsedEnv = configSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
-  throw new EnvironmentError(parsedEnv.error.issues);
+  const missingVars = parsedEnv.error.issues.map(
+    (issue) => issue.path.join(".")
+  );
+  const message = parsedEnv.error.issues
+    .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+    .join(", ");
+  throw new EnvironmentError(
+    `Environment validation failed: ${message}`,
+    missingVars
+  );
 }
 
 const envVars = parsedEnv.data;

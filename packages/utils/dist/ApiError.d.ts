@@ -1,20 +1,18 @@
 /**
- * @class ApiError
- * @extends Error
- * @description A standardized error class for API responses.
+ * ApiError - Legacy compatibility wrapper
+ *
+ * @deprecated Use HttpError or specific error classes instead.
+ *
+ * This class is kept for backward compatibility and will be removed in v2.
+ * It now extends HttpError for consistency with the new error hierarchy.
  */
-export interface ValidationError {
-    field?: string;
-    message?: string;
-    code?: string;
-    stack?: string;
-    [key: string]: unknown;
+import { HttpError } from "./errors/HttpError.js";
+import { type ValidationErrorDetail } from "./types/index.js";
+/**
+ * @deprecated Use HttpError or specific error classes instead.
+ */
+export declare class ApiError extends HttpError {
+    constructor(statusCode?: number, message?: string, errors?: ValidationErrorDetail[]);
 }
-export default class ApiError extends Error {
-    readonly statusCode: number;
-    readonly data: null;
-    readonly success: false;
-    readonly errors: ValidationError[];
-    constructor(statusCode: number, message?: string, errors?: ValidationError[], stack?: string);
-}
+export default ApiError;
 //# sourceMappingURL=ApiError.d.ts.map

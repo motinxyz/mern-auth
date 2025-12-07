@@ -1,16 +1,19 @@
-import ApiError from "../ApiError.js";
 /**
- * @class DatabaseConnectionError
- * @extends ApiError
- * @description Represents an error that occurs when the application fails to connect to the database after multiple retries.
- * This error is critical and should lead to a graceful shutdown of the application.
+ * DatabaseConnectionError - Database connection failure
+ *
+ * Thrown when the application fails to connect to the database.
  */
-declare class DatabaseConnectionError extends ApiError {
-    /**
-     * @constructor
-     * @param {Error} [originalError] - The original error that was caught.
-     */
-    constructor(originalError: any);
+import { BaseError } from "./BaseError.js";
+/**
+ * Database connection error (non-HTTP, critical)
+ *
+ * @example
+ * ```typescript
+ * throw new DatabaseConnectionError("Failed to connect after 3 retries", originalError);
+ * ```
+ */
+export declare class DatabaseConnectionError extends BaseError {
+    constructor(message?: string, cause?: Error);
 }
 export default DatabaseConnectionError;
 //# sourceMappingURL=DatabaseConnectionError.d.ts.map

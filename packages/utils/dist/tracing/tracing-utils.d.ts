@@ -36,10 +36,6 @@ export declare function recordError(span: Span, error: Error & {
     statusCode?: number;
 }, additionalAttributes?: Record<string, AttributeValue>): void;
 /**
- * Hash sensitive data for safe inclusion in span attributes
- */
-export declare function hashSensitiveData(value: string | undefined | null): string;
-/**
  * Get trace context for propagation (e.g., to queue jobs)
  */
 export declare function getTraceContext(): TraceContext | null;

@@ -1,18 +1,30 @@
-import ApiError from "../ApiError.js";
-import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
 /**
- * Custom error for asynchronous errors occurring within a BullMQ Queue instance.
+ * QueueError - Queue operation failure
+ *
+ * Thrown when a queue operation fails.
  */
-class QueueError extends ApiError {
-    originalError;
-    constructor(originalError) {
-        const message = typeof originalError === "string"
-            ? originalError
-            : originalError?.message || "Queue error occurred";
-        super(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE, message);
-        this.name = "QueueError";
-        this.originalError =
-            typeof originalError === "object" ? originalError : null;
+import { BaseError } from "./BaseError.js";
+import { ERROR_CODES } from "../types/index.js";
+/**
+ * Queue error (non-HTTP, operational)
+ *
+ * @example
+ * ```typescript
+ * throw new QueueError("emailQueue", "Failed to add job", originalError);
+ * ```
+ */
+export class QueueError extends BaseError {
+    /** Name of the queue that failed */
+    queueName;
+    constructor(queueName, message = "queue:errors.operationFailed", cause) {
+        super(message, ERROR_CODES.JOB_FAILED, cause);
+        this.queueName = queueName;
+    }
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            queueName: this.queueName,
+        };
     }
 }
 export default QueueError;

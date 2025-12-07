@@ -1,5 +1,18 @@
-import ApiError from "../ApiError.js";
-declare class NotFoundError extends ApiError {
+/**
+ * NotFoundError - Resource not found
+ *
+ * Thrown when a requested resource does not exist.
+ */
+import { HttpError } from "./HttpError.js";
+/**
+ * Not found error (404)
+ *
+ * @example
+ * ```typescript
+ * throw new NotFoundError("system:errors.userNotFound");
+ * ```
+ */
+export declare class NotFoundError extends HttpError {
     constructor(message?: string);
 }
 export default NotFoundError;

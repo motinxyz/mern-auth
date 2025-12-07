@@ -1,8 +1,19 @@
 /**
- * Custom error for failures that occur during token creation or storage.
+ * TokenCreationError - Token generation failure
+ *
+ * Thrown when token creation fails.
  */
-export default class TokenCreationError extends Error {
-    readonly originalError: Error | null;
-    constructor(message: string, originalError?: Error | null);
+import { BaseError } from "./BaseError.js";
+/**
+ * Token creation error (non-HTTP, operational)
+ *
+ * @example
+ * ```typescript
+ * throw new TokenCreationError("Failed to sign JWT", originalError);
+ * ```
+ */
+export declare class TokenCreationError extends BaseError {
+    constructor(message?: string, cause?: Error);
 }
+export default TokenCreationError;
 //# sourceMappingURL=TokenCreationError.d.ts.map

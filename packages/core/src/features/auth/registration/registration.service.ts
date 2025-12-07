@@ -5,7 +5,7 @@ import {
   TooManyRequestsError,
   createAuthRateLimitKey,
   ServiceUnavailableError,
-  ApiError,
+  HttpError,
   HTTP_STATUS_CODES,
   withSpan,
   addSpanAttributes,
@@ -205,7 +205,7 @@ export class RegistrationService {
 
                   // Return a generic error to the user to avoid exposing internal details
                   // while alerting the team via logs/monitoring
-                  throw new ApiError(
+                  throw new HttpError(
                     HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
                     "auth:errors.registrationFailed"
                   );
@@ -218,13 +218,10 @@ export class RegistrationService {
                   );
                   const errors = Object.keys(dbError.keyPattern).map((key) => ({
                     field: key === "normalizedEmail" ? "email" : key,
-                    issue:
+                    message:
                       key === "email" || key === "normalizedEmail"
                         ? "validation:email.inUse"
                         : "validation:duplicateValue",
-                    value:
-                      // eslint-disable-next-line security/detect-object-injection
-                      key === "normalizedEmail" ? email : dbError.keyValue[key],
                   }));
                   throw new ConflictError(
                     "auth:logs.registerDuplicateKey",
@@ -256,7 +253,7 @@ export class RegistrationService {
               { tokenError, userId: newUser._id },
               REGISTRATION_MESSAGES.CREATE_TOKEN_FAILED
             );
-            throw new ApiError(
+            throw new HttpError(
               HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
               "auth:errors.createTokenFailed"
             );

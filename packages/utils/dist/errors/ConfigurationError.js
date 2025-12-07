@@ -1,13 +1,21 @@
-import ApiError from "../ApiError.js";
-import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
 /**
- * Custom error for handling application configuration issues.
- * This error should be thrown when the application is misconfigured.
+ * ConfigurationError - Configuration/setup error
+ *
+ * Thrown when there's a configuration or initialization issue.
  */
-class ConfigurationError extends ApiError {
-    constructor(message) {
-        super(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, message);
-        this.name = "ConfigurationError";
+import { BaseError } from "./BaseError.js";
+import { ERROR_CODES } from "../types/index.js";
+/**
+ * Configuration error (non-HTTP, operational)
+ *
+ * @example
+ * ```typescript
+ * throw new ConfigurationError("Missing required config: DATABASE_URL");
+ * ```
+ */
+export class ConfigurationError extends BaseError {
+    constructor(message, cause) {
+        super(message, ERROR_CODES.CONFIGURATION_ERROR, cause);
     }
 }
 export default ConfigurationError;
