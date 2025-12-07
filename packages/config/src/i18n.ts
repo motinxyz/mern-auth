@@ -1,109 +1,84 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ConfigurationError } from "@auth/utils";
+
 import i18next from "i18next";
 import Backend from "i18next-fs-backend";
 import * as i18nextMiddleware from "i18next-http-middleware";
-import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
+import { createModuleLogger } from "./logging/startup-logger.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const defaultLocale = "en";
 const defaultNamespace = "system"; // A default namespace for keys without one.
 
-// --- Path Setup ---
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const log = createModuleLogger("i18n");
 
-// Attempt to find locales directory (dist/locales or src/locales)
-const possibleLocalesDirs = [
-  path.join(__dirname, "./locales"), // Production (dist/locales)
-  path.join(__dirname, "../src/locales"), // Development (from dist/../src/locales if running via tsx/ts-node)
-  path.join(process.cwd(), "packages/config/src/locales"), // Fallback relative to root
-];
 
-let localesDir = possibleLocalesDirs[0];
-for (const dir of possibleLocalesDirs) {
+
+/**
+ * Configure i18next - Modern/Full-featured
+ */
+export const configureI18next = async () => {
   try {
-    // Synchronously check if directory exists to set the correct path before async usage
-    // using fs.access would require async in top-level or changing structure.
-    // For simplicity in this config module, we'll try/catch in discoverI18nResources or just iterate.
-    // However, i18next backend needs a string. Let's rely on discoverI18nResources to find it.
-  } catch { }
-}
+    const localesDir = path.join(__dirname, "../locales");
 
-async function discoverI18nResources() {
-  // Find valid locales directory
-  let foundLocalesDir = null;
-  for (const dir of possibleLocalesDirs) {
+    // Check if locales directory exists
     try {
-      await fs.access(dir);
-      foundLocalesDir = dir;
-      break;
+      await fs.access(localesDir);
     } catch {
-      continue;
-    }
-  }
-
-  if (!foundLocalesDir) {
-    throw new ConfigurationError(`${CONFIG_MESSAGES.I18N_DISCOVERY_FAILED}: Could not locate locales directory. Checked: ${possibleLocalesDirs.join(", ")}`);
-  }
-
-  // Update the global variable so backend uses correct path
-  localesDir = foundLocalesDir;
-
-  try {
-    const dirents = await fs.readdir(localesDir, { withFileTypes: true });
-    const availableLocales = dirents
-      .filter((dirent) => dirent.isDirectory())
-      .map((dirent) => dirent.name);
-
-    if (availableLocales.length === 0) {
-      throw new ConfigurationError(CONFIG_MESSAGES.I18N_NO_LOCALES);
+      // Create if not exists to avoid startup error
+      await fs.mkdir(localesDir, { recursive: true });
     }
 
-    const namespaceFiles = await fs.readdir(
-      path.join(localesDir, defaultLocale)
-    );
-    const availableNamespaces = namespaceFiles
-      .filter((file) => file.endsWith(".json"))
-      .map((file) => path.basename(file, ".json"));
+    await i18next
+      .use(Backend)
+      .use(i18nextMiddleware.LanguageDetector)
+      .init({
+        backend: {
+          loadPath: path.join(localesDir, "{{lng}}/{{ns}}.json"),
+          addPath: path.join(localesDir, "{{lng}}/{{ns}}.missing.json"),
+        },
+        fallbackLng: defaultLocale,
+        preload: ["en"], // Preload english
+        ns: ["system", "auth", "validation", "errors"],
+        defaultNS: defaultNamespace,
+        detection: {
+          order: ["querystring", "cookie", "header"],
+          caches: ["cookie"],
+          lookupQuerystring: "lang",
+          lookupCookie: "lang",
+        },
+        debug: false, // Set to true for debugging translations
+        interpolation: {
+          escapeValue: false, // Not needed for React, but good for Node safety if rendering HTML
+        },
+        saveMissing: true, // Save missing keys to file for easier translation
+      });
 
-    return { availableLocales, availableNamespaces };
-  } catch (error) {
-    if (error instanceof ConfigurationError) {
-      throw error;
-    }
-    throw new ConfigurationError(
-      `${CONFIG_MESSAGES.I18N_DISCOVERY_FAILED}: ${error.message}`
-    );
+    log.info("i18next initialized");
+    return i18next;
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log.error({ err: errorMessage }, "Failed to initialize i18next");
+    throw error;
   }
-}
+};
 
-const { availableLocales, availableNamespaces } = await discoverI18nResources();
-
-// Initialize i18next instance
-const i18nInitPromise = i18next
-  .use(Backend)
-  .use(i18nextMiddleware.LanguageDetector)
-  .init({
-    backend: {
-      loadPath: path.join(localesDir, "{{lng}}/{{ns}}.json"),
-    },
-    fallbackLng: defaultLocale,
-    // all lng and ns will be preloaded, for lazy loading, remove this option
-    preload: availableLocales, //performance optimaztion
-    defaultNS: defaultNamespace,
-    ns: availableNamespaces,
-  });
-
-export const i18nInstance = i18next;
 export const i18nMiddleware = i18nextMiddleware;
 
-// Export a mutable t function that defaults to a no-op until initialized
-export let t = (key) => key;
+// Export i18next instance and translation function
+export const i18nInstance = i18next;
+export const initI18n = configureI18next;
 
-export const initI18n = async () => {
-  await i18nInitPromise;
-  // Update the exported t function to use the initialized i18next instance
-  t = i18next.t.bind(i18next);
-  return i18next;
+/**
+ * Translation function with proper typing for i18next
+ * Supports both simple key lookup and options with interpolation
+ */
+export const t = (key: string, options?: Record<string, unknown>): string => {
+  if (options !== undefined) {
+    return i18next.t(key, options) as string;
+  }
+  return i18next.t(key) as string;
 };

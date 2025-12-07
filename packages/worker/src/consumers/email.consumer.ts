@@ -10,6 +10,29 @@ import {
   WORKER_ERRORS,
 } from "../constants/worker.messages.js";
 import BaseConsumer from "./base.consumer.js";
+import type { ILogger, IJob, JobResult, IEmailService } from "@auth/contracts";
+
+/**
+ * Email consumer options
+ */
+interface EmailConsumerOptions {
+  emailService: IEmailService;
+  logger: ILogger;
+}
+
+/**
+ * Email job data structure
+ */
+interface EmailJobData {
+  type: string;
+  data: {
+    user?: { id: string; email: string };
+    token?: string;
+    locale?: string;
+    preferredProvider?: string;
+  };
+  traceContext?: { traceId: string };
+}
 
 /**
  * Email Job Consumer
@@ -17,17 +40,12 @@ import BaseConsumer from "./base.consumer.js";
  * Uses BaseConsumer for common tracing and logging functionality.
  */
 class EmailConsumer extends BaseConsumer {
-  /**
-   * @param {object} options
-   * @param {object} options.emailService - Service capable of sending emails
-   * @param {object} options.logger - Pino logger instance
-   */
-  emailService: any;
+  private readonly emailService: IEmailService;
 
-  constructor(options: any) {
+  constructor(options: EmailConsumerOptions) {
     super({ logger: options.logger, name: "EmailConsumer" });
 
-    if (!options.emailService) {
+    if (options.emailService === undefined) {
       throw new ConfigurationError(WORKER_ERRORS.EMAIL_SERVICE_REQUIRED);
     }
     this.emailService = options.emailService;
@@ -35,14 +53,12 @@ class EmailConsumer extends BaseConsumer {
 
   /**
    * Process an email job
-   * @param {object} job - BullMQ job
-   * @returns {Promise<object>} Processing result
    */
-  async process(job) {
+  async process(job: IJob<EmailJobData>): Promise<JobResult> {
     const { type, data } = job.data;
 
     // Dynamic span name based on job type
-    const spanName = type
+    const spanName = type !== undefined
       ? `email-consumer.${type.replace(/_/g, "-").toLowerCase()}`
       : "email-consumer.process-job";
 
@@ -57,12 +73,13 @@ class EmailConsumer extends BaseConsumer {
 
           default:
             throw new UnknownJobTypeError(
-              WORKER_ERRORS.UNKNOWN_JOB_TYPE.replace("{type}", type),
-              type
+              WORKER_ERRORS.UNKNOWN_JOB_TYPE.replace("{type}", type ?? "unknown"),
+              type ?? "unknown"
             );
         }
-      } catch (error) {
-        jobLogger.error({ err: error }, WORKER_ERRORS.JOB_FAILED);
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        jobLogger.error({ err }, WORKER_ERRORS.JOB_FAILED);
         throw error;
       }
     });
@@ -70,16 +87,19 @@ class EmailConsumer extends BaseConsumer {
 
   /**
    * Handle verification email job
-   * @private
    */
-  async handleVerificationEmail(job, data, jobLogger) {
-    if (!data.user || !data.token) {
+  private async handleVerificationEmail(
+    _job: IJob<EmailJobData>,
+    data: EmailJobData["data"],
+    jobLogger: ILogger
+  ): Promise<JobResult> {
+    if (data.user === undefined || data.token === undefined) {
       throw new InvalidJobDataError(
         WORKER_ERRORS.JOB_DATA_MISSING_FIELDS,
         [
-          !data.user && { field: "user", message: "is required" },
-          !data.token && { field: "token", message: "is required" },
-        ].filter(Boolean)
+          data.user === undefined && { field: "user", message: "is required" },
+          data.token === undefined && { field: "token", message: "is required" },
+        ].filter(Boolean) as Array<{ field: string; message: string }>
       );
     }
 
@@ -88,7 +108,7 @@ class EmailConsumer extends BaseConsumer {
       "user.id": data.user.id,
       "user.email_hash": this.hashSensitive(data.user.email),
       "email.type": "verification",
-      "email.locale": data.locale || "en",
+      "email.locale": data.locale ?? "en",
     });
 
     try {
@@ -97,23 +117,30 @@ class EmailConsumer extends BaseConsumer {
         WORKER_MESSAGES.EMAIL_SENDING_VERIFICATION
       );
 
-      await this.emailService.sendVerificationEmail(
-        data.user,
-        data.token,
-        data.locale || "en",
-        { preferredProvider: data.preferredProvider } // Pass options
-      );
+      await this.emailService.sendEmail({
+        to: data.user.email,
+        template: "verification",
+        data: {
+          user: data.user,
+          token: data.token,
+          locale: data.locale ?? "en",
+        },
+        options: { preferredProvider: data.preferredProvider },
+      });
 
       jobLogger.info(
         { email: data.user.email },
         WORKER_MESSAGES.EMAIL_VERIFICATION_SENT
       );
-    } catch (error) {
-      throw new EmailDispatchError(WORKER_ERRORS.EMAIL_DISPATCH_FAILED, error);
+    } catch (error: unknown) {
+      throw new EmailDispatchError(
+        WORKER_ERRORS.EMAIL_DISPATCH_FAILED,
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
 
     return {
-      status: "OK",
+      success: true,
       message: WORKER_MESSAGES.EMAIL_SENT_SUCCESS,
     };
   }
@@ -121,14 +148,12 @@ class EmailConsumer extends BaseConsumer {
 
 /**
  * Create email job consumer (Factory Pattern)
- * @param {object} options
- * @param {object} options.emailService - Service capable of sending emails
- * @param {object} options.logger - Pino logger instance
- * @returns {Function} Job processor function for WorkerService
  */
-export const createEmailJobConsumer = (options) => {
+export const createEmailJobConsumer = (
+  options: EmailConsumerOptions
+): ((job: IJob<EmailJobData>) => Promise<JobResult>) => {
   const consumer = new EmailConsumer(options);
-  return (job) => consumer.process(job);
+  return (job: IJob<EmailJobData>) => consumer.process(job);
 };
 
 export { EmailConsumer };

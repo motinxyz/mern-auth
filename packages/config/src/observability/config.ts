@@ -5,12 +5,16 @@
 
 import config from "../env.js";
 
+interface TempoHeaders {
+  Authorization?: string;
+}
+
 export const observabilityConfig = {
   enabled: config.observability.enabled,
 
   // Loki (Logs)
   loki: {
-    enabled: !!config.observability.grafana.loki.url,
+    enabled: config.observability.grafana.loki.url !== undefined && config.observability.grafana.loki.url !== "",
     url: config.observability.grafana.loki.url,
     user: config.observability.grafana.loki.user,
     apiKey: config.observability.grafana.loki.apiKey,
@@ -26,7 +30,7 @@ export const observabilityConfig = {
   prometheus: {
     enabled: config.observability.metricsEnabled,
     remoteWrite: {
-      enabled: !!config.observability.grafana.prometheus.url,
+      enabled: config.observability.grafana.prometheus.url !== undefined && config.observability.grafana.prometheus.url !== "",
       url: config.observability.grafana.prometheus.url,
       username: config.observability.grafana.prometheus.user,
       password: config.observability.grafana.prometheus.apiKey,
@@ -41,34 +45,39 @@ export const observabilityConfig = {
     environment: config.env,
     hostname: config.hostname,
     tempo: {
-      url: config.observability.grafana.tempo.url?.startsWith("http")
-        ? config.observability.grafana.tempo.url
-        : `https://${config.observability.grafana.tempo.url}`,
-      headers:
-        config.observability.grafana.tempo.user &&
-        config.observability.grafana.tempo.apiKey
-          ? {
-              Authorization: `Basic ${Buffer.from(
-                `${config.observability.grafana.tempo.user}:${config.observability.grafana.tempo.apiKey}`
-              ).toString("base64")}`,
-            }
-          : {},
+      url: ((): string => {
+        const tempoUrl = config.observability.grafana.tempo.url;
+        if (typeof tempoUrl === "string" && tempoUrl.startsWith("http")) {
+          return tempoUrl;
+        }
+        return `https://${tempoUrl ?? ""}`;
+      })(),
+      headers: ((): TempoHeaders => {
+        const user = config.observability.grafana.tempo.user;
+        const apiKey = config.observability.grafana.tempo.apiKey;
+        if (user !== undefined && user !== "" && apiKey !== undefined && apiKey !== "") {
+          return {
+            Authorization: `Basic ${Buffer.from(`${user}:${apiKey}`).toString("base64")}`,
+          };
+        }
+        return {};
+      })(),
     },
   },
 };
 
-export function isObservabilityEnabled() {
+export function isObservabilityEnabled(): boolean {
   return observabilityConfig.enabled;
 }
 
-export function isLokiEnabled() {
+export function isLokiEnabled(): boolean {
   return observabilityConfig.loki.enabled;
 }
 
-export function isMetricsEnabled() {
+export function isMetricsEnabled(): boolean {
   return observabilityConfig.prometheus.enabled;
 }
 
-export function isTracingEnabled() {
+export function isTracingEnabled(): boolean {
   return observabilityConfig.tracing.enabled;
 }

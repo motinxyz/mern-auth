@@ -2,16 +2,14 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "strictPropertyInitialization": false,
-    "strictNullChecks": false,
-    "strict": false,
+    "strictNullChecks": true,
+    "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "declaration": true,
     "declarationMap": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["src/**/*.test.ts"]
+  "include": ["src/**/*", "vitest.config.ts"]
 }

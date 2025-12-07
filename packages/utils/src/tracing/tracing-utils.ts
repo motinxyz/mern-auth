@@ -40,18 +40,18 @@ export async function withSpan<T>(
   fn: (span: Span) => Promise<T>,
   options: WithSpanOptions = {}
 ): Promise<T> {
-  const tracerName = options.tracerName || "auth-service";
+  const tracerName = options.tracerName ?? "auth-service";
   const tracer = trace.getTracer(tracerName);
 
   return tracer.startActiveSpan(name, options, async (span) => {
     try {
       // Add service component for differentiation in Tempo
-      if (options.component) {
+      if (options.component != null) {
         span.setAttribute("service.component", options.component);
       }
 
       // Add initial attributes if provided
-      if (options.attributes) {
+      if (options.attributes != null) {
         Object.entries(options.attributes).forEach(([key, value]) => {
           if (value !== undefined) {
             span.setAttribute(key, value);
@@ -114,12 +114,12 @@ export function recordError(
   span.setAttribute("error.type", error.name || "Error");
   span.setAttribute("error.message", error.message);
 
-  if (error.stack) {
+  if (error.stack !== undefined) {
     span.setAttribute("error.stack", error.stack);
   }
 
   // Add HTTP status code if available (for API errors)
-  if (error.statusCode) {
+  if (error.statusCode != null) {
     span.setAttribute("http.status_code", error.statusCode);
   }
 
@@ -133,7 +133,7 @@ export function recordError(
  * Hash sensitive data for safe inclusion in span attributes
  */
 export function hashSensitiveData(value: string | undefined | null): string {
-  if (!value) return "";
+  if (value === undefined || value === null || value === "") return "";
 
   return crypto
     .createHash("sha256")

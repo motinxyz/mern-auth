@@ -1,4 +1,4 @@
-import { User } from "@auth/database";
+
 import {
   normalizeEmail,
   ConflictError,
@@ -25,11 +25,12 @@ import {
   RATE_LIMIT_DURATIONS,
   REDIS_RATE_LIMIT_VALUE,
 } from "../../../constants/auth.constants.js";
-import { EMAIL_JOB_TYPES, t } from "@auth/config";
+import { EMAIL_JOB_TYPES } from "@auth/config";
 import {
   REGISTRATION_MESSAGES,
-  REGISTRATION_ERRORS,
 } from "../../../constants/core.messages.js";
+
+import { RegistrationDto } from "./registration.dto.js";
 
 /**
  * RegistrationService
@@ -82,12 +83,12 @@ export class RegistrationService {
     this.logger = logger.child({ module: "registration-service" });
   }
 
-  async register(registerUserDto) {
+  async register(registerUserDto: RegistrationDto) {
     const { email, locale } = registerUserDto;
 
     return withSpan(
       "registration-service.register-user",
-      async (rootSpan) => {
+      async () => {
         // Add root span attributes
         addSpanAttributes({
           "service.module": "registration-service",
@@ -106,7 +107,7 @@ export class RegistrationService {
         // Check rate limit
         await withSpan(
           "registration-service.check-rate-limit",
-          async (span) => {
+          async () => {
             addSpanAttributes({
               "rate_limit.key_prefix":
                 this.config.redis.prefixes.verifyEmailRateLimit,
@@ -116,21 +117,21 @@ export class RegistrationService {
             const isRateLimited = await this.redis.get(rateLimitKey);
 
             addSpanAttributes({
-              "rate_limit.is_limited": !!isRateLimited,
+              "rate_limit.is_limited": isRateLimited !== null,
             });
 
-            if (isRateLimited) {
+            if (isRateLimited !== null) {
               throw new TooManyRequestsError(RATE_LIMIT_DURATIONS.VERIFY_EMAIL);
             }
           }
         );
 
-        let newUser;
+        let newUser!: UserDocument;
         const session = await this.User.db.startSession();
 
         await withSpan(
           "registration-service.db-transaction",
-          async (txSpan) => {
+          async () => {
             addSpanAttributes({
               "db.system": "mongodb",
               "db.operation": "transaction",
@@ -141,7 +142,7 @@ export class RegistrationService {
                 // Create user in database
                 await withSpan(
                   "registration-service.create-user",
-                  async (createSpan) => {
+                  async () => {
                     addSpanAttributes({
                       "db.operation": "insert",
                       "db.mongodb.collection": "users",
@@ -155,14 +156,22 @@ export class RegistrationService {
                       password: registerUserDto.password,
                     };
 
-                    [newUser] = await this.User.create([userData], { session });
+                    const result = await this.User.create([userData], { session });
+                    const createdUser = result[0];
+                    if (!createdUser) {
+                      throw new Error("Failed to create user document");
+                    }
+                    newUser = createdUser;
 
                     addSpanAttributes({
                       "user.id": newUser._id.toString(),
                     });
                   }
                 );
-              } catch (dbError) {
+              } catch (error) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const dbError = error as any;
+
                 // DEFENSE IN DEPTH: Handle Mongoose validation errors
                 // This should NEVER happen if Zod validation is working correctly.
                 // If it does, it indicates a bug in the Zod schema or data flow.
@@ -177,8 +186,8 @@ export class RegistrationService {
                   );
 
                   // Alert via Sentry if available
-                  if (this.sentry) {
-                    (this.sentry as any).captureException(dbError, {
+                  if (this.sentry !== undefined && this.sentry !== null) {
+                    (this.sentry as { captureException: (err: unknown, ctx: unknown) => void }).captureException(dbError, {
                       tags: {
                         alert: "defense_in_depth_triggered",
                         layer: "database",
@@ -214,6 +223,7 @@ export class RegistrationService {
                         ? "validation:email.inUse"
                         : "validation:duplicateValue",
                     value:
+                      // eslint-disable-next-line security/detect-object-injection
                       key === "normalizedEmail" ? email : dbError.keyValue[key],
                   }));
                   throw new ConflictError(
@@ -237,7 +247,10 @@ export class RegistrationService {
           let verificationToken;
           try {
             verificationToken =
-              await this.tokenService.createVerificationToken(newUser);
+              await this.tokenService.createVerificationToken({
+                ...newUser.toObject(),
+                _id: newUser._id.toString(),
+              });
           } catch (tokenError) {
             this.logger.error(
               { tokenError, userId: newUser._id },

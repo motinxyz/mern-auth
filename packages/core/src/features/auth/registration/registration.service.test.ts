@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { User, default as mongoose } from "@auth/database";
+import { User } from "@auth/database";
 import { RegistrationService } from "./registration.service.js";
 import {
   TooManyRequestsError,
   ConflictError,
-  createAuthRateLimitKey,
 } from "@auth/utils";
 
 // Mock utils
@@ -151,6 +150,7 @@ describe("Registration Service", () => {
         ...userData,
         _id: "123",
         toJSON: () => ({ ...userData, id: "123" }),
+        toObject: () => ({ ...userData, _id: "123" }),
       };
 
       const session = {
@@ -175,7 +175,10 @@ describe("Registration Service", () => {
       expect(User.db.startSession).toHaveBeenCalled();
       expect(
         registrationService.tokenService.createVerificationToken
-      ).toHaveBeenCalledWith(newUser);
+      ).toHaveBeenCalledWith(expect.objectContaining({
+        ...userData,
+        _id: "123",
+      }));
       expect(mockEmailProducer.addJob).toHaveBeenCalled();
       expect(mockRedisConnection.set).toHaveBeenCalled();
       expect(result).toEqual({ ...userData, id: "123" });
@@ -232,6 +235,7 @@ describe("Registration Service", () => {
         ...userData,
         _id: "123",
         toJSON: () => ({ ...userData, id: "123" }),
+        toObject: () => ({ ...userData, _id: "123" }),
       };
 
       const session = {
@@ -266,6 +270,7 @@ describe("Registration Service", () => {
         ...userData,
         _id: "123",
         toJSON: () => ({ ...userData, id: "123" }),
+        toObject: () => ({ ...userData, _id: "123" }),
       };
 
       const session = {

@@ -1,0 +1,1 @@
+{"version":3,"file":"TokenCreationError.d.ts","sourceRoot":"","sources":["../../../src/errors/TokenCreationError.ts"],"names":[],"mappings":"AAAA;;GAEG;AACH,MAAM,CAAC,OAAO,OAAO,kBAAmB,SAAQ,KAAK;IACnD,SAAgB,aAAa,EAAE,KAAK,GAAG,IAAI,CAAC;gBAEhC,OAAO,EAAE,MAAM,EAAE,aAAa,GAAE,KAAK,GAAG,IAAW;CAKhE"}

@@ -4,7 +4,7 @@
  * @param {string} email - The user's email address.
  * @returns {string} The Redis key.
  */
-export const createAuthRateLimitKey = (prefix, email) => {
+export const createAuthRateLimitKey = (prefix: string, email: string): string => {
   return `${prefix}${email}`;
 };
 
@@ -14,6 +14,8 @@ export const createAuthRateLimitKey = (prefix, email) => {
  * @param {string} hashedToken - The hashed verification token.
  * @returns {string} The Redis key.
  */
-export const createVerifyEmailKey = (prefix, hashedToken) => {
+
+
+export const createVerifyEmailKey = (prefix: string, hashedToken: string): string => {
   return `${prefix}${hashedToken}`;
 };

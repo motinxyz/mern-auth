@@ -8,7 +8,7 @@ export class RegistrationDto {
   password: string;
   locale: string;
 
-  constructor({ name, email, password, locale = "en" }: any) {
+  constructor({ name, email, password, locale = "en" }: { name: string; email: string; password: string; locale?: string }) {
     this.name = name;
     this.email = email;
     this.password = password;
@@ -21,12 +21,12 @@ export class RegistrationDto {
    * @param {string} locale - User locale from request
    * @returns {RegistrationDto}
    */
-  static fromRequest(body, locale) {
+  static fromRequest(body: Record<string, unknown>, locale: string) {
     return new RegistrationDto({
-      name: body.name,
-      email: body.email,
-      password: body.password,
-      locale: locale || "en",
+      name: String(body.name ?? ""),
+      email: String(body.email ?? ""),
+      password: String(body.password ?? ""),
+      locale: locale ?? "en",
     });
   }
 }

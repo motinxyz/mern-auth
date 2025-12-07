@@ -9,6 +9,16 @@ export interface IConfig {
     apiVersion: string;
     serviceName: string;
     mongoUri: string;
+    dbURI?: string;
+    dbName?: string;
+    dbMaxRetries?: number;
+    dbInitialRetryDelayMs?: number;
+    dbPoolSize?: number;
+    dbMinPoolSize?: number;
+    dbMaxIdleTimeMs?: number;
+    dbWaitQueueTimeoutMs?: number;
+    serverSelectionTimeoutMs?: number;
+    socketTimeoutMs?: number;
     redisUrl: string;
     redis: {
         circuitBreakerTimeout: number;

@@ -4,7 +4,12 @@ import {
   addSpanAttributes,
   hashSensitiveData,
 } from "@auth/utils";
-import type { ILogger } from "@auth/contracts";
+import type { ILogger, IJob, JobResult, JobData } from "@auth/contracts";
+
+interface BaseConsumerOptions {
+  logger: ILogger;
+  name?: string;
+}
 
 /**
  * Base Consumer
@@ -16,29 +21,21 @@ import type { ILogger } from "@auth/contracts";
  * Concrete consumers should extend this class or use the factory pattern.
  */
 class BaseConsumer {
-  /**
-   * @param {object} options
-   * @param {object} options.logger - Pino logger instance
-   * @param {string} options.name - Consumer name for tracing/logging
-   */
-  logger: ILogger;
-  name: string;
+  protected readonly logger: ILogger;
+  protected readonly name: string;
 
-  constructor(options: any) {
-    if (!options.logger) {
+  constructor(options: BaseConsumerOptions) {
+    if (options.logger === undefined) {
       throw new Error("logger is required for BaseConsumer");
     }
     this.logger = options.logger;
-    this.name = options.name || this.constructor.name;
+    this.name = options.name ?? this.constructor.name;
   }
 
   /**
    * Create a child logger with job context
-   * @param {object} job - BullMQ job
-   * @param {string} jobType - Type of job being processed
-   * @returns {object} Child logger with context
    */
-  createJobLogger(job, jobType) {
+  protected createJobLogger(job: IJob, jobType: string): ILogger {
     return this.logger.child({
       module: this.name,
       jobId: job.id,
@@ -48,14 +45,15 @@ class BaseConsumer {
 
   /**
    * Wrap job processing in a span with trace context linking
-   * @param {object} job - BullMQ job
-   * @param {string} spanName - Name for the span
-   * @param {Function} processor - Async function to execute
-   * @returns {Promise<any>} Result of processor
    */
-  async withJobSpan(job, spanName, processor) {
-    const { traceContext } = job.data;
-    const links = traceContext ? [createSpanLink(traceContext)] : [];
+  protected async withJobSpan<T extends JobData, R extends JobResult>(
+    job: IJob<T>,
+    spanName: string,
+    processor: () => Promise<R>
+  ): Promise<R> {
+    const jobData = job.data as { traceContext?: { traceId: string; spanId: string } };
+    const traceContext = jobData.traceContext;
+    const links = traceContext !== undefined ? [createSpanLink(traceContext)] : [];
 
     return withSpan(
       spanName,
@@ -63,8 +61,8 @@ class BaseConsumer {
         // Add common job attributes
         addSpanAttributes({
           "job.id": job.id,
-          "job.type": job.data.type,
-          "job.attempt": job.attemptsMade || 0,
+          "job.type": (job.data as { type?: string }).type ?? "unknown",
+          "job.attempt": job.attemptsMade,
         });
 
         return processor();
@@ -75,18 +73,15 @@ class BaseConsumer {
 
   /**
    * Hash sensitive data for safe logging/tracing
-   * @param {string} data - Sensitive data to hash
-   * @returns {string} Hashed data
    */
-  hashSensitive(data) {
+  protected hashSensitive(data: string): string {
     return hashSensitiveData(data);
   }
 
   /**
    * Add custom span attributes
-   * @param {object} attributes - Key-value pairs to add
    */
-  addAttributes(attributes) {
+  protected addAttributes(attributes: Record<string, string | number | boolean>): void {
     addSpanAttributes(attributes);
   }
 }

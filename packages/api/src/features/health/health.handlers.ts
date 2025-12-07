@@ -9,6 +9,7 @@
 import { HTTP_STATUS_CODES } from "@auth/utils";
 import { redisConnection, getLogger } from "@auth/config";
 import { getDatabaseService, getQueueServices } from "@auth/app-bootstrap";
+import type { Request, Response } from "express";
 
 const logger = getLogger().child({ module: "health" });
 
@@ -28,7 +29,7 @@ async function checkRedis() {
     logger.warn({ err: error }, "Redis health check failed");
     return {
       healthy: false,
-      error: error.message,
+      error: (error as Error).message,
     };
   }
 }
@@ -50,7 +51,7 @@ async function checkDatabase() {
     logger.warn({ err: error }, "Database health check failed");
     return {
       healthy: false,
-      error: error.message,
+      error: (error as Error).message,
     };
   }
 }
@@ -65,13 +66,13 @@ async function checkQueue() {
     const health = await queueServices.emailQueueProducer.getHealth();
     return {
       healthy: health.healthy,
-      circuitState: health.circuitBreaker?.state || "N/A",
+      circuitState: health.circuitBreaker?.state ?? "N/A",
     };
   } catch (error) {
     logger.warn({ err: error }, "Queue health check failed");
     return {
       healthy: false,
-      error: error.message,
+      error: (error as Error).message,
     };
   }
 }
@@ -80,7 +81,7 @@ async function checkQueue() {
  * Liveness probe handler - Is the process running?
  * Used by load balancers to check if the process should be restarted.
  */
-export function livenessHandler(req, res) {
+export function livenessHandler(_req: Request, res: Response) {
   res.status(HTTP_STATUS_CODES.OK).json({ status: "OK" });
 }
 
@@ -88,7 +89,7 @@ export function livenessHandler(req, res) {
  * Readiness probe handler - Are dependencies ready to serve traffic?
  * Used by load balancers to determine if traffic should be routed to this instance.
  */
-export async function readinessHandler(req, res) {
+export async function readinessHandler(_req: Request, res: Response) {
   const startTime = Date.now();
 
   // Check all dependencies in parallel
@@ -99,7 +100,7 @@ export async function readinessHandler(req, res) {
   ]);
 
   const isReady =
-    redisHealth.healthy && dbHealth.healthy && queueHealth.healthy;
+    (redisHealth.healthy && dbHealth.healthy && queueHealth.healthy) === true;
 
   const response = {
     status: isReady ? "READY" : "NOT_READY",
@@ -113,9 +114,9 @@ export async function readinessHandler(req, res) {
   };
 
   // Log if not ready (for debugging)
-  if (!isReady) {
+  if (isReady === false) {
     logger.warn(response, "Readiness check failed");
   }
 
-  res.status(isReady ? HTTP_STATUS_CODES.OK : 503).json(response);
+  res.status(isReady === true ? HTTP_STATUS_CODES.OK : 503).json(response);
 }

@@ -12,15 +12,15 @@ const options = {
         "Production-grade authentication API with email verification, rate limiting, and circuit breakers",
       contact: {
         name: "API Support",
-        email: config.emailFrom || "support@example.com",
+        email: config.emailFrom ?? "support@example.com",
       },
     },
     servers: [
       {
-        url: config.isDevelopment
+        url: config.isDevelopment === true
           ? `http://localhost:${config.port}/api/v1`
           : `${config.clientUrl}/api/v1`,
-        description: config.isDevelopment
+        description: config.isDevelopment === true
           ? "Development server"
           : "Production server",
       },

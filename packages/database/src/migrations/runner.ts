@@ -4,6 +4,12 @@ import { fileURLToPath } from "node:url";
 import mongoose from "mongoose";
 import Migration from "../models/migration.model.js";
 import { getLogger } from "@auth/config";
+import type { ILogger } from "@auth/contracts";
+
+interface MigrationModule {
+  up(db: mongoose.mongo.Db, session: mongoose.ClientSession, logger: ILogger): Promise<void>;
+  down(db: mongoose.mongo.Db, session: mongoose.ClientSession, logger: ILogger): Promise<void>;
+}
 
 const logger = getLogger();
 
@@ -99,7 +105,7 @@ class MigrationRunner {
   /**
    * Run a specific migration
    */
-  async runMigration(filename, direction = "up") {
+  async runMigration(filename: string, direction: "up" | "down" = "up") {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -107,18 +113,19 @@ class MigrationRunner {
       logger.info(`${direction === "up" ? "⬆️" : "⬇️"} Running: ${filename}`);
 
       const migrationPath = path.join(this.migrationsDir, filename);
-      const migration = await import(migrationPath);
-
+      const migration = await import(migrationPath) as Partial<MigrationModule>;
       // eslint-disable-next-line security/detect-object-injection
-      if (!migration[direction]) {
+      const runFn = migration[direction];
+      if (!runFn) {
         throw new Error(
           `Migration ${filename} does not export '${direction}' function`
         );
       }
 
       // Run the migration
-      // eslint-disable-next-line security/detect-object-injection
-      await migration[direction](mongoose.connection.db, session, logger);
+      if (mongoose.connection.db) {
+        await runFn(mongoose.connection.db, session, logger);
+      }
 
       // Update migration status
       if (direction === "up") {

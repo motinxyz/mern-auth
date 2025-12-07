@@ -1,20 +1,20 @@
-import { ConfigurationError } from "@auth/utils";
-import type { ILogger, IRedisConnection } from "@auth/contracts";
-import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
-
 /**
  * Feature Flag Service
  * Enables/disables features dynamically using Redis
  */
+import { ConfigurationError } from "@auth/utils";
+import type { ILogger, IRedisConnection } from "@auth/contracts";
+import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
+
 export class FeatureFlagService {
-  redis: IRedisConnection;
-  logger: ILogger;
+  private readonly redis: IRedisConnection;
+  private readonly logger: ILogger;
 
   constructor({ redis, logger }: { redis: IRedisConnection; logger: ILogger }) {
-    if (!redis) {
+    if (redis === undefined || redis === null) {
       throw new ConfigurationError(CONFIG_ERRORS.FF_REDIS_REQUIRED);
     }
-    if (!logger) {
+    if (logger === undefined || logger === null) {
       throw new ConfigurationError(CONFIG_ERRORS.FF_LOGGER_REQUIRED);
     }
 
@@ -24,11 +24,8 @@ export class FeatureFlagService {
 
   /**
    * Check if a feature is enabled
-   * @param {string} flagName - Feature flag name
-   * @param {string} userId - Optional user ID for user-specific flags
-   * @returns {Promise<boolean>}
    */
-  async isEnabled(flagName, userId = null) {
+  async isEnabled(flagName: string, userId: string | null = null): Promise<boolean> {
     try {
       // Check global flag first
       const globalFlag = await this.redis.get(`flag:${flagName}`);
@@ -40,7 +37,7 @@ export class FeatureFlagService {
       }
 
       // Check user-specific flag
-      if (userId) {
+      if (userId !== null) {
         const userFlag = await this.redis.get(
           `flag:${flagName}:user:${userId}`
         );
@@ -50,11 +47,11 @@ export class FeatureFlagService {
       }
 
       // Check percentage rollout
-      if (userId) {
+      if (userId !== null) {
         const rolloutPercentage = await this.redis.get(
           `flag:${flagName}:rollout`
         );
-        if (rolloutPercentage) {
+        if (rolloutPercentage !== null && rolloutPercentage !== "") {
           const percentage = parseInt(rolloutPercentage, 10);
           const userHash = this.hashUserId(userId);
           return userHash < percentage;
@@ -63,9 +60,10 @@ export class FeatureFlagService {
 
       // Default to disabled
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        { err: error, flagName, userId },
+        { err: errorMessage, flagName, userId },
         CONFIG_ERRORS.FF_CHECK_ERROR
       );
       // Fail open - if Redis is down, allow the feature
@@ -75,15 +73,15 @@ export class FeatureFlagService {
 
   /**
    * Enable a feature globally
-   * @param {string} flagName - Feature flag name
    */
-  async enable(flagName) {
+  async enable(flagName: string): Promise<void> {
     try {
       await this.redis.set(`flag:${flagName}`, "true");
       this.logger.info({ flagName }, CONFIG_MESSAGES.FF_ENABLED);
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        { err: error, flagName },
+        { err: errorMessage, flagName },
         CONFIG_ERRORS.FF_ENABLE_FAILED
       );
       throw error;
@@ -92,15 +90,15 @@ export class FeatureFlagService {
 
   /**
    * Disable a feature globally
-   * @param {string} flagName - Feature flag name
    */
-  async disable(flagName) {
+  async disable(flagName: string): Promise<void> {
     try {
       await this.redis.set(`flag:${flagName}`, "false");
       this.logger.info({ flagName }, CONFIG_MESSAGES.FF_DISABLED);
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        { err: error, flagName },
+        { err: errorMessage, flagName },
         CONFIG_ERRORS.FF_DISABLE_FAILED
       );
       throw error;
@@ -109,19 +107,18 @@ export class FeatureFlagService {
 
   /**
    * Enable a feature for a specific user
-   * @param {string} flagName - Feature flag name
-   * @param {string} userId - User ID
    */
-  async enableForUser(flagName, userId) {
+  async enableForUser(flagName: string, userId: string): Promise<void> {
     try {
       await this.redis.set(`flag:${flagName}:user:${userId}`, "true");
       this.logger.info(
         { flagName, userId },
         CONFIG_MESSAGES.FF_ENABLED_FOR_USER
       );
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        { err: error, flagName, userId },
+        { err: errorMessage, flagName, userId },
         CONFIG_ERRORS.FF_ENABLE_USER_FAILED
       );
       throw error;
@@ -130,10 +127,8 @@ export class FeatureFlagService {
 
   /**
    * Set percentage rollout for a feature
-   * @param {string} flagName - Feature flag name
-   * @param {number} percentage - Percentage of users (0-100)
    */
-  async setRolloutPercentage(flagName, percentage) {
+  async setRolloutPercentage(flagName: string, percentage: number): Promise<void> {
     if (percentage < 0 || percentage > 100) {
       throw new Error(CONFIG_ERRORS.FF_PERCENTAGE_INVALID);
     }
@@ -144,9 +139,10 @@ export class FeatureFlagService {
         { flagName, percentage },
         CONFIG_MESSAGES.FF_ROLLOUT_SET
       );
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        { err: error, flagName, percentage },
+        { err: errorMessage, flagName, percentage },
         CONFIG_ERRORS.FF_ROLLOUT_FAILED
       );
       throw error;
@@ -155,10 +151,8 @@ export class FeatureFlagService {
 
   /**
    * Hash user ID to determine rollout eligibility
-   * @param {string} userId - User ID
-   * @returns {number} Hash value between 0-100
    */
-  hashUserId(userId) {
+  private hashUserId(userId: string): number {
     let hash = 0;
     for (let i = 0; i < userId.length; i++) {
       const char = userId.charCodeAt(i);
@@ -170,12 +164,11 @@ export class FeatureFlagService {
 
   /**
    * Get all feature flags
-   * @returns {Promise<Object>} Map of flag names to their status
    */
-  async getAllFlags() {
+  async getAllFlags(): Promise<Record<string, boolean>> {
     try {
       const keys = await this.redis.keys("flag:*");
-      const flags = {};
+      const flags: Record<string, boolean> = {};
 
       for (const key of keys) {
         // Skip user-specific and rollout keys
@@ -185,13 +178,14 @@ export class FeatureFlagService {
 
         const flagName = key.replace("flag:", "");
         const value = await this.redis.get(key);
-        // eslint-disable-next-line security/detect-object-injection
+        // eslint-disable-next-line security/detect-object-injection -- flagName is derived from controlled Redis keys
         flags[flagName] = value === "true";
       }
 
       return flags;
-    } catch (error) {
-      this.logger.error({ err: error }, CONFIG_ERRORS.FF_GET_ALL_FAILED);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error({ err: errorMessage }, CONFIG_ERRORS.FF_GET_ALL_FAILED);
       return {};
     }
   }

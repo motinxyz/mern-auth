@@ -3,13 +3,13 @@ import ApiError from "./ApiError.js";
 
 describe("ApiError", () => {
   it("should create an error with correct properties", () => {
-    const error = new ApiError(404, "Not Found", ["id not found"]);
+    const error = new ApiError(404, "Not Found", [{ message: "id not found", path: [] }]);
 
     expect(error).toBeInstanceOf(Error);
     expect(error.statusCode).toBe(404);
     expect(error.message).toBe("Not Found");
     expect(error.success).toBe(false);
-    expect(error.errors).toEqual(["id not found"]);
+    expect(error.errors).toEqual([{ message: "id not found", path: [] }]);
     expect(error.stack).toBeDefined();
   });
 

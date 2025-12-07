@@ -11,7 +11,7 @@ class QueueError extends ApiError {
     const message =
       typeof originalError === "string"
         ? originalError
-        : originalError?.message || "Queue error occurred";
+        : originalError?.message ?? "Queue error occurred";
 
     super(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE, message);
     this.name = "QueueError";

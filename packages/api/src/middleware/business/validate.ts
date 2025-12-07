@@ -1,7 +1,8 @@
-import { ZodError } from "zod";
-import { getLogger, t } from "@auth/config";
+import { ZodError, type ZodSchema } from "zod";
+import { getLogger } from "@auth/config";
+import type { Request, Response, NextFunction } from "express";
 
-const logger = getLogger();
+const _logger = getLogger();
 import { ValidationError } from "@auth/utils";
 
 /**
@@ -10,7 +11,7 @@ import { ValidationError } from "@auth/utils";
  * @param {import('zod').ZodSchema} schema - The Zod schema to validate against.
  * @returns {import('express').RequestHandler} An Express middleware function.
  */
-export const validate = (schema) => async (req, res, next) => {
+export const validate = (schema: ZodSchema) => async (req: Request, _res: Response, next: NextFunction) => {
   try {
     // Determine what to validate based on HTTP method
     const dataToValidate = req.method === "GET" ? req.query : req.body;
@@ -20,7 +21,7 @@ export const validate = (schema) => async (req, res, next) => {
 
     // Replace request data with validated data
     if (req.method === "GET") {
-      req.query = validated;
+      req.query = validated as typeof req.query;
     } else {
       req.body = validated;
     }
@@ -33,7 +34,7 @@ export const validate = (schema) => async (req, res, next) => {
         const field = err.path.join(".");
         const context = {};
         if (err.code === "too_small") {
-          (context as any).count = err.minimum;
+          (context as Record<string, unknown>).count = err.minimum;
         }
 
         return {

@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { createCircuitBreaker } from "./circuit-breaker.js";
 
 describe("Circuit Breaker", () => {
-  let successfulOperation;
-  let failingOperation;
+  let successfulOperation: Mock;
+  let failingOperation: Mock;
 
   beforeEach(() => {
     successfulOperation = vi.fn(async () => "success");

@@ -12,6 +12,16 @@ export interface IConfig {
 
     // Database
     mongoUri: string;
+    dbURI?: string;
+    dbName?: string;
+    dbMaxRetries?: number;
+    dbInitialRetryDelayMs?: number;
+    dbPoolSize?: number;
+    dbMinPoolSize?: number;
+    dbMaxIdleTimeMs?: number;
+    dbWaitQueueTimeoutMs?: number;
+    serverSelectionTimeoutMs?: number;
+    socketTimeoutMs?: number;
 
     // Redis
     redisUrl: string;

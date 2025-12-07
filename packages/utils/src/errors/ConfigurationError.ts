@@ -6,7 +6,7 @@ import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
  * This error should be thrown when the application is misconfigured.
  */
 class ConfigurationError extends ApiError {
-  constructor(message) {
+  constructor(message: string) {
     super(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, message);
     this.name = "ConfigurationError";
   }

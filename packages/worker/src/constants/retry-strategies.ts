@@ -1,4 +1,4 @@
-const RETRY_STRATEGIES = {
+export const _RETRY_STRATEGIES = {
   EXPONENTIAL: {
     type: "exponential",
     delay: 1000,

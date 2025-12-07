@@ -1,5 +1,11 @@
 import timeout from "connect-timeout";
 import { getLogger } from "@auth/config";
+import type { Request, Response, NextFunction } from "express";
+
+interface TimeoutRequest extends Request {
+  timedout?: boolean;
+  user?: { id: string };
+}
 
 const logger = getLogger();
 import { HTTP_STATUS_CODES } from "@auth/utils";
@@ -21,8 +27,8 @@ export const createTimeoutMiddleware = (duration = 30000) => {
     timeout(duration),
 
     // Check if request timed out before proceeding
-    (req, res, next) => {
-      if (!req.timedout) {
+    (req: TimeoutRequest, res: Response, next: NextFunction) => {
+      if (req.timedout !== true) {
         next();
       }
     },
@@ -35,8 +41,8 @@ export const createTimeoutMiddleware = (duration = 30000) => {
  * Must be placed AFTER all routes but BEFORE the global error handler.
  * Catches timed-out requests and sends appropriate error response.
  */
-export const timeoutErrorHandler = (req, res, next) => {
-  if (req.timedout) {
+export const timeoutErrorHandler = (req: TimeoutRequest, res: Response, next: NextFunction) => {
+  if (req.timedout === true) {
     timeoutLogger.warn(
       {
         requestId: req.id,

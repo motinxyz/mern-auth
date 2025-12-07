@@ -23,16 +23,12 @@ import app from "./app.js";
 import { bootstrapApplication } from "@auth/app-bootstrap";
 import {
   getLogger,
-  redisConnection,
   config,
-  QUEUE_NAMES,
-  WORKER_CONFIG,
 } from "@auth/config";
+import type { IWorkerService } from "@auth/contracts";
 
 const logger = getLogger();
 import { getDatabaseService, getEmailService } from "@auth/app-bootstrap";
-import WorkerService from "@auth/worker";
-import { createEmailJobConsumer } from "@auth/worker/consumers/email";
 import { initSentry } from "./middleware/core/sentry.js";
 import { API_MESSAGES } from "./constants/api.messages.js";
 
@@ -48,11 +44,12 @@ const databaseService = getDatabaseService();
 // Get email service (lazy initialization)
 const emailService = getEmailService();
 
-let workerService;
+// eslint-disable-next-line prefer-const -- assigned after bootstrapApplication
+let workerService: IWorkerService | undefined;
 
 // Start the application by bootstrapping all services and starting the server.
 await bootstrapApplication(app, async () => {
-  if (workerService) {
+  if (workerService !== undefined) {
     logger.info(API_MESSAGES.WORKER_SHUTDOWN_INIT);
     await workerService.stop();
     logger.info(API_MESSAGES.WORKER_SHUTDOWN_COMPLETE);

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import WorkerService from "./worker.service.js";
 
 // Mock QueueProcessorService
@@ -49,6 +49,7 @@ describe("WorkerService", () => {
       connect: vi.fn().mockResolvedValue(),
       disconnect: vi.fn().mockResolvedValue(),
       healthCheck: vi.fn().mockResolvedValue({ healthy: true }),
+      ping: vi.fn().mockResolvedValue(true),
     };
 
     service = new WorkerService({

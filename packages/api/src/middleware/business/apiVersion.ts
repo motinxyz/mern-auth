@@ -1,9 +1,21 @@
 import { getLogger } from "@auth/config";
+import type { Request, Response, NextFunction } from "express";
 
 const logger = getLogger();
 import { API_MESSAGES } from "../../constants/api.messages.js";
 
 const versionLogger = logger.child({ module: "api-version" });
+
+interface ApiVersionOptions {
+  currentVersion?: string;
+  deprecatedVersion?: string | null;
+  sunsetDate?: string | null;
+  successorVersion?: string | null;
+}
+
+interface VersionedRequest extends Request {
+  apiVersion?: string;
+}
 
 /**
  * API Version Tracking and Deprecation Middleware
@@ -18,7 +30,7 @@ const versionLogger = logger.child({ module: "api-version" });
  * @param {string} options.successorVersion - Successor version (e.g., 'v2')
  * @returns {Function} Express middleware
  */
-export const apiVersionMiddleware = (options: any = {}) => {
+export const apiVersionMiddleware = (options: ApiVersionOptions = {}) => {
   const {
     currentVersion = "v1",
     deprecatedVersion = null,
@@ -26,7 +38,7 @@ export const apiVersionMiddleware = (options: any = {}) => {
     successorVersion = null,
   } = options;
 
-  return (req, res, next) => {
+  return (req: VersionedRequest, res: Response, next: NextFunction) => {
     // Extract version from URL path (e.g., /api/v1/auth -> v1)
     const pathParts = req.path.split("/");
     const versionIndex = pathParts.findIndex((part) => part.startsWith("v"));
@@ -36,7 +48,7 @@ export const apiVersionMiddleware = (options: any = {}) => {
         : null;
 
     // Add version to request for logging
-    req.apiVersion = requestedVersion || currentVersion;
+    req.apiVersion = requestedVersion ?? currentVersion;
 
     // Log version usage
     versionLogger.debug(
@@ -49,14 +61,18 @@ export const apiVersionMiddleware = (options: any = {}) => {
     );
 
     // Add deprecation headers if this version is deprecated
-    if (deprecatedVersion && requestedVersion === deprecatedVersion) {
+    if (
+      deprecatedVersion !== null &&
+      deprecatedVersion !== undefined &&
+      requestedVersion === deprecatedVersion
+    ) {
       res.setHeader("Deprecation", "true");
 
-      if (sunsetDate) {
+      if (sunsetDate !== null && sunsetDate !== undefined) {
         res.setHeader("Sunset", sunsetDate);
       }
 
-      if (successorVersion) {
+      if (successorVersion !== null && successorVersion !== undefined) {
         const successorPath = req.path.replace(
           `/${deprecatedVersion}/`,
           `/${successorVersion}/`

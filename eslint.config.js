@@ -49,9 +49,15 @@ export default [
     },
   },
   {
-    files: ["**/*.test.js", "**/vitest.config.js", "**/*.test.ts"],
+    files: [
+      "**/*.test.js",
+      "**/*.test.ts",
+      "**/vitest.config.js",
+      "**/vitest.config.ts",
+    ],
     rules: {
       "import/no-extraneous-dependencies": "off",
+      "@typescript-eslint/no-extraneous-class": "off",
     },
   },
 ];

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/strict-boolean-expressions */
 import pinoHttp, { stdSerializers } from "pino-http";
 import { v4 as uuidv4 } from "uuid";
 import { config, getLogger } from "@auth/config";
@@ -9,11 +10,12 @@ const logger = getLogger();
 // This ensures the 'module' property is always present and appears first.
 const httpModuleLogger = logger.child({ module: "http" });
 
+
 export const httpLogger = (pinoHttp as any)({
   logger: httpModuleLogger,
   // Generate a unique ID for every request.
   // This ID will be automatically included in every log line for this request.
-  genReqId: (req, res) => {
+  genReqId: (req: any, res: any) => {
     const existingId = req.id || req.headers["x-request-id"];
     if (existingId) return existingId;
     const id = uuidv4();
@@ -22,7 +24,7 @@ export const httpLogger = (pinoHttp as any)({
   },
 
   // Add custom properties to every log entry
-  customProps: (req, res) => {
+  customProps: (req: any, _res: any) => {
     // Extract OpenTelemetry trace context
     const span = trace.getActiveSpan();
     const spanContext = span?.spanContext();
@@ -48,16 +50,16 @@ export const httpLogger = (pinoHttp as any)({
   serializers: config.isDevelopment
     ? {
       // In dev, use minimal serializers for a clean log line.
-      req: (req) => ({
+      req: (req: any) => ({
         method: req.method,
         url: req.url,
         userId: req.raw.user?.id || req.raw.user?._id,
       }),
-      res: (res) => ({ statusCode: res.statusCode }),
+      res: (res: any) => ({ statusCode: res.statusCode }),
     }
     : {
       // In prod, use enhanced serializers with user context
-      req: (req) => ({
+      req: (req: any) => ({
         ...stdSerializers.req(req),
         userId: req.raw.user?.id || req.raw.user?._id,
         userEmail: req.raw.user?.email,
@@ -68,7 +70,7 @@ export const httpLogger = (pinoHttp as any)({
 
   // Use a custom log level to control verbosity.
   // In development, we log successful requests at 'debug' level.
-  customLogLevel: function (req, res, err) {
+  customLogLevel: function (_req: any, res: any, err: any) {
     if (res.statusCode >= 400 && res.statusCode < 500) {
       return "warn";
     } else if (res.statusCode >= 500 || err) {

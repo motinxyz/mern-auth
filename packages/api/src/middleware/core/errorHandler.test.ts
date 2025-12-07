@@ -1,3 +1,4 @@
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ApiError, ValidationError, HTTP_STATUS_CODES } from "@auth/utils";
 
@@ -14,10 +15,13 @@ vi.mock("@auth/config", () => ({
 vi.mock("@auth/utils", async () => {
   const actual = await vi.importActual("@auth/utils");
   class MockValidationError extends Error {
-    constructor(errors, message) {
+    errors: any;
+    statusCode: any;
+    success: boolean;
+    constructor(errors: any, message: any) {
       super(message || "Validation Error");
       this.errors = errors;
-      this.statusCode = actual.HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY;
+      this.statusCode = (actual.HTTP_STATUS_CODES as any).UNPROCESSABLE_CONTENT ?? 422;
       this.success = false;
     }
   }
@@ -28,9 +32,9 @@ vi.mock("@auth/utils", async () => {
 });
 
 describe("Error Handler Middleware", () => {
-  let req, res, next;
-  let errorHandler; // Declare errorHandler here with let
-  let mockErrorFn; // Declare mockErrorFn here
+  let req: any, res: any, next: any;
+  let errorHandler: any; // Declare errorHandler here with let
+  let mockErrorFn: any; // Declare mockErrorFn here
 
   beforeEach(async () => {
     vi.clearAllMocks(); // Clear mocks at the beginning
@@ -76,15 +80,15 @@ describe("Error Handler Middleware", () => {
 
   it("should handle ValidationError correctly", () => {
     const errors = [{ field: "email", message: "Invalid email" }];
-    const mockT = vi.fn((key) => key);
+
     const error = new ValidationError(errors, "validation:failed");
     errorHandler(error, req, res, next);
     expect(res.status).toHaveBeenCalledWith(
-      HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY
+      HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT
     );
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        statusCode: HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY,
+        statusCode: HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT,
         errors: expect.any(Array),
       })
     );
@@ -99,11 +103,11 @@ describe("Error Handler Middleware", () => {
     };
     errorHandler(mongooseError, req, res, next);
     expect(res.status).toHaveBeenCalledWith(
-      HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY
+      HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT
     );
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        statusCode: HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY,
+        statusCode: HTTP_STATUS_CODES.UNPROCESSABLE_CONTENT,
         errors: expect.any(Array),
       })
     );

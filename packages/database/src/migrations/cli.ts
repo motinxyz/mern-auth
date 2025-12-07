@@ -15,7 +15,7 @@ import { config, getLogger, t } from "@auth/config";
 
 const logger = getLogger();
 
-const command = process.argv[2] || "status";
+const command = process.argv[2] ?? "status";
 
 async function main() {
   const databaseService = new DatabaseService({ config, logger, t });

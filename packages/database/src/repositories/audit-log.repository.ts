@@ -26,36 +26,25 @@ class AuditLogRepository extends BaseRepository<AuditLogDocument> {
    * Create audit log entry
    * @param {Object} logData - Audit log data
    */
-  async create(logData: Partial<AuditLogDocument>): Promise<AuditLogDocument | null> {
+  async create(logData: Partial<AuditLogDocument>): Promise<AuditLogDocument> {
     return withSpan("AuditLogRepository.create", async () => {
-      try {
-        const result = await this.model.create(logData);
-        // Mongoose create returns array if input is array, single doc if object.
-        // We assume logData is object here.
-        const auditLog = (Array.isArray(result) ? result[0] : result) as AuditLogDocument;
+      const result = await this.model.create(logData);
+      // Mongoose create returns array if input is array, single doc if object.
+      // We assume logData is object here.
+      const auditLog = (Array.isArray(result) ? result[0] : result) as AuditLogDocument;
 
-        if (this.logger) {
-          this.logger.info(
-            {
-              auditLogId: auditLog._id.toString(),
-              userId: logData.userId,
-              action: logData.action,
-            },
-            "Audit log created"
-          );
-        }
 
-        return auditLog;
-      } catch (error) {
-        if (this.logger) {
-          this.logger.error(
-            { err: error, logData },
-            "Failed to create audit log"
-          );
-        }
-        // Don't throw - audit logging should not break the application
-        return null;
-      }
+      this.logger.info(
+        {
+          auditLogId: auditLog._id.toString(),
+          userId: logData.userId,
+          action: logData.action,
+        },
+        "Audit log created"
+      );
+
+
+      return auditLog;
     });
   }
 

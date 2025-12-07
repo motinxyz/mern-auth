@@ -1,0 +1,1 @@
+{"version":3,"file":"InvalidJobDataError.js","sourceRoot":"","sources":["../../../src/errors/InvalidJobDataError.ts"],"names":[],"mappings":"AAKA;;GAEG;AACH,MAAM,CAAC,OAAO,OAAO,mBAAoB,SAAQ,KAAK;IACpC,MAAM,CAAa;IAEnC,YAAY,OAAe,EAAE,SAAqB,EAAE;QAClD,KAAK,CAAC,OAAO,CAAC,CAAC;QACf,IAAI,CAAC,IAAI,GAAG,qBAAqB,CAAC;QAClC,IAAI,CAAC,MAAM,GAAG,MAAM,CAAC;IACvB,CAAC;CACF"}

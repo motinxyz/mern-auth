@@ -5,7 +5,7 @@
 export class VerificationDto {
   token: string;
 
-  constructor({ token }: any) {
+  constructor({ token }: { token: string }) {
     this.token = token;
   }
 
@@ -14,7 +14,7 @@ export class VerificationDto {
    * @param {object} query - Request query parameters
    * @returns {VerificationDto}
    */
-  static fromRequest(query) {
+  static fromRequest(query: Record<string, string>) {
     return new VerificationDto({
       token: query.token,
     });

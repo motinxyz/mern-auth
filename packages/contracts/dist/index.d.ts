@@ -14,5 +14,5 @@ export type { IEmailProvider, MailOptions, EmailSendResult, BounceData, Provider
 export type { IEmailService, IProviderService, EmailServiceOptions, SendEmailOptions, CircuitBreakerHealth, } from "./IEmailService.js";
 export type { IQueueProducer, JobOptions, QueueJob, QueueHealth, } from "./IQueueProducer.js";
 export type { ITokenService, TokenUser, TokenPayload, } from "./ITokenService.js";
-export type { IConsumer, IWorkerService, IQueueProcessor, IJob, JobData, JobResult, ConsumerOptions, ProcessorConfig, } from "./IWorker.js";
+export type { IConsumer, IWorkerService, IQueueProcessor, IJob, JobData, JobResult, ConsumerOptions, ProcessorConfig, ISentry, WorkerConfig, WorkerServiceOptions, QueueProcessorOptions, ProcessorRegistrationConfig, WorkerHealth, WorkerMetrics, } from "./IWorker.js";
 //# sourceMappingURL=index.d.ts.map

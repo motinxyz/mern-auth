@@ -89,14 +89,14 @@ export class TokenService {
   /**
    * Verify and consume a token
    */
-  async verifyToken(token: string): Promise<{ userId: string; type: string }> {
+  async verifyToken(_token: string): Promise<{ userId: string; type: string }> {
     throw new Error("Method not implemented.");
   }
 
   /**
    * Delete a token
    */
-  async deleteToken(token: string): Promise<void> {
+  async deleteToken(_token: string): Promise<void> {
     throw new Error("Method not implemented.");
   }
 

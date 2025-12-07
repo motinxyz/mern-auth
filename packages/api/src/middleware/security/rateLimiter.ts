@@ -3,6 +3,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const { RedisStore } = require("rate-limit-redis");
 import { config, t, redisConnection } from "@auth/config";
+import type { Request, Response } from "express";
 
 // Basic rate limiting middleware for all API requests
 export const apiLimiter = rateLimit({
@@ -11,13 +12,14 @@ export const apiLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   store: new RedisStore({
-    // @ts-expect-error - Redis call spread args mismatch
-    sendCommand: (...args) => redisConnection.call(...(args as unknown as any[])),
+
+    sendCommand: (...args: string[]) => redisConnection.call(...(args as [string, ...string[]])),
     prefix: "rl:api:",
   }),
-  message: (req, res) => {
-    const retryAfterMinutes = Math.ceil(res.getHeader("Retry-After") / 60);
-    return (t as any)("rateLimit:apiTooManyRequests", { retryAfterMinutes });
+  message: (_req: Request, res: Response) => {
+    const retryAfter = res.getHeader("Retry-After");
+    const retryAfterMinutes = Math.ceil(Number(retryAfter) / 60);
+    return t("rateLimit:apiTooManyRequests", { retryAfterMinutes });
   },
 });
 
@@ -29,16 +31,17 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   store: new RedisStore({
-    // @ts-expect-error - Redis call spread args mismatch
-    sendCommand: (...args) => redisConnection.call(...(args as unknown as any[])),
+
+    sendCommand: (...args: string[]) => redisConnection.call(...(args as [string, ...string[]])),
     prefix: "rl:auth:",
   }),
-  message: (req, res) => {
-    const retryAfterMinutes = Math.ceil(res.getHeader("Retry-After") / 60);
-    return (t as any)("rateLimit:authTooManyAttempts", { retryAfterMinutes });
+  message: (_req: Request, res: Response) => {
+    const retryAfter = res.getHeader("Retry-After");
+    const retryAfterMinutes = Math.ceil(Number(retryAfter) / 60);
+    return t("rateLimit:authTooManyAttempts", { retryAfterMinutes });
   },
   // `skip` is the recommended way to disable rate limiting.
-  skip: (req, res) => {
+  skip: () => {
     const isDev = config.isDevelopment;
     // if (isDev) logger.debug("Auth rate limit skipped for development.");
     return isDev;

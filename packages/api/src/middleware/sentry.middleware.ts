@@ -12,13 +12,19 @@ import {
   addSentryBreadcrumb,
   startSentryTransaction,
 } from "./core/sentry.js";
+import type { Request, Response, NextFunction } from "express";
+import type { TokenUser } from "@auth/contracts";
+
+interface AuthenticatedRequest extends Request {
+  user?: TokenUser;
+}
 
 /**
  * Middleware to set Sentry user context for authenticated requests
  */
-export const sentryUserMiddleware = (req, res, next) => {
+export const sentryUserMiddleware = (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
   // Set user context if authenticated
-  if (req.user) {
+  if (req.user !== undefined) {
     setSentryUser(req.user);
   }
 
@@ -42,8 +48,7 @@ export const sentryUserMiddleware = (req, res, next) => {
 /**
  * Middleware to track performance of critical operations
  */
-/* eslint-disable import/no-unused-modules */
-export const sentryPerformanceMiddleware = (req, res, next) => {
+export const sentryPerformanceMiddleware = (req: Request, res: Response, next: NextFunction) => {
   // Only track important endpoints
   const shouldTrack =
     req.path.includes("/auth/") || req.path.includes("/api/v1/");
@@ -54,7 +59,7 @@ export const sentryPerformanceMiddleware = (req, res, next) => {
 
   const transaction = startSentryTransaction(
     "http.server",
-    `${req.method} ${req.route?.path || req.path}`,
+    `${req.method} ${req.route?.path !== undefined ? req.route.path : req.path}`,
     {
       method: req.method,
       url: req.url,
@@ -73,23 +78,20 @@ export const sentryPerformanceMiddleware = (req, res, next) => {
 /**
  * Add breadcrumb for authentication events
  */
-/* eslint-disable import/no-unused-modules */
-export function addAuthBreadcrumb(event, data = {}) {
+export function addAuthBreadcrumb(event: string, data: Record<string, unknown> = {}) {
   addSentryBreadcrumb("auth", event, data, "info");
 }
 
 /**
  * Add breadcrumb for email events
  */
-/* eslint-disable import/no-unused-modules */
-export function addEmailBreadcrumb(event, data = {}) {
+export function addEmailBreadcrumb(event: string, data: Record<string, unknown> = {}) {
   addSentryBreadcrumb("email", event, data, "info");
 }
 
 /**
  * Add breadcrumb for database events
  */
-/* eslint-disable import/no-unused-modules */
-export function addDatabaseBreadcrumb(event, data = {}) {
+export function addDatabaseBreadcrumb(event: string, data: Record<string, unknown> = {}) {
   addSentryBreadcrumb("database", event, data, "info");
 }

@@ -1,15 +1,17 @@
 import { getDatabaseService } from "@auth/app-bootstrap";
 import { redisConnection, getLogger } from "@auth/config";
+import type { Request, Response } from "express";
+import type { IDatabaseService } from "@auth/contracts";
 
 const logger = getLogger();
 import { HTTP_STATUS_CODES } from "@auth/utils";
 
 const healthLogger = logger.child({ module: "health" });
 
-/* eslint-disable import/no-unused-modules */
+
 export class HealthController {
-  databaseService: any;
-  redisConnection: any;
+  databaseService: IDatabaseService;
+  redisConnection: typeof redisConnection;
 
   constructor() {
     this.databaseService = getDatabaseService();
@@ -20,7 +22,7 @@ export class HealthController {
    * Check health of all services
    * GET /api/health
    */
-  checkHealth = async (req, res) => {
+  checkHealth = async (_req: Request, res: Response) => {
     try {
       // Perform actual ping to verify connectivity
       const [dbPing, redisPing] = await Promise.allSettled([
@@ -60,7 +62,7 @@ export class HealthController {
         services,
       });
     } catch (error) {
-      healthLogger.error({ error: error.message }, "Health check error");
+      healthLogger.error({ error: (error as Error).message }, "Health check error");
       res.status(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR).json({
         status: "ERROR",
         message: "Internal server error during health check",

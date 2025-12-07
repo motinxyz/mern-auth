@@ -1,4 +1,5 @@
 import express from "express";
+import type { Application, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import hpp from "hpp";
@@ -6,14 +7,13 @@ import { httpLogger } from "./loggerMiddleware.js";
 import expressMongoSanitize from "@exortek/express-mongo-sanitize";
 import { config } from "@auth/config";
 
-/* eslint-disable import/no-unused-modules */
-export const configureSecurityMiddleware = (app) => {
+export const configureSecurityMiddleware = (app: Application) => {
   // Enable CORS with secure options from centralized config
   app.use(
     cors({
       origin: (origin, callback) => {
         const allowedOrigins = config.cors.allowedOrigins;
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (origin === undefined || allowedOrigins.includes(origin) === true) {
           callback(null, true);
         } else {
           callback(new Error("Not allowed by CORS"));
@@ -57,19 +57,19 @@ export const configureSecurityMiddleware = (app) => {
   app.use(hpp());
 
   // Sanitize data to prevent NoSQL injection
-  app.use((expressMongoSanitize as any)());
+  // @ts-expect-error - expressMongoSanitize types don't expose call signature
+  app.use(expressMongoSanitize());
 };
 
 import compression from "compression";
 
-/* eslint-disable import/no-unused-modules */
-export const configureParsingMiddleware = (app) => {
+export const configureParsingMiddleware = (app: Application) => {
   // Response compression (gzip/deflate)
   app.use(
     compression({
-      filter: (req, res) => {
+      filter: (req: Request, res: Response) => {
         // Don't compress if client sends x-no-compression header
-        if (req.headers["x-no-compression"]) {
+        if (req.headers["x-no-compression"] !== undefined) {
           return false;
         }
         // Use compression filter (checks Content-Type)
@@ -90,7 +90,7 @@ export const configureParsingMiddleware = (app) => {
   app.use(httpLogger);
 };
 
-export const configureMiddleware = (app) => {
+export const configureMiddleware = (app: Application) => {
   configureSecurityMiddleware(app);
   configureParsingMiddleware(app);
 };

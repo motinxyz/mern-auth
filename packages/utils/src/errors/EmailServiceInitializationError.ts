@@ -12,11 +12,12 @@ class EmailServiceInitializationError extends ApiError {
    * @param {string} message - The error message.
    * @param {Error} [originalError] - The original error that caused this error.
    */
-  constructor(message, originalError) {
+  constructor(message: string, originalError?: Error) {
+    const errors = originalError ? [{ message: originalError.message, stack: originalError.stack }] : [];
     super(
       HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
       message,
-      originalError
+      errors
     );
     this.name = "EmailServiceInitializationError";
   }

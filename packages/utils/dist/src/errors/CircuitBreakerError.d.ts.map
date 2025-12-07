@@ -1,0 +1,1 @@
+{"version":3,"file":"CircuitBreakerError.d.ts","sourceRoot":"","sources":["../../../src/errors/CircuitBreakerError.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,MAAM,CAAC,OAAO,OAAO,mBAAoB,SAAQ,KAAK;IACpD,SAAgB,IAAI,EAAE,MAAM,CAAC;IAC7B,SAAgB,UAAU,EAAE,MAAM,CAAC;gBAGjC,OAAO,SAA8D;CAQxE"}

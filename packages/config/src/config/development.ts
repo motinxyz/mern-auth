@@ -1,4 +1,4 @@
-/* eslint-disable import/no-unused-modules */
+// packages/config/src/config/development.js
 // packages/config/src/config/development.js
 // Development-specific configurations
 

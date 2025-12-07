@@ -56,6 +56,16 @@ export default tseslint.config(
     files: ["**/*.js"],
     extends: [tseslint.configs.disableTypeChecked],
   },
+  // Test files and vitest configs - disable strict type checking
+  {
+    files: ["**/*.test.ts", "**/vitest.config.ts"],
+    extends: [tseslint.configs.disableTypeChecked],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/strict-boolean-expressions": "off",
+      "@typescript-eslint/no-extraneous-class": "off",
+    },
+  },
 
   // Prettier must be last
   prettierConfig

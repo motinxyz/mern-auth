@@ -18,13 +18,13 @@ export default class ApiError extends Error {
   public readonly errors: ValidationError[];
 
   constructor(
-    statusCode: number,
+    statusCode: number = 500,
     message: string = "Something went wrong",
     errors: ValidationError[] = [],
     stack: string = ""
   ) {
     super(message);
-    this.statusCode = statusCode || 500;
+    this.statusCode = statusCode;
     this.data = null;
     this.success = false;
     this.errors = errors;

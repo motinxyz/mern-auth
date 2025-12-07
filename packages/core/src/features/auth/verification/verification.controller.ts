@@ -1,24 +1,26 @@
 import { HTTP_STATUS_CODES, ApiResponse } from "@auth/utils";
 import { t as systemT } from "@auth/config";
+import type { VerificationService } from "./verification.service.js";
+import type { VerificationDto } from "./verification.dto.js";
 
 /**
  * Controller for email verification
  * Single Responsibility: Handle email verification HTTP requests
  */
 export class VerificationController {
-  verificationService: any;
+  verificationService: VerificationService;
 
-  constructor(verificationService: any) {
+  constructor(verificationService: VerificationService) {
     this.verificationService = verificationService;
   }
 
   /**
    * Verify user email
-   * @param {VerifyEmailDto} dto - Email verification data
+   * @param {VerificationDto} dto - Email verification data
    * @param {string} locale - User locale for i18n
    * @returns {Promise<ControllerResult>}
    */
-  async verifyEmail(dto, locale = "en") {
+  async verifyEmail(dto: VerificationDto, locale = "en") {
     const { status } = await this.verificationService.verify(dto.token);
 
     const message =
@@ -31,7 +33,7 @@ export class VerificationController {
       data: new ApiResponse(
         HTTP_STATUS_CODES.OK,
         { status },
-        (systemT as any)(message, { lng: locale })
+        systemT(message, { lng: locale })
       ),
     };
   }

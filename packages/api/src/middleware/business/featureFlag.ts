@@ -2,10 +2,20 @@
  * Feature Flag Middleware
  * Checks if a feature is enabled before allowing access to a route
  */
-export const featureFlagMiddleware = (featureFlagService, flagName) => {
-  return async (req, res, next) => {
+import type { Request, Response, NextFunction } from "express";
+
+interface FeatureFlagService {
+  isEnabled: (flagName: string, userId: string | null) => Promise<boolean>;
+}
+
+interface AuthenticatedRequest extends Request {
+  user?: { id: string };
+}
+
+export const featureFlagMiddleware = (featureFlagService: FeatureFlagService, flagName: string) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user?.id || null;
+      const userId = req.user?.id ?? null;
       const isEnabled = await featureFlagService.isEnabled(flagName, userId);
 
       if (!isEnabled) {
@@ -17,7 +27,7 @@ export const featureFlagMiddleware = (featureFlagService, flagName) => {
       }
 
       next();
-    } catch (error) {
+    } catch (_error) {
       // If feature flag check fails, allow access (fail open)
       next();
     }

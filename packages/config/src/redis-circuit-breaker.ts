@@ -1,5 +1,38 @@
 import CircuitBreaker from "opossum";
+import type { Redis } from "ioredis";
+import type { ILogger } from "@auth/contracts";
 import { CONFIG_MESSAGES } from "./constants/config.messages.js";
+
+interface CircuitBreakerOptions {
+  timeout?: number;
+  errorThresholdPercentage?: number;
+  resetTimeout?: number;
+  rollingCountTimeout?: number;
+  rollingCountBuckets?: number;
+  name?: string;
+  volumeThreshold?: number;
+}
+
+/**
+ * Determine if a Redis command is non-critical
+ * Non-critical commands can fail gracefully without breaking the app
+ */
+function isNonCriticalCommand(command: string | symbol): boolean {
+  if (typeof command !== "string") return false;
+  const nonCriticalCommands = [
+    "get", // Cache reads
+    "set", // Cache writes
+    "setex", // Cache writes with expiry
+    "del", // Cache deletes
+    "keys", // Cache key lookups
+    "ttl", // Cache TTL checks
+    "incr", // Rate limit counters (can fall back to memory)
+    "decr",
+    "expire",
+  ];
+
+  return nonCriticalCommands.includes(command.toLowerCase());
+}
 
 /**
  * Create a circuit breaker for Redis operations
@@ -14,10 +47,11 @@ import { CONFIG_MESSAGES } from "./constants/config.messages.js";
  * @returns {Object} Circuit breaker wrapped Redis client
  */
 export const createRedisCircuitBreaker = (
-  redisConnection,
-  logger,
-  sentry = null,
-  options = {}
+  redisConnection: Redis,
+  logger: ILogger,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sentry: any | null = null,
+  options: CircuitBreakerOptions = {}
 ) => {
   const circuitBreakerLogger = logger.child({
     module: "redis-circuit-breaker",
@@ -25,7 +59,7 @@ export const createRedisCircuitBreaker = (
 
   // Get timeout from options (preferred) or default
   // Upstash Redis (serverless) needs longer timeouts due to sleep/wake cycles
-  const timeout = (options as any).timeout || 10000;
+  const timeout = options.timeout ?? 10000;
 
   // Circuit breaker options
   const cbOptions = {
@@ -39,9 +73,13 @@ export const createRedisCircuitBreaker = (
   };
 
   // Wrap Redis commands in circuit breaker
-  const executeCommand = async (command, ...args) => {
+  // Wrap Redis commands in circuit breaker
+  const executeCommand = async (...args: unknown[]) => {
+    const command = args[0] as string;
+    const commandArgs = args.slice(1);
+    // @ts-expect-error - Redis methods access with unknown args
     // eslint-disable-next-line security/detect-object-injection
-    return await redisConnection[command](...args);
+    return await redisConnection[command](...commandArgs);
   };
 
   const breaker = new CircuitBreaker(executeCommand, cbOptions);
@@ -56,7 +94,7 @@ export const createRedisCircuitBreaker = (
       CONFIG_MESSAGES.REDIS_CB_OPENED
     );
 
-    if (sentry) {
+    if (sentry !== null && sentry !== undefined) {
       sentry.captureMessage("Redis circuit breaker opened", {
         level: "warning",
         extra: {
@@ -80,7 +118,7 @@ export const createRedisCircuitBreaker = (
       CONFIG_MESSAGES.REDIS_CB_CLOSED
     );
 
-    if (sentry) {
+    if (sentry !== null && sentry !== undefined) {
       sentry.captureMessage(
         "Redis circuit breaker closed - service recovered",
         {
@@ -94,9 +132,12 @@ export const createRedisCircuitBreaker = (
   });
 
   // Only log failures and timeouts, not every success
-  breaker.on("failure", (error) => {
+  breaker.on("failure", (error: Error) => {
+    // Determine the error message safely
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
     circuitBreakerLogger.warn(
-      { error: error.message },
+      { error: errorMessage },
       CONFIG_MESSAGES.REDIS_CB_COMMAND_FAILED
     );
   });
@@ -143,20 +184,22 @@ export const createRedisCircuitBreaker = (
       ];
 
       // Pass through non-command properties
-      // eslint-disable-next-line security/detect-object-injection
+      // eslint-disable-next-line security/detect-object-injection, @typescript-eslint/no-explicit-any
       if (passThrough.includes(prop as string) || typeof (target as any)[prop] !== "function") {
-        // eslint-disable-next-line security/detect-object-injection
+        // eslint-disable-next-line security/detect-object-injection, @typescript-eslint/no-explicit-any
         return (target as any)[prop];
       }
 
       // Wrap commands in circuit breaker
-      return async (...args) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return async (...args: any[]) => {
         try {
           return await breaker.fire(prop, ...args);
         } catch (error) {
           // Circuit is open or command failed
+          const errorMessage = error instanceof Error ? error.message : String(error);
           circuitBreakerLogger.error(
-            { command: prop, error: error.message },
+            { command: String(prop), error: errorMessage },
             CONFIG_MESSAGES.REDIS_CB_OPERATION_FAILED
           );
 
@@ -177,29 +220,24 @@ export const createRedisCircuitBreaker = (
   });
 
   // Expose circuit breaker stats
-  proxiedRedis.getCircuitBreakerStats = () => breaker.stats;
-  proxiedRedis.getCircuitBreakerState = () =>
+  type CircuitBreakerStats = {
+    failures: number;
+    fires: number;
+    successes: number;
+    fallbacks: number;
+    rejects: number;
+    timeouts: number;
+    [key: string]: unknown;
+  };
+
+  type ProxiedRedisWithStats = Redis & {
+    getCircuitBreakerStats: () => CircuitBreakerStats;
+    getCircuitBreakerState: () => string;
+  };
+
+  (proxiedRedis as unknown as ProxiedRedisWithStats).getCircuitBreakerStats = () => breaker.stats as unknown as CircuitBreakerStats;
+  (proxiedRedis as unknown as ProxiedRedisWithStats).getCircuitBreakerState = () =>
     breaker.opened ? "OPEN" : breaker.halfOpen ? "HALF_OPEN" : "CLOSED";
 
   return proxiedRedis;
-};
-
-/**
- * Determine if a Redis command is non-critical
- * Non-critical commands can fail gracefully without breaking the app
- */
-const isNonCriticalCommand = (command) => {
-  const nonCriticalCommands = [
-    "get", // Cache reads
-    "set", // Cache writes
-    "setex", // Cache writes with expiry
-    "del", // Cache deletes
-    "keys", // Cache key lookups
-    "ttl", // Cache TTL checks
-    "incr", // Rate limit counters (can fall back to memory)
-    "decr",
-    "expire",
-  ];
-
-  return nonCriticalCommands.includes(command.toLowerCase());
 };

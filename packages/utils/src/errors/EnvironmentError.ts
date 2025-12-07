@@ -12,8 +12,24 @@ import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
  *   { path: ['PORT'], message: 'Must be a number' }
  * ]);
  */
+
+export interface EnvironmentIssue {
+  path: string | string[];
+  message: string;
+}
+
+/**
+ * EnvironmentError
+ * Thrown during application startup if environment configuration is invalid
+ *
+ * @example
+ * throw new EnvironmentError([
+ *   { path: ['DATABASE_URL'], message: 'Required' },
+ *   { path: ['PORT'], message: 'Must be a number' }
+ * ]);
+ */
 class EnvironmentError extends ApiError {
-  constructor(validationErrors = []) {
+  constructor(validationErrors: EnvironmentIssue[] = []) {
     // Convert Zod validation errors to standard format
     const formattedErrors = validationErrors.map((issue) => {
       const field = Array.isArray(issue.path)
@@ -35,5 +51,6 @@ class EnvironmentError extends ApiError {
     this.name = "EnvironmentError";
   }
 }
+
 
 export default EnvironmentError;

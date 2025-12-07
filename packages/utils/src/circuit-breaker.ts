@@ -9,6 +9,7 @@ export interface CircuitBreakerConfig {
   resetTimeout?: number;
   rollingCountTimeout?: number;
   rollingCountBuckets?: number;
+  volumeThreshold?: number;
   name?: string;
 }
 

@@ -11,12 +11,36 @@ import { HTTP_STATUS_CODES } from "../constants/httpStatusCodes.js";
  *   { field: 'password', message: 'Password too short' }
  * ]);
  */
+
+export interface ZodIssue {
+  path: string | string[];
+  message: string;
+}
+
+export interface CustomIssue {
+  field?: string;
+  message: string;
+  context?: Record<string, unknown>;
+}
+
+export type ValidationIssue = ZodIssue | CustomIssue;
+
+/**
+ * ValidationError
+ * Thrown when request validation fails
+ *
+ * @example
+ * throw new ValidationError([
+ *   { field: 'email', message: 'Invalid email format' },
+ *   { field: 'password', message: 'Password too short' }
+ * ]);
+ */
 class ValidationError extends ApiError {
-  constructor(errors = [], message = "Validation failed") {
+  constructor(errors: ValidationIssue[] = [], message = "Validation failed") {
     // Process the errors array to ensure consistent format
     const formattedErrors = errors.map((err) => {
       // Support both Zod error format and custom format
-      if (err.path && err.message) {
+      if ("path" in err) {
         // Zod format
         return {
           field: Array.isArray(err.path) ? err.path.join(".") : err.path,
@@ -24,10 +48,11 @@ class ValidationError extends ApiError {
         };
       }
       // Custom format
+      const customErr = err as CustomIssue;
       return {
-        field: err.field || "unknown",
-        message: err.message || "Validation error",
-        context: err.context, // Preserve context for i18n interpolation
+        field: customErr.field ?? "unknown",
+        message: customErr.message ?? "Validation error",
+        context: customErr.context, // Preserve context for i18n interpolation
       };
     });
 
@@ -37,3 +62,4 @@ class ValidationError extends ApiError {
 }
 
 export default ValidationError;
+

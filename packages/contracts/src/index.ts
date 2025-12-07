@@ -65,4 +65,12 @@ export type {
     JobResult,
     ConsumerOptions,
     ProcessorConfig,
+    ISentry,
+    WorkerConfig,
+    WorkerServiceOptions,
+    QueueProcessorOptions,
+    ProcessorRegistrationConfig,
+    WorkerHealth,
+    WorkerMetrics,
 } from "./IWorker.js";
+

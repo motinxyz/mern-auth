@@ -53,7 +53,7 @@ export class AuthAdapter {
    * @returns {Response}
    */
   toExpressResponse(result: ControllerResult, res: Response): Response {
-    if (this.logger) {
+    if (this.logger !== undefined) {
       this.logger.debug({ statusCode: result.statusCode }, "Sending response");
     }
     return res.status(result.statusCode).json(result.data);
@@ -65,6 +65,7 @@ export class AuthAdapter {
    * @returns {string}
    */
   getLocale(req: Request): string {
-    return (req as any).locale || req.headers["accept-language"]?.split(",")[0] || "en";
+    const localeRequest = req as Request & { locale?: string };
+    return localeRequest.locale ?? req.headers["accept-language"]?.split(",")[0] ?? "en";
   }
 }

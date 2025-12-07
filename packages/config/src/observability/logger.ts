@@ -9,7 +9,7 @@
  * - Trace ID correlation
  */
 
-import pino from "pino";
+import pino, { type Logger, type LoggerOptions } from "pino";
 import config from "../env.js";
 import { trace } from "@opentelemetry/api";
 
@@ -18,8 +18,14 @@ import { trace } from "@opentelemetry/api";
 import dns from "node:dns";
 try {
   dns.setDefaultResultOrder("ipv4first");
-} catch (error) {
+} catch {
   // Ignore error if specific node version doesn't support this (though v18+ does)
+}
+
+interface LoggerConfig extends LoggerOptions {
+  formatters?: {
+    level?: (label: string, number: number) => object;
+  };
 }
 
 /**
@@ -28,11 +34,11 @@ try {
  * In development: Pretty-printed console output
  * In production: pino-loki transport to ship logs directly to Grafana Cloud
  */
-export function getObservabilityLogger(options = {}) {
-  const baseConfig = {
-    level: config.logLevel || "info",
+export function getObservabilityLogger(options: Partial<LoggerOptions> = {}): Logger {
+  const baseConfig: LoggerConfig = {
+    level: config.logLevel ?? "info",
     formatters: {
-      level: (label) => ({ level: label }),
+      level: (label: string, _number: number) => ({ level: label }),
     },
     timestamp: pino.stdTimeFunctions.isoTime,
     // Mixin: Automatically inject trace context from OpenTelemetry
@@ -40,7 +46,7 @@ export function getObservabilityLogger(options = {}) {
       const span = trace.getActiveSpan();
       const spanContext = span?.spanContext();
 
-      if (spanContext) {
+      if (spanContext !== undefined) {
         return {
           traceId: spanContext.traceId,
           spanId: spanContext.spanId,
@@ -54,8 +60,11 @@ export function getObservabilityLogger(options = {}) {
 
   // Development: Pretty printing for readability + File logging
   if (config.env === "development") {
-    const devConfig = { ...baseConfig };
-    delete devConfig.formatters; // Transports don't support custom level formatters in the main config
+    const devConfig: LoggerOptions = { ...baseConfig };
+    // Transports don't support custom level formatters in the main config
+    if ("formatters" in devConfig) {
+      delete (devConfig as LoggerConfig).formatters;
+    }
 
     return pino({
       ...devConfig,
@@ -84,10 +93,10 @@ export function getObservabilityLogger(options = {}) {
 
   // Production: Ship to Loki directly
   // This replaces the experimental custom shipper service
-  if (
-    config.observability.grafana.loki.url &&
-    config.observability.grafana.loki.user
-  ) {
+  const lokiUrl = config.observability.grafana.loki.url;
+  const lokiUser = config.observability.grafana.loki.user;
+
+  if (lokiUrl !== undefined && lokiUrl !== "" && lokiUser !== undefined && lokiUser !== "") {
     return pino({
       ...baseConfig,
       transport: {
@@ -95,13 +104,13 @@ export function getObservabilityLogger(options = {}) {
         options: {
           batching: true,
           interval: 5, // Ship every 5 seconds
-          host: config.observability.grafana.loki.url.replace(/\/$/, ""), // Ensure no trailing slash
+          host: lokiUrl.replace(/\/$/, ""), // Ensure no trailing slash
           basicAuth: {
-            username: config.observability.grafana.loki.user,
+            username: lokiUser,
             password: config.observability.grafana.loki.apiKey,
           },
           labels: {
-            app: config.observability.serviceName || "auth-api",
+            app: config.observability.serviceName ?? "auth-api",
             environment: config.env,
           },
         },
@@ -117,10 +126,10 @@ export function getObservabilityLogger(options = {}) {
  * Get logger with trace context
  * Automatically includes trace ID if available
  */
-export function getLoggerWithTrace(traceId, options = {}) {
+export function getLoggerWithTrace(traceId: string | undefined, options: Partial<LoggerOptions> = {}): Logger {
   const logger = getObservabilityLogger(options);
 
-  if (traceId) {
+  if (traceId !== undefined && traceId !== "") {
     return logger.child({ traceId });
   }
 

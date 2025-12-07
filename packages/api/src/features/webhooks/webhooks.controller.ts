@@ -1,14 +1,16 @@
 import { getDatabaseService } from "@auth/app-bootstrap";
 import { config, t, getLogger } from "@auth/config";
 import { handleBounce, ResendProvider, MailerSendProvider } from "@auth/email";
+import type { Request, Response } from "express";
+import type { ILogger } from "@auth/contracts";
 
 const logger = getLogger();
 
-/* eslint-disable import/no-unused-modules */
+
 export class WebhooksController {
-  webhookLogger: any;
-  resend: any;
-  mailersend: any;
+  webhookLogger: ILogger;
+  resend: ResendProvider;
+  mailersend: MailerSendProvider;
 
   constructor() {
     this.webhookLogger = logger.child({ module: "webhooks" });
@@ -32,7 +34,7 @@ export class WebhooksController {
   /**
    * Handle generic webhook flow
    */
-  async handleWebhook(req, res, provider) {
+  async handleWebhook(req: Request, res: Response, provider: ResendProvider | MailerSendProvider) {
     try {
       // 1. Verify Signature
       // Providers expect specific headers. We pass req.headers.
@@ -56,6 +58,7 @@ export class WebhooksController {
         "Received webhook"
       );
 
+      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- Safety check for runtime
       if (!bounceData) {
         return res
           .status(200)
@@ -88,21 +91,27 @@ export class WebhooksController {
         );
 
         // Dynamic import to avoid circular dependency if any
-        const { getQueueServices } = await import("@auth/queues");
+        const { getQueueServices: _getQueueServices } = await import("@auth/queues");
         // In a real implementation: reconstruct job and use emailProducer.
         // For now, allow the log to trigger alerts or manual recovery.
-        if (result.emailLog && result.emailLog.metadata) {
+        if (
+          result.emailLog !== undefined &&
+          result.emailLog !== null &&
+          result.emailLog.metadata !== undefined
+        ) {
           this.webhookLogger.warn("Auto-retry logic triggered.");
         }
       }
 
       return res.status(200).json({ success: true, result });
     } catch (error) {
+      const errMessage = (error as Error).message;
+      const errStack = (error as Error).stack;
       this.webhookLogger.error(
-        { error: error.message, stack: error.stack },
+        { error: errMessage, stack: errStack },
         `Failed to handle ${provider.name} webhook`
       );
-      return res.status(500).json({ success: false, error: error.message });
+      return res.status(500).json({ success: false, error: errMessage });
     }
   }
 
@@ -110,7 +119,7 @@ export class WebhooksController {
    * Handle Resend webhook events
    * POST /webhooks/resend
    */
-  handleResendWebhook = async (req, res) => {
+  handleResendWebhook = async (req: Request, res: Response) => {
     return this.handleWebhook(req, res, this.resend);
   };
 
@@ -118,7 +127,7 @@ export class WebhooksController {
    * Handle MailerSend webhook events
    * POST /webhooks/mailersend
    */
-  handleMailerSendWebhook = async (req, res) => {
+  handleMailerSendWebhook = async (req: Request, res: Response) => {
     return this.handleWebhook(req, res, this.mailersend);
   };
 
@@ -126,7 +135,7 @@ export class WebhooksController {
    * Health check for webhooks
    * GET /webhooks/health
    */
-  checkHealth = (req, res) => {
+  checkHealth = (_req: Request, res: Response) => {
     res.status(200).json({ status: "ok", service: "webhooks" });
   };
 }

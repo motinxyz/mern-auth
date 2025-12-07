@@ -27,7 +27,7 @@ const testEmailSchema = z.object({
  */
 router.post("/test-email", validate(testEmailSchema), async (req, res) => {
   try {
-    const { to, subject, text, html } = req.body;
+    const { to, subject, text: _text, html: _html } = req.body;
 
     testLogger.info({ to, subject }, "Sending test email");
 
@@ -49,8 +49,8 @@ router.post("/test-email", validate(testEmailSchema), async (req, res) => {
       message: "Test email sent successfully",
     });
   } catch (error) {
-    testLogger.error({ error: error.message }, "Error sending test email");
-    res.status(500).json({ error: error.message });
+    testLogger.error({ error: (error as Error).message }, "Error sending test email");
+    res.status(500).json({ error: (error as Error).message });
   }
 });
 

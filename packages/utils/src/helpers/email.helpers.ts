@@ -10,14 +10,16 @@
  * @param {string} email - Email address to normalize
  * @returns {string} Normalized email address
  */
-export function normalizeEmail(email) {
+export function normalizeEmail(email: string): string {
   if (!email || typeof email !== "string") {
     return email;
   }
 
-  const [localPart, domain] = email.toLowerCase().split("@");
+  const parts = email.toLowerCase().split("@");
+  const localPart = parts[0] ?? "";
+  const domain = parts[1];
 
-  if (!domain) {
+  if (domain === undefined || domain === "") {
     return email.toLowerCase();
   }
 
@@ -41,6 +43,6 @@ export function normalizeEmail(email) {
  * @param {string} email2 - Second email
  * @returns {boolean} True if emails are equivalent
  */
-export function areEmailsEquivalent(email1, email2) {
+export function areEmailsEquivalent(email1: string, email2: string): boolean {
   return normalizeEmail(email1) === normalizeEmail(email2);
 }

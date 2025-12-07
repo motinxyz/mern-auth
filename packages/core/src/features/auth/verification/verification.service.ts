@@ -11,7 +11,7 @@ import type { UserDocument } from "@auth/database";
 import { HASHING_ALGORITHM } from "../../../constants/token.constants.js";
 import { VERIFICATION_STATUS } from "../../../constants/auth.constants.js";
 import { VERIFICATION_MESSAGES } from "../../../constants/core.messages.js";
-import { t } from "@auth/config";
+
 
 /**
  * Service responsible ONLY for email verification logic
@@ -30,7 +30,7 @@ export class VerificationService {
     this.logger = logger.child({ module: "verification-service" });
   }
 
-  async verify(token) {
+  async verify(token: string) {
     const hashedToken = crypto
       .createHash(HASHING_ALGORITHM)
       .update(token)
@@ -48,7 +48,7 @@ export class VerificationService {
 
     // Get token data from Redis
     const userDataJSON = await this.redis.get(verifyKey);
-    if (!userDataJSON) {
+    if (userDataJSON === null) {
       this.logger.warn(
         { key: verifyKey },
         VERIFICATION_MESSAGES.TOKEN_NOT_FOUND_REDIS
@@ -72,7 +72,7 @@ export class VerificationService {
       );
       throw new ApiError(
         HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
-        t("auth:errors.invalidDataFormat")
+        "auth:errors.invalidDataFormat"
       );
     }
 

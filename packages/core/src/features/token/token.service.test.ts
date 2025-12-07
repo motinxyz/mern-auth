@@ -38,8 +38,7 @@ describe("Token Service", () => {
     const mockRedisData = new Map();
     mockRedis = {
       data: mockRedisData,
-      set: vi.fn().mockImplementation(async (key, value, ...args) => {
-
+      set: vi.fn().mockImplementation(async (key, value) => {
         mockRedisData.set(key, value);
         return "OK";
       }),

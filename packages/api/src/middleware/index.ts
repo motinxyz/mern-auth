@@ -17,7 +17,6 @@ export { configureMiddleware } from "./core/setup.js";
 // SECURITY LAYER - Security and protection middleware
 // ============================================================================
 export { apiLimiter, authLimiter } from "./security/rateLimiter.js";
-/* eslint-disable import/no-unused-modules */
 export { cacheMiddleware } from "./security/cache.js";
 
 // ============================================================================
@@ -25,11 +24,9 @@ export { cacheMiddleware } from "./security/cache.js";
 // ============================================================================
 export { validate } from "./business/validate.js";
 export { apiVersionMiddleware } from "./business/apiVersion.js";
-/* eslint-disable import/no-unused-modules */
 export { featureFlagMiddleware } from "./business/featureFlag.js";
 
 // ============================================================================
 // RESPONSE LAYER - Response formatting middleware
 // ============================================================================
-/* eslint-disable import/no-unused-modules */
 export { responseHandler } from "./response/responseHandler.js";

@@ -9,43 +9,52 @@ import {
 } from "@auth/utils";
 
 const errorHandlerLogger = logger.child({ module: "errorHandler" });
-/**
- * Converts known external errors into a structured ApiError.
- * This acts as an "anti-corruption layer" for errors, ensuring that
- * the rest of the error handler only deals with a consistent error type.
- *
- * @param {Error} err - The error to convert.
- * @returns {ApiError|null} An ApiError instance if the error is recognized, otherwise null.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function convertExternalError(err: any, req: any) {
+interface MongooseValidationError extends Error {
+  errors: Record<string, {
+    path: string;
+    message: string;
+    properties?: Record<string, unknown>;
+    context?: Record<string, unknown>;
+  }>;
+}
+
+interface MongoServerError extends Error {
+  code: number;
+  keyPattern: Record<string, unknown>;
+  keyValue: Record<string, unknown>;
+}
+
+function convertExternalError(err: Error): ApiError | null {
   // Handle Mongoose Validation Errors
   // If the error is a ValidationError from our `validate` middleware, it's already structured correctly.
   if (err instanceof ValidationError) {
     return err;
   }
 
-  if (err.name === "ValidationError" && err.errors) {
-    const errors = Object.values(err.errors).map((e) => {
-      const context = (e as any).properties || (e as any).context || {};
+  if (err.name === "ValidationError" && (err as MongooseValidationError).errors !== undefined) {
+    const mongoErr = err as MongooseValidationError;
+    const errors = Object.values(mongoErr.errors).map((e) => {
+      const context = e.properties ?? e.context ?? {};
       // Map Mongoose properties to translation keys
-      if (context.minlength) context.count = context.minlength;
-      if (context.maxlength) context.count = context.maxlength;
+      const contextRecord = context as Record<string, unknown>;
+      if (contextRecord.minlength !== undefined) contextRecord.count = contextRecord.minlength;
+      if (contextRecord.maxlength !== undefined) contextRecord.count = contextRecord.maxlength;
 
       return {
-        field: (e as any).path,
-        message: (e as any).message, // The message from the Mongoose schema is our translation key.
-        context, // Use `e.context` if `e.properties` is not available
+        field: e.path,
+        message: e.message,
+        context: contextRecord,
       };
     });
     return new ValidationError(errors, "validation:failed");
   }
 
   // Handle Mongoose Duplicate Key Errors (e.g., unique index violation)
-  if (err.name === "MongoServerError" && err.code === 11000) {
-    const field = Object.keys(err.keyPattern)[0];
+  if (err.name === "MongoServerError" && (err as MongoServerError).code === 11000) {
+    const mongoErr = err as MongoServerError;
+    const field = Object.keys(mongoErr.keyPattern)[0] ?? "unknown";
     // eslint-disable-next-line security/detect-object-injection
-    const value = err.keyValue[field];
+    const value = mongoErr.keyValue[field];
     const errors = [{ field, issue: "validation:duplicateValue", value }];
     return new ConflictError("auth:errors.duplicateKey", errors);
   }
@@ -74,7 +83,7 @@ import type { ErrorRequestHandler } from "express";
  * @param {import('express').Response} res - The Express response object.
  * @param {import('express').NextFunction} next - The Express next middleware function.
  */
-export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
+export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   let apiError = err;
 
   // If the error is our custom ValidationError, it's already structured correctly.
@@ -82,16 +91,16 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   // that might prevent `instanceof` from working across module boundaries.
   if (
     apiError.name === "ValidationError" &&
-    apiError.errors &&
-    apiError.statusCode
+    apiError.errors !== undefined &&
+    apiError.statusCode !== undefined
   ) {
     // It's already a ValidationError, no conversion needed.
   } else if (!(apiError instanceof ApiError)) {
     // If it's not our custom ValidationError and not a generic ApiError, try to convert it.
-    apiError = convertExternalError(err, req);
+    apiError = convertExternalError(err);
 
     // If it's still not an ApiError after conversion, it's an unexpected internal error.
-    if (!apiError) {
+    if (apiError === null) {
       apiError = new ApiError(
         HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
         "system:process.errors.unexpected"
@@ -102,7 +111,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   // Log the error with appropriate severity.
   // 5xx errors are logged as 'error', 4xx errors as 'warn'.
   const isServerError = apiError.statusCode >= 500;
-  const logMethod = isServerError ? "error" : "warn";
+
   const logMessage = isServerError
     ? "An unexpected server error occurred"
     : "A client error occurred";
@@ -119,10 +128,10 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
 
   if (isServerError) {
     // Use req.log if available (pino-http), otherwise fallback to global logger
-    const loggerInstance = req.log || errorHandlerLogger;
+    const loggerInstance = req.log ?? errorHandlerLogger;
     loggerInstance.error(logData, logMessage);
   } else {
-    const loggerInstance = req.log || errorHandlerLogger;
+    const loggerInstance = req.log ?? errorHandlerLogger;
     loggerInstance.warn(logData, logMessage);
   }
 
@@ -132,18 +141,20 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     statusCode: apiError.statusCode, // Include statusCode in the response body
     message: req.t(apiError.message, {
       count:
-        apiError.errors && apiError.errors[0] && apiError.errors[0].context
+        apiError.errors !== undefined &&
+          apiError.errors[0] !== undefined &&
+          apiError.errors[0].context !== undefined
           ? apiError.errors[0].context.count
           : undefined,
     }), // Translate the main message with context
     errors: Array.isArray(apiError.errors)
-      ? apiError.errors.map((e) => {
+      ? (apiError.errors as Record<string, unknown>[]).map((e) => {
         return {
           field: e.field,
           message: (() => {
-            const msgKey = e.issue || e.message; // Prioritize e.issue, then e.message
-            if (msgKey && typeof msgKey === "string") {
-              return msgKey.includes(":") ? req.t(msgKey, e.context) : msgKey;
+            const msgKey = e.issue ?? e.message; // Prioritize e.issue, then e.message
+            if (msgKey !== undefined && typeof msgKey === "string") {
+              return msgKey.includes(":") ? req.t(msgKey, e.context as Record<string, unknown>) : msgKey;
             }
             return ""; // Default to empty string if no valid message key
           })(),
@@ -151,8 +162,9 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
       })
       : [], // Return empty array if errors is not defined or not an array
     data: (() => {
+      /* eslint-disable @typescript-eslint/strict-boolean-expressions */
       if (!req.body) return null;
-      const safeData = {};
+      const safeData: Record<string, unknown> = {};
       Object.keys(req.body).forEach((key) => {
         if (!SENSITIVE_FIELDS.includes(key)) {
           // eslint-disable-next-line security/detect-object-injection

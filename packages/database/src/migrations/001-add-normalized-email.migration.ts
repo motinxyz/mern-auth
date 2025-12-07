@@ -5,12 +5,12 @@
  * to support Gmail dot-ignoring and prevent duplicate accounts
  */
 
+import mongoose from "mongoose";
 import { normalizeEmail } from "@auth/utils";
-/* eslint-disable import/no-unused-modules */
 
 import type { ILogger } from "@auth/contracts";
 
-export async function up(db, session, logger: ILogger) {
+export async function up(db: mongoose.mongo.Db, session: mongoose.ClientSession, logger: ILogger) {
   const users = await db.collection("users").find({}).toArray();
 
   for (const user of users) {
@@ -29,7 +29,7 @@ export async function up(db, session, logger: ILogger) {
   logger.info(`✅ Normalized ${users.length} user emails`);
 }
 
-export async function down(db, session, logger: ILogger) {
+export async function down(db: mongoose.mongo.Db, session: mongoose.ClientSession, logger: ILogger) {
   // Drop the unique index
   await db.collection("users").dropIndex("normalizedEmail_1", { session });
 

@@ -9,7 +9,7 @@ import { DEFAULTS, urlRegex, Environments } from "./env.constants.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function findMonorepoRoot(startDir) {
+function findMonorepoRoot(startDir: string) {
   let dir = startDir;
   while (dir !== path.parse(dir).root) {
     // eslint-disable-next-line security/detect-non-literal-fs-filename
@@ -18,10 +18,11 @@ function findMonorepoRoot(startDir) {
     }
     dir = path.dirname(dir);
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EnvironmentError expects ZodIssue[], safe cast for internal error
   throw new EnvironmentError([{ message: "Could not find monorepo root." }] as any);
 }
 
-let root = findMonorepoRoot(__dirname);
+const root = findMonorepoRoot(__dirname);
 if (process.env.NODE_ENV === "test") {
   // In test mode, don't override env vars set by globalSetup (test containers)
   // This allows MONGO_URI and REDIS_URL from globalSetup to take precedence
@@ -30,7 +31,12 @@ if (process.env.NODE_ENV === "test") {
   dotenv.config({ path: path.resolve(root, ".env") });
 }
 
-const envSchema = z.object({
+const configSchema = z.object({
+  // ... (schema definition lines omitted for brevity because they are unchanged)
+  // But wait, replace_file_content requires TargetContent to match exactly.
+  // I cannot skip lines in ReplacementContent if I target a large block.
+  // I will target specific small blocks.
+
   NODE_ENV: z
     .enum([
       Environments.DEVELOPMENT,
@@ -161,7 +167,7 @@ const envSchema = z.object({
   GRAFANA_LOKI_API: z.string().optional(), // Fallback for API_KEY
 });
 
-const parsedEnv = envSchema.safeParse(process.env);
+const parsedEnv = configSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
   throw new EnvironmentError(parsedEnv.error.issues);
@@ -177,7 +183,8 @@ const envConfigPath = path.resolve(
 let envConfig = {};
 try {
   envConfig = await import(envConfigPath);
-} catch (error) {
+} catch (_error) {
+  // Environment-specific config is optional, warn but continue
   console.warn(
     `No environment-specific configuration found for ${envVars.NODE_ENV}.`
   );
@@ -219,7 +226,7 @@ const finalConfig = {
   mailersendApiKey: envVars.MAILERSEND_API_KEY,
   mailersendWebhookSecret: envVars.MAILERSEND_WEBHOOK_SECRET,
   // Allow overriding "From" address for MailerSend (if using specific subdomain)
-  mailersendEmailFrom: envVars.MAILERSEND_EMAIL_FROM || envVars.EMAIL_FROM,
+  mailersendEmailFrom: envVars.MAILERSEND_EMAIL_FROM ?? envVars.EMAIL_FROM,
   sentryDsn: envVars.SENTRY_DSN,
   sentryDevEnabled: envVars.SENTRY_DEV_ENABLED === "true",
   emailFrom: envVars.EMAIL_FROM,
@@ -261,7 +268,7 @@ const finalConfig = {
       loki: {
         url: envVars.GRAFANA_LOKI_URL,
         user: envVars.GRAFANA_LOKI_USER,
-        apiKey: envVars.GRAFANA_LOKI_API_KEY || envVars.GRAFANA_LOKI_API,
+        apiKey: envVars.GRAFANA_LOKI_API_KEY ?? envVars.GRAFANA_LOKI_API,
         bearerToken: envVars.GRAFANA_LOKI_BEARER_TOKEN,
       },
       tempo: {
@@ -276,6 +283,7 @@ const finalConfig = {
       },
     },
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic import returns unknown module shape
   ...(envConfig as any).default,
 };
 

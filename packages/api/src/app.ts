@@ -11,14 +11,13 @@ import { metricsMiddleware } from "./metrics/index.js";
 
 // core imports
 import { errorHandler, configureMiddleware } from "./middleware/index.js";
-import { NotFoundError, HTTP_STATUS_CODES } from "@auth/utils";
+import { NotFoundError } from "@auth/utils";
 import {
   i18nInstance,
   i18nMiddleware,
-  redisConnection,
   config,
 } from "@auth/config";
-import { getDatabaseService } from "@auth/app-bootstrap";
+import type { Request, Response, NextFunction } from "express";
 import { apiLimiter } from "./middleware/index.js";
 import {
   createTimeoutMiddleware,
@@ -36,9 +35,9 @@ const app = express();
 app.use(...createTimeoutMiddleware(30000));
 
 // Apply i18n middleware before any other middleware that might need it.
-if (config.isTest) {
-  app.use((req, res, next) => {
-    req.t = ((key: string) => key) as any;
+if (config.isTest === true) {
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    req.t = ((key: string) => key) as typeof req.t;
     next();
   });
 } else {
@@ -58,7 +57,7 @@ app.use(sentryUserMiddleware);
 app.use(
   compression({
     filter: (req, res) => {
-      if (req.headers["x-no-compression"]) return false;
+      if (req.headers["x-no-compression"] !== undefined) return false;
       return compression.filter(req, res);
     },
     level: 6, // Balance between speed and compression ratio

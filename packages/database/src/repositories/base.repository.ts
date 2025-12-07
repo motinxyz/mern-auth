@@ -19,7 +19,7 @@ class BaseRepository<T extends mongoose.Document> {
    * @param {string} name - Repository name for logging/tracing
    */
   constructor(model: mongoose.Model<T>, name: string) {
-    if (!model) {
+    if (model === undefined || model === null) {
       throw new ConfigurationError(
         DB_ERRORS.MISSING_MODEL.replace(
           "{repository}",
@@ -78,8 +78,8 @@ class BaseRepository<T extends mongoose.Document> {
       const query = this.model.find(filter);
 
       if (options.sort) query.sort(options.sort);
-      if (options.skip) query.skip(options.skip);
-      if (options.limit) query.limit(options.limit);
+      if (options.skip !== undefined) query.skip(options.skip);
+      if (options.limit !== undefined) query.limit(options.limit);
 
       return query.exec();
     });

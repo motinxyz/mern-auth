@@ -12,11 +12,11 @@ class DatabaseConnectionError extends ApiError {
    * @constructor
    * @param {Error} [originalError] - The original error that was caught.
    */
-  constructor(originalError) {
+  constructor(originalError: Error) {
     super(
       HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
       "system:db.connectionFailedAfterRetries",
-      originalError ? [{ message: originalError.message, stack: originalError.stack }] : []
+      [{ message: originalError.message, stack: originalError.stack }]
     );
   }
 }

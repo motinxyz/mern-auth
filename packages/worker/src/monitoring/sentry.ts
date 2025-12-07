@@ -1,23 +1,29 @@
 import * as Sentry from "@sentry/node";
 import { nodeProfilingIntegration } from "@sentry/profiling-node";
+import type { Job } from "bullmq";
+import type { ISentry } from "@auth/contracts";
+
+/**
+ * Sentry configuration options
+ */
+interface SentryOptions {
+  dsn?: string;
+  environment?: string;
+  tracesSampleRate?: number;
+  profilesSampleRate?: number;
+}
 
 /**
  * Initialize Sentry for the worker process
- * @param {Object} options - Sentry configuration
- * @param {string} options.dsn - Sentry DSN
- * @param {string} options.environment - Environment name
- * @param {number} [options.tracesSampleRate] - Traces sample rate (default: 0.1 for prod, 1.0 otherwise)
- * @param {number} [options.profilesSampleRate] - Profiles sample rate (default: 0.1)
- * @returns {Object|null} - Sentry instance or null if no DSN
+ * @returns Sentry instance wrapper or null if no DSN
  */
 export const initSentry = ({
   dsn,
   environment = "development",
   tracesSampleRate,
   profilesSampleRate = 0.1,
-}: any = {}) => {
-
-  if (!dsn) {
+}: SentryOptions = {}): ISentry | null => {
+  if (dsn === undefined || dsn === "") {
     return null;
   }
 
@@ -31,20 +37,31 @@ export const initSentry = ({
     integrations: [nodeProfilingIntegration()],
   });
 
-  return Sentry;
+  // Return a wrapper that matches ISentry interface
+  return {
+    captureException: (error: Error, context?: Record<string, unknown>) => {
+      Sentry.captureException(error, { extra: context });
+    },
+    captureMessage: (message: string, options?: { level?: string; extra?: Record<string, unknown> }) => {
+      Sentry.captureMessage(message, {
+        level: (options?.level as Sentry.SeverityLevel) ?? "info",
+        extra: options?.extra,
+      });
+    },
+  };
 };
 
 /**
  * Capture job error with context
- * @param {Error} error - The error to capture
- * @param {Object} job - The BullMQ job
  */
-export const captureJobError = (error, job) => {
+export const captureJobError = (error: Error, job: Job): void => {
+  const jobData = job.data as Record<string, unknown>;
+
   Sentry.captureException(error, {
     tags: {
-      jobType: job.data?.type,
+      jobType: String(jobData?.type ?? "unknown"),
       queue: job.queueName,
-      jobId: job.id,
+      jobId: job.id ?? "unknown",
     },
     extra: {
       jobData: job.data,

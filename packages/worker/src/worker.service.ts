@@ -1,7 +1,16 @@
 import QueueProcessorService from "./queue-processor.service.js";
 import { WORKER_MESSAGES, WORKER_ERRORS } from "./constants/worker.messages.js";
 import { ConfigurationError } from "@auth/utils";
-import type { ILogger } from "@auth/contracts";
+import type {
+  ILogger,
+  WorkerServiceOptions,
+  ProcessorRegistrationConfig,
+  IQueueProcessor,
+  WorkerHealth,
+  WorkerMetrics,
+  IDatabaseService,
+  ISentry,
+} from "@auth/contracts";
 import { initSentry } from "./monitoring/sentry.js";
 import { WorkerConfigSchema } from "./schemas/config.schema.js";
 
@@ -10,21 +19,21 @@ import { WorkerConfigSchema } from "./schemas/config.schema.js";
  * Generic orchestrator for any queue processors
  */
 class WorkerService {
-  sentry: any;
-  logger: ILogger;
-  redisConnection: any;
-  processors: any[];
-  databaseService: any;
-  initServices: any[];
+  private readonly sentry: ISentry | null;
+  private readonly logger: ILogger;
+  private readonly redisConnection: unknown;
+  private readonly processors: IQueueProcessor[];
+  private readonly databaseService: IDatabaseService | null;
+  private readonly initServices: Array<() => Promise<void>>;
 
-  constructor(options: any = {}) {
+  constructor(options: WorkerServiceOptions) {
     // Validate configuration
-    if (!options.logger) {
+    if (options.logger === undefined) {
       throw new ConfigurationError(
         WORKER_ERRORS.MISSING_CONFIG.replace("{config}", "logger")
       );
     }
-    if (!options.redisConnection) {
+    if (options.redisConnection === undefined) {
       throw new ConfigurationError(
         WORKER_ERRORS.MISSING_CONFIG.replace("{config}", "redisConnection")
       );
@@ -32,10 +41,10 @@ class WorkerService {
 
     // Initialize Sentry or use provided instance
     this.sentry =
-      options.sentry ||
+      options.sentry ??
       initSentry({
         dsn: options.sentryDsn,
-        environment: options.environment || "development",
+        environment: options.environment ?? "development",
       });
 
     this.logger = options.logger;
@@ -43,28 +52,23 @@ class WorkerService {
     this.processors = [];
 
     // Optional: Database service (injected, not created)
-    this.databaseService = options.databaseService || null;
+    this.databaseService = options.databaseService ?? null;
 
     // Optional: Initialize services passed in
-    this.initServices = options.initServices || [];
+    this.initServices = options.initServices ?? [];
   }
 
   /**
    * Register a queue processor
-   * @param {Object} processorConfig - Configuration for the processor
-   * @param {string} processorConfig.queueName - Name of the queue
-   * @param {Function} processorConfig.processor - Job processor function
-   * @param {Object} processorConfig.workerConfig - Worker configuration
-   * @param {string} processorConfig.deadLetterQueueName - Dead letter queue name
    */
-  registerProcessor(processorConfig: any) {
+  registerProcessor(processorConfig: ProcessorRegistrationConfig): IQueueProcessor {
     const processor = new QueueProcessorService({
       queueName: processorConfig.queueName,
       connection: this.redisConnection,
       processor: processorConfig.processor,
       logger: this.logger,
-      sentry: this.sentry,
-      workerConfig: processorConfig.workerConfig
+      sentry: this.sentry ?? undefined,
+      workerConfig: processorConfig.workerConfig !== undefined
         ? WorkerConfigSchema.parse(processorConfig.workerConfig)
         : undefined,
       deadLetterQueueName: processorConfig.deadLetterQueueName,
@@ -77,13 +81,14 @@ class WorkerService {
   /**
    * Start the worker service
    */
-  async start() {
+  async start(): Promise<void> {
     try {
       this.logger.info({ module: "worker" }, WORKER_MESSAGES.WORKER_STARTING);
 
       // Connect to database if provided
-      if (this.databaseService) {
-        await this.databaseService.connect();
+      if (this.databaseService !== null) {
+        // Database service must have a connect method
+        await (this.databaseService as unknown as { connect: () => Promise<void> }).connect();
       }
 
       // Initialize any additional services
@@ -103,24 +108,24 @@ class WorkerService {
           String(this.processors.length)
         )
       );
-    } catch (error) {
-      this.logger.fatal(WORKER_ERRORS.STARTUP_FAILED, error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.fatal(WORKER_ERRORS.STARTUP_FAILED, errorMessage);
       throw error;
     }
   }
 
   /**
    * Stop the worker service gracefully
-   * @param {number} timeoutMs - Maximum time to wait for jobs to complete (default: 30s)
    */
-  async stop(timeoutMs = 30000) {
+  async stop(timeoutMs = 30000): Promise<void> {
     this.logger.info(
       { module: "worker" },
       WORKER_MESSAGES.WORKER_SHUTTING_DOWN
     );
 
     // Wait for in-flight jobs to complete (with timeout)
-    const waitForJobs = async () => {
+    const waitForJobs = async (): Promise<boolean> => {
       const startTime = Date.now();
 
       while (Date.now() - startTime < timeoutMs) {
@@ -156,7 +161,7 @@ class WorkerService {
     }
 
     // Disconnect database if provided
-    if (this.databaseService) {
+    if (this.databaseService !== null) {
       await this.databaseService.disconnect();
     }
 
@@ -166,7 +171,7 @@ class WorkerService {
   /**
    * Drain mode - stop accepting new jobs but finish existing ones
    */
-  async drain() {
+  async drain(): Promise<void> {
     this.logger.info(WORKER_MESSAGES.DRAIN_MODE_ENTERING);
 
     for (const processor of this.processors) {
@@ -177,7 +182,7 @@ class WorkerService {
   /**
    * Exit drain mode
    */
-  async undrain() {
+  async undrain(): Promise<void> {
     this.logger.info(WORKER_MESSAGES.DRAIN_MODE_EXITING);
 
     for (const processor of this.processors) {
@@ -188,39 +193,40 @@ class WorkerService {
   /**
    * Setup graceful shutdown handlers
    */
-  setupGracefulShutdown() {
-    const gracefulShutdown = async (signal) => {
+  setupGracefulShutdown(): void {
+    const gracefulShutdown = async (signal: string): Promise<void> => {
       this.logger.info(
         `${WORKER_MESSAGES.WORKER_SHUTTING_DOWN} Signal: ${signal}`
       );
       try {
         await this.stop();
         process.exit(0);
-      } catch (error) {
-        this.logger.error(WORKER_ERRORS.SHUTDOWN_ERROR, error);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.error(WORKER_ERRORS.SHUTDOWN_ERROR, errorMessage);
         process.exit(1);
       }
     };
 
-    process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-    process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+    process.on("SIGTERM", () => void gracefulShutdown("SIGTERM"));
+    process.on("SIGINT", () => void gracefulShutdown("SIGINT"));
   }
 
   /**
    * Get health status of all processors
    */
-  async getHealth() {
-    const health = {
+  async getHealth(): Promise<WorkerHealth> {
+    const health: WorkerHealth = {
       healthy: true,
       processors: [],
       database: null,
     };
 
     // Check database health if provided
-    if (this.databaseService) {
-      const dbHealth = await this.databaseService.healthCheck();
-      health.database = dbHealth;
-      if (!dbHealth.healthy) {
+    if (this.databaseService !== null) {
+      const isConnected = await this.databaseService.ping();
+      health.database = { healthy: isConnected };
+      if (!isConnected) {
         health.healthy = false;
       }
     }
@@ -228,7 +234,12 @@ class WorkerService {
     // Check all processors
     for (const processor of this.processors) {
       const processorHealth = await processor.getHealth();
-      health.processors.push(processorHealth);
+      health.processors.push({
+        healthy: processorHealth.healthy,
+        queueName: processorHealth.queueName ?? "unknown",
+        isRunning: processorHealth.isRunning,
+        isPaused: processorHealth.isPaused,
+      });
       if (!processorHealth.healthy) {
         health.healthy = false;
       }
@@ -240,9 +251,9 @@ class WorkerService {
   /**
    * Get metrics from all processors
    */
-  getMetrics() {
+  getMetrics(): Array<{ queueName: string; metrics: WorkerMetrics }> {
     return this.processors.map((processor) => ({
-      queueName: processor.queueName,
+      queueName: (processor as QueueProcessorService).queueName,
       metrics: processor.getMetrics(),
     }));
   }
@@ -250,7 +261,7 @@ class WorkerService {
   /**
    * Pause all processors
    */
-  async pauseAll() {
+  async pauseAll(): Promise<void> {
     for (const processor of this.processors) {
       await processor.pause();
     }
@@ -260,7 +271,7 @@ class WorkerService {
   /**
    * Resume all processors
    */
-  async resumeAll() {
+  async resumeAll(): Promise<void> {
     for (const processor of this.processors) {
       await processor.resume();
     }
@@ -270,14 +281,14 @@ class WorkerService {
   /**
    * Get all processors
    */
-  getProcessors() {
+  getProcessors(): IQueueProcessor[] {
     return this.processors;
   }
 
   /**
    * Get database service instance
    */
-  getDatabaseService() {
+  getDatabaseService(): IDatabaseService | null {
     return this.databaseService;
   }
 }

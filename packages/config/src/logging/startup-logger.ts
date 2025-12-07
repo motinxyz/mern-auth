@@ -18,16 +18,16 @@ const isDevelopment = process.env.NODE_ENV !== "production";
  * Create the startup logger with pretty printing in development
  */
 const startupLogger = pino({
-  level: process.env.LOG_LEVEL || "info",
+  level: process.env.LOG_LEVEL ?? "info",
   transport: isDevelopment
     ? {
-        target: "pino-pretty",
-        options: {
-          colorize: true,
-          translateTime: "HH:MM:ss",
-          ignore: "pid,hostname",
-        },
-      }
+      target: "pino-pretty",
+      options: {
+        colorize: true,
+        translateTime: "HH:MM:ss",
+        ignore: "pid,hostname",
+      },
+    }
     : undefined,
   base: {
     service: "auth-api",
@@ -40,6 +40,6 @@ const startupLogger = pino({
  * @param {string} module - Module name (e.g., 'tracing', 'metrics', 'shipper')
  * @returns {pino.Logger} Child logger with module context
  */
-export function createModuleLogger(module) {
+export function createModuleLogger(module: string): pino.Logger {
   return startupLogger.child({ module });
 }

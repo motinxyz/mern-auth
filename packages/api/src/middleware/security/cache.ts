@@ -1,4 +1,5 @@
 import { redisConnection, getLogger } from "@auth/config";
+import type { Request, Response, NextFunction } from "express";
 
 const logger = getLogger();
 import { API_MESSAGES } from "../../constants/api.messages.js";
@@ -11,10 +12,6 @@ const cacheLogger = logger.child({ module: "cache" });
  * Caches GET request responses in Redis for a specified duration.
  * Useful for read-heavy endpoints that don't change frequently.
  *
- * @param {number} duration - Cache duration in seconds
- * @param {object} options - Additional options
- * @param {string} options.keyPrefix - Custom key prefix (default: 'cache:')
- * @param {function} options.shouldCache - Custom function to determine if response should be cached
  * @returns {Function} Express middleware
  *
  * @example
@@ -27,13 +24,18 @@ const cacheLogger = logger.child({ module: "cache" });
  *   shouldCache: (req, res) => res.statusCode === 200
  * }), getPostsHandler);
  */
-export const cacheMiddleware = (duration, options = {}) => {
+interface CacheOptions {
+  keyPrefix?: string;
+  shouldCache?: (req: Request, res: Response) => boolean;
+}
+
+export const cacheMiddleware = (duration: number, options: CacheOptions = {}) => {
   const {
     keyPrefix = "cache:",
-    shouldCache = (req, res) => res.statusCode === 200,
-  } = options as any;
+    shouldCache = (_req: Request, res: Response) => res.statusCode === 200,
+  } = options;
 
-  return async (req, res, next) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     // Only cache GET requests
     if (req.method !== "GET") {
       return next();
@@ -46,7 +48,7 @@ export const cacheMiddleware = (duration, options = {}) => {
       // Try to get cached response
       const cached = await redisConnection.get(cacheKey);
 
-      if (cached) {
+      if (cached !== null) {
         cacheLogger.debug({ cacheKey }, API_MESSAGES.CACHE_HIT);
         res.setHeader("X-Cache", "HIT");
         res.setHeader("X-Cache-Key", cacheKey);
@@ -72,7 +74,7 @@ export const cacheMiddleware = (duration, options = {}) => {
             })
             .catch((error) => {
               cacheLogger.warn(
-                { cacheKey, error: error.message },
+                { cacheKey, error: (error as Error).message },
                 API_MESSAGES.CACHE_SAVE_FAILED
               );
             });
@@ -84,7 +86,7 @@ export const cacheMiddleware = (duration, options = {}) => {
       next();
     } catch (error) {
       // If Redis fails, continue without caching
-      cacheLogger.warn({ error: error.message }, API_MESSAGES.CACHE_ERROR);
+      cacheLogger.warn({ error: (error as Error).message }, API_MESSAGES.CACHE_ERROR);
       res.setHeader("X-Cache", "ERROR");
       next();
     }
@@ -104,8 +106,7 @@ export const cacheMiddleware = (duration, options = {}) => {
  * // Invalidate all user caches
  * await invalidateCache('cache:/api/v1/users/*');
  */
-/* eslint-disable import/no-unused-modules */
-export const invalidateCache = async (pattern) => {
+export const invalidateCache = async (pattern: string) => {
   try {
     const keys = await redisConnection.keys(pattern);
     if (keys.length === 0) {
@@ -118,7 +119,7 @@ export const invalidateCache = async (pattern) => {
     return deleted;
   } catch (error) {
     cacheLogger.error(
-      { pattern, error: error.message },
+      { pattern, error: (error as Error).message },
       API_MESSAGES.CACHE_INVALIDATE_FAILED
     );
     throw error;

@@ -1,24 +1,26 @@
 import { HTTP_STATUS_CODES, ApiResponse } from "@auth/utils";
 import { t as systemT } from "@auth/config";
+import type { RegistrationService } from "./registration.service.js";
+import { RegistrationDto } from "./registration.dto.js";
 
 /**
  * Controller for user registration
  * Single Responsibility: Handle registration HTTP requests
  */
 export class RegistrationController {
-  registrationService: any;
+  registrationService: RegistrationService;
 
-  constructor(registrationService: any) {
+  constructor(registrationService: RegistrationService) {
     this.registrationService = registrationService;
   }
 
   /**
    * Register a new user
-   * @param {RegisterUserDto} dto - User registration data
+   * @param {RegistrationDto} dto - User registration data
    * @param {string} locale - User locale for i18n
    * @returns {Promise<ControllerResult>}
    */
-  async registerUser(dto, locale = "en") {
+  async registerUser(dto: RegistrationDto, locale = "en") {
     const user = await this.registrationService.register(dto);
 
     return {
@@ -26,7 +28,7 @@ export class RegistrationController {
       data: new ApiResponse(
         HTTP_STATUS_CODES.CREATED,
         user,
-        (systemT as any)("auth:register.success", { lng: locale })
+        systemT("auth:register.success", { lng: locale })
       ),
     };
   }

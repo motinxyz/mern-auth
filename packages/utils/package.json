@@ -23,7 +23,8 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1"
+    "@types/node": "^24.10.1",
+    "@types/opossum": "^8.1.9"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.0.0"

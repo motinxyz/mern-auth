@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import QueueProcessorService from "./queue-processor.service.js";
 import { Worker, Queue } from "bullmq";
 

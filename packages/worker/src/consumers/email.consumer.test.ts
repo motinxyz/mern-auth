@@ -68,16 +68,18 @@ describe("Email Consumer", () => {
     const result = await emailJobConsumer(job);
 
     expect(result).toEqual({
-      status: "OK",
+      success: true,
       message: "Email sent successfully",
     });
 
-    expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
-      job.data.data.user,
-      job.data.data.token,
-      "en",
-      expect.objectContaining({ preferredProvider: undefined })
-    );
+    expect(mockEmailService.sendEmail).toHaveBeenCalledWith(expect.objectContaining({
+      to: job.data.data.user.email,
+      template: "verification",
+      data: expect.objectContaining({
+        user: job.data.data.user,
+        token: job.data.data.token,
+      })
+    }));
   });
 
   it("should throw error for unknown job type", async () => {
@@ -104,7 +106,7 @@ describe("Email Consumer", () => {
       },
     };
 
-    mockEmailService.sendVerificationEmail.mockRejectedValue(
+    mockEmailService.sendEmail.mockRejectedValue(
       new Error("Send failed")
     );
 

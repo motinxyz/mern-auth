@@ -3,13 +3,13 @@
  * Uses the observability module for production-grade logging
  */
 
+import type { Logger } from "pino";
 import { getObservabilityLogger } from "./observability/logger.js";
-import config from "./env.js";
 
-let loggerInstance;
+let loggerInstance: Logger | undefined;
 
 export function getLogger() {
-  if (!loggerInstance) {
+  if (loggerInstance === undefined) {
     loggerInstance = getObservabilityLogger({
       redact: {
         paths: [

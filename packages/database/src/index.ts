@@ -28,7 +28,7 @@ class DatabaseService {
     logger: ILogger;
     t?: (key: string, params?: unknown) => string;
   }) {
-    if (!options.config) {
+    if (options.config === undefined || options.config === null) {
       throw new ConfigurationError(
         DB_ERRORS.MISSING_CONFIG.replace("{option}", "config")
       );
