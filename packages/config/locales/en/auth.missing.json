@@ -1,5 +1,8 @@
 {
   "register": {
     "success": "register.success"
+  },
+  "logs": {
+    "registerDuplicateKey": "logs.registerDuplicateKey"
   }
 }

@@ -64,16 +64,8 @@ class EmailConsumer extends BaseConsumer {
         });
         try {
             jobLogger.debug({ email: data.user.email }, WORKER_MESSAGES.EMAIL_SENDING_VERIFICATION);
-            await this.emailService.sendEmail({
-                to: data.user.email,
-                template: "verification",
-                data: {
-                    user: data.user,
-                    token: data.token,
-                    locale: data.locale ?? "en",
-                },
-                preferredProvider: data.preferredProvider,
-            });
+            // CRITICAL FIX: Use sendVerificationEmail instead of sendEmail
+            await this.emailService.sendVerificationEmail(data.user, data.token, data.locale ?? "en", { preferredProvider: data.preferredProvider });
             jobLogger.info({ email: data.user.email }, WORKER_MESSAGES.EMAIL_VERIFICATION_SENT);
         }
         catch (error) {

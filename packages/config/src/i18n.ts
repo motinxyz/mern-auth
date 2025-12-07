@@ -22,7 +22,7 @@ const log = createModuleLogger("i18n");
  */
 export const configureI18next = async () => {
   try {
-    const localesDir = path.join(__dirname, "../locales");
+    const localesDir = path.join(__dirname, "locales");
 
     // Check if locales directory exists
     try {

@@ -16,6 +16,7 @@ interface EmailJobData {
         user?: {
             id: string;
             email: string;
+            name: string;
         };
         token?: string;
         locale?: string;
