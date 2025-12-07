@@ -1,5 +1,6 @@
 import { HTTP_STATUS_CODES, ApiResponse } from "@auth/utils";
 import { t as systemT } from "@auth/config";
+import { RegistrationDto } from "./registration.dto.js";
 /**
  * Controller for user registration
  * Single Responsibility: Handle registration HTTP requests
@@ -11,7 +12,7 @@ export class RegistrationController {
     }
     /**
      * Register a new user
-     * @param {RegisterUserDto} dto - User registration data
+     * @param {RegistrationDto} dto - User registration data
      * @param {string} locale - User locale for i18n
      * @returns {Promise<ControllerResult>}
      */

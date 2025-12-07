@@ -1,27 +1,30 @@
+import { ResendProvider, MailerSendProvider } from "@auth/email";
+import type { Request, Response } from "express";
+import type { ILogger } from "@auth/contracts";
 export declare class WebhooksController {
-    webhookLogger: any;
-    resend: any;
-    mailersend: any;
+    webhookLogger: ILogger;
+    resend: ResendProvider;
+    mailersend: MailerSendProvider;
     constructor();
     /**
      * Handle generic webhook flow
      */
-    handleWebhook(req: any, res: any, provider: any): Promise<any>;
+    handleWebhook(req: Request, res: Response, provider: ResendProvider | MailerSendProvider): Promise<Response<any, Record<string, any>>>;
     /**
      * Handle Resend webhook events
      * POST /webhooks/resend
      */
-    handleResendWebhook: (req: any, res: any) => Promise<any>;
+    handleResendWebhook: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
     /**
      * Handle MailerSend webhook events
      * POST /webhooks/mailersend
      */
-    handleMailerSendWebhook: (req: any, res: any) => Promise<any>;
+    handleMailerSendWebhook: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
     /**
      * Health check for webhooks
      * GET /webhooks/health
      */
-    checkHealth: (req: any, res: any) => void;
+    checkHealth: (_req: Request, res: Response) => void;
 }
 export declare const webhooksController: WebhooksController;
 //# sourceMappingURL=webhooks.controller.d.ts.map

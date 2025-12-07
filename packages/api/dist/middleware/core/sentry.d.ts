@@ -17,23 +17,30 @@
  */
 import * as Sentry from "@sentry/node";
 export declare const initSentry: () => typeof Sentry;
-/**
- * Set user context for error tracking
- * Call this after user authentication
- */
-export declare function setSentryUser(user: any): void;
-/**
- * Add breadcrumb for debugging
- */
-export declare function addSentryBreadcrumb(category: any, message: any, data?: {}, level?: string): void;
+interface SentryUser {
+    id?: string;
+    _id?: {
+        toString(): string;
+    };
+    email?: string;
+    name?: string;
+    role?: string;
+}
+export declare function setSentryUser(user: SentryUser | null | undefined): void;
+export declare function addSentryBreadcrumb(category: string, message: string, data?: Record<string, unknown>, level?: Sentry.SeverityLevel): void;
 /**
  * Start a Sentry transaction for performance monitoring
  */
-export declare function startSentryTransaction(op: any, name: any, data?: {}): any;
-/**
- * Capture exception with context
- */
-export declare const captureSentryException: (error: any, context?: {}) => void;
+export declare function startSentryTransaction(op: string, name: string, data?: Record<string, unknown>): {
+    setHttpStatus: (status: number) => void;
+    finish: () => void;
+};
+interface SentryContext {
+    tags?: Record<string, string>;
+    extra?: Record<string, unknown>;
+    level?: Sentry.SeverityLevel;
+}
+export declare const captureSentryException: (error: Error, context?: SentryContext) => void;
 declare const SentryInstance: typeof Sentry | {
     setupExpressErrorHandler: () => void;
     captureException: () => void;

@@ -14,7 +14,7 @@ export class VerificationDto {
      */
     static fromRequest(query) {
         return new VerificationDto({
-            token: query.token,
+            token: query.token ?? "",
         });
     }
 }

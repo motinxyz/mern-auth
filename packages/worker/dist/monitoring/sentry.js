@@ -2,15 +2,10 @@ import * as Sentry from "@sentry/node";
 import { nodeProfilingIntegration } from "@sentry/profiling-node";
 /**
  * Initialize Sentry for the worker process
- * @param {Object} options - Sentry configuration
- * @param {string} options.dsn - Sentry DSN
- * @param {string} options.environment - Environment name
- * @param {number} [options.tracesSampleRate] - Traces sample rate (default: 0.1 for prod, 1.0 otherwise)
- * @param {number} [options.profilesSampleRate] - Profiles sample rate (default: 0.1)
- * @returns {Object|null} - Sentry instance or null if no DSN
+ * @returns Sentry instance wrapper or null if no DSN
  */
 export const initSentry = ({ dsn, environment = "development", tracesSampleRate, profilesSampleRate = 0.1, } = {}) => {
-    if (!dsn) {
+    if (dsn === undefined || dsn === "") {
         return null;
     }
     const defaultTracesSampleRate = environment === "production" ? 0.1 : 1.0;
@@ -21,19 +16,29 @@ export const initSentry = ({ dsn, environment = "development", tracesSampleRate,
         profilesSampleRate,
         integrations: [nodeProfilingIntegration()],
     });
-    return Sentry;
+    // Return a wrapper that matches ISentry interface
+    return {
+        captureException: (error, context) => {
+            Sentry.captureException(error, { extra: context });
+        },
+        captureMessage: (message, options) => {
+            Sentry.captureMessage(message, {
+                level: options?.level ?? "info",
+                extra: options?.extra,
+            });
+        },
+    };
 };
 /**
  * Capture job error with context
- * @param {Error} error - The error to capture
- * @param {Object} job - The BullMQ job
  */
 export const captureJobError = (error, job) => {
+    const jobData = job.data;
     Sentry.captureException(error, {
         tags: {
-            jobType: job.data?.type,
+            jobType: String(jobData?.type ?? "unknown"),
             queue: job.queueName,
-            jobId: job.id,
+            jobId: job.id ?? "unknown",
         },
         extra: {
             jobData: job.data,

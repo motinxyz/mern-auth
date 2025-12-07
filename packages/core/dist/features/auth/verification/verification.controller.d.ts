@@ -1,21 +1,23 @@
 import { ApiResponse } from "@auth/utils";
+import type { VerificationService } from "./verification.service.js";
+import type { VerificationDto } from "./verification.dto.js";
 /**
  * Controller for email verification
  * Single Responsibility: Handle email verification HTTP requests
  */
 export declare class VerificationController {
-    verificationService: any;
-    constructor(verificationService: any);
+    verificationService: VerificationService;
+    constructor(verificationService: VerificationService);
     /**
      * Verify user email
-     * @param {VerifyEmailDto} dto - Email verification data
+     * @param {VerificationDto} dto - Email verification data
      * @param {string} locale - User locale for i18n
      * @returns {Promise<ControllerResult>}
      */
-    verifyEmail(dto: any, locale?: string): Promise<{
+    verifyEmail(dto: VerificationDto, locale?: string): Promise<{
         statusCode: number;
         data: ApiResponse<{
-            status: any;
+            status: "VERIFIED" | "ALREADY_VERIFIED";
         }>;
     }>;
 }

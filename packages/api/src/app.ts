@@ -108,7 +108,7 @@ app.use(
 );
 
 // Handle 404 - Not Found routes
-app.use((req, res, next) => {
+app.use((_req: Request, _res: Response, next: NextFunction) => {
   next(new NotFoundError());
 });
 

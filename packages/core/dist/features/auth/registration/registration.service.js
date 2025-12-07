@@ -1,8 +1,8 @@
-import { User } from "@auth/database";
 import { normalizeEmail, ConflictError, TooManyRequestsError, createAuthRateLimitKey, ServiceUnavailableError, ApiError, HTTP_STATUS_CODES, withSpan, addSpanAttributes, hashSensitiveData, getTraceContext, } from "@auth/utils";
 import { RATE_LIMIT_DURATIONS, REDIS_RATE_LIMIT_VALUE, } from "../../../constants/auth.constants.js";
-import { EMAIL_JOB_TYPES, t } from "@auth/config";
-import { REGISTRATION_MESSAGES, REGISTRATION_ERRORS, } from "../../../constants/core.messages.js";
+import { EMAIL_JOB_TYPES } from "@auth/config";
+import { REGISTRATION_MESSAGES, } from "../../../constants/core.messages.js";
+import { RegistrationDto } from "./registration.dto.js";
 /**
  * RegistrationService
  *
@@ -38,7 +38,7 @@ export class RegistrationService {
     }
     async register(registerUserDto) {
         const { email, locale } = registerUserDto;
-        return withSpan("registration-service.register-user", async (rootSpan) => {
+        return withSpan("registration-service.register-user", async () => {
             // Add root span attributes
             addSpanAttributes({
                 "service.module": "registration-service",
@@ -49,22 +49,22 @@ export class RegistrationService {
             const normalizedEmail = normalizeEmail(email);
             const rateLimitKey = createAuthRateLimitKey(this.config.redis.prefixes.verifyEmailRateLimit, normalizedEmail);
             // Check rate limit
-            await withSpan("registration-service.check-rate-limit", async (span) => {
+            await withSpan("registration-service.check-rate-limit", async () => {
                 addSpanAttributes({
                     "rate_limit.key_prefix": this.config.redis.prefixes.verifyEmailRateLimit,
                     "user.email_hash": hashSensitiveData(normalizedEmail),
                 });
                 const isRateLimited = await this.redis.get(rateLimitKey);
                 addSpanAttributes({
-                    "rate_limit.is_limited": !!isRateLimited,
+                    "rate_limit.is_limited": isRateLimited !== null,
                 });
-                if (isRateLimited) {
+                if (isRateLimited !== null) {
                     throw new TooManyRequestsError(RATE_LIMIT_DURATIONS.VERIFY_EMAIL);
                 }
             });
             let newUser;
             const session = await this.User.db.startSession();
-            await withSpan("registration-service.db-transaction", async (txSpan) => {
+            await withSpan("registration-service.db-transaction", async () => {
                 addSpanAttributes({
                     "db.system": "mongodb",
                     "db.operation": "transaction",
@@ -72,7 +72,7 @@ export class RegistrationService {
                 await session.withTransaction(async () => {
                     try {
                         // Create user in database
-                        await withSpan("registration-service.create-user", async (createSpan) => {
+                        await withSpan("registration-service.create-user", async () => {
                             addSpanAttributes({
                                 "db.operation": "insert",
                                 "db.mongodb.collection": "users",
@@ -84,13 +84,20 @@ export class RegistrationService {
                                 normalizedEmail: normalizedEmail,
                                 password: registerUserDto.password,
                             };
-                            [newUser] = await this.User.create([userData], { session });
+                            const result = await this.User.create([userData], { session });
+                            const createdUser = result[0];
+                            if (!createdUser) {
+                                throw new Error("Failed to create user document");
+                            }
+                            newUser = createdUser;
                             addSpanAttributes({
                                 "user.id": newUser._id.toString(),
                             });
                         });
                     }
-                    catch (dbError) {
+                    catch (error) {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const dbError = error;
                         // DEFENSE IN DEPTH: Handle Mongoose validation errors
                         // This should NEVER happen if Zod validation is working correctly.
                         // If it does, it indicates a bug in the Zod schema or data flow.
@@ -101,7 +108,7 @@ export class RegistrationService {
                                 alert: "MONGOOSE_VALIDATION_TRIGGERED",
                             }, REGISTRATION_MESSAGES.MONGOOSE_VALIDATION_TRIGGERED);
                             // Alert via Sentry if available
-                            if (this.sentry) {
+                            if (this.sentry !== undefined && this.sentry !== null) {
                                 this.sentry.captureException(dbError, {
                                     tags: {
                                         alert: "defense_in_depth_triggered",
@@ -128,7 +135,9 @@ export class RegistrationService {
                                 issue: key === "email" || key === "normalizedEmail"
                                     ? "validation:email.inUse"
                                     : "validation:duplicateValue",
-                                value: key === "normalizedEmail" ? email : dbError.keyValue[key],
+                                value: 
+                                // eslint-disable-next-line security/detect-object-injection
+                                key === "normalizedEmail" ? email : dbError.keyValue[key],
                             }));
                             throw new ConflictError("auth:logs.registerDuplicateKey", errors);
                         }
@@ -142,7 +151,10 @@ export class RegistrationService {
                 let verificationToken;
                 try {
                     verificationToken =
-                        await this.tokenService.createVerificationToken(newUser);
+                        await this.tokenService.createVerificationToken({
+                            ...newUser.toObject(),
+                            _id: newUser._id.toString(),
+                        });
                 }
                 catch (tokenError) {
                     this.logger.error({ tokenError, userId: newUser._id }, REGISTRATION_MESSAGES.CREATE_TOKEN_FAILED);

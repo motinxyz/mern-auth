@@ -85,12 +85,14 @@ class MigrationRunner {
             const migrationPath = path.join(this.migrationsDir, filename);
             const migration = await import(migrationPath);
             // eslint-disable-next-line security/detect-object-injection
-            if (!migration[direction]) {
+            const runFn = migration[direction];
+            if (!runFn) {
                 throw new Error(`Migration ${filename} does not export '${direction}' function`);
             }
             // Run the migration
-            // eslint-disable-next-line security/detect-object-injection
-            await migration[direction](mongoose.connection.db, session, logger);
+            if (mongoose.connection.db) {
+                await runFn(mongoose.connection.db, session, logger);
+            }
             // Update migration status
             if (direction === "up") {
                 await Migration.create([{ name: filename, status: "applied" }], {

@@ -1,6 +1,7 @@
 import type { ILogger, IConfig, ICacheService, IQueueProducer, ITokenService } from "@auth/contracts";
 import type { Model } from "mongoose";
 import type { UserDocument } from "@auth/database";
+import { RegistrationDto } from "./registration.dto.js";
 /**
  * RegistrationService
  *
@@ -34,6 +35,6 @@ export declare class RegistrationService {
         sentry: unknown;
         logger: ILogger;
     });
-    register(registerUserDto: any): Promise<any>;
+    register(registerUserDto: RegistrationDto): Promise<any>;
 }
 //# sourceMappingURL=registration.service.d.ts.map

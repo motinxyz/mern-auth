@@ -7,18 +7,20 @@
  * - Export to Grafana Cloud Tempo
  * - Graceful degradation
  */
+/* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
-import { MeterProvider, PeriodicExportingMetricReader, } from "@opentelemetry/sdk-metrics";
+import { PeriodicExportingMetricReader, } from "@opentelemetry/sdk-metrics";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { createModuleLogger } from "../logging/startup-logger.js";
 // Use require for CommonJS modules to avoid ESM interop issues
 const { resourceFromAttributes } = require("@opentelemetry/resources");
 const { SEMRESATTRS_SERVICE_NAME, SEMRESATTRS_SERVICE_VERSION, SEMRESATTRS_DEPLOYMENT_ENVIRONMENT, } = require("@opentelemetry/semantic-conventions");
 import { observabilityConfig, isTracingEnabled } from "./config.js";
+// import type { Request } from "express"; // Unused
 const log = createModuleLogger("tracing");
 let sdk = null;
 /**
@@ -52,6 +54,7 @@ export function initializeTracing() {
                 headers: tempo.headers,
                 // Production settings
                 timeoutMillis: 30000,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 compression: "gzip",
             })
             : undefined;
@@ -61,6 +64,7 @@ export function initializeTracing() {
                 url: tempo.url.replace("/v1/traces", "/v1/metrics"), // Tempo metrics endpoint
                 headers: tempo.headers,
                 timeoutMillis: 30000,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 compression: "gzip",
             })
             : undefined;
@@ -106,15 +110,16 @@ export function initializeTracing() {
                             return url.includes("/health") || url.includes("/metrics");
                         },
                         // Hook for incoming requests (server-side)
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         requestHook: (span, request) => {
                             // Add request details
-                            span.setAttribute("http.url", request.url);
+                            span.setAttribute("http.url", request.url || "");
                             span.setAttribute("http.host", request.headers?.host || "unknown");
                         },
                         // Hook for outgoing requests (client-side) - for external API calls
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         startOutgoingSpanHook: (request) => {
                             // Parse URL to get host for span name
-                            const url = request.path || request.href || "";
                             const method = request.method || "GET";
                             // Try to extract hostname for better span names
                             let host = request.hostname || request.host || "";
@@ -126,7 +131,8 @@ export function initializeTracing() {
                             return { name: `HTTP ${method}` };
                         },
                         // This hook runs after response is complete - route info is available
-                        applyCustomAttributesOnSpan: (span, request, response) => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        applyCustomAttributesOnSpan: (span, request, _response) => {
                             // For incoming requests: Update HTTP span name with Express route
                             const route = request.route?.path;
                             const baseUrl = request.baseUrl || "";
@@ -147,9 +153,11 @@ export function initializeTracing() {
                     "@opentelemetry/instrumentation-express": {
                         enabled: true,
                         // Skip noisy middleware spans - keep only router and request_handler spans
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         ignoreLayersType: ["middleware"],
                         // spanNameHook is the correct hook for setting span names
-                        spanNameHook: (info, defaultName) => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        spanNameHook: (info, _defaultName) => {
                             const req = info.request;
                             const route = info.route || req.route?.path;
                             const method = req.method || "UNKNOWN";
@@ -164,6 +172,7 @@ export function initializeTracing() {
                             return `${method} ${path}`;
                         },
                         // requestHook for adding attributes (not span name)
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         requestHook: (span, info) => {
                             const req = info.request;
                             span.setAttribute("http.target", req.originalUrl || req.url);
@@ -176,6 +185,7 @@ export function initializeTracing() {
                     "@opentelemetry/instrumentation-mongodb": {
                         enabled: true,
                         enhancedDatabaseReporting: true, // Include query details
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         responseHook: (span, result) => {
                             // Add operation result info
                             if (result.operationName) {
@@ -183,9 +193,11 @@ export function initializeTracing() {
                             }
                         },
                     },
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     ["@opentelemetry/instrumentation-redis-4"]: {
                         enabled: true,
-                        responseHook: (span, cmdName, cmdArgs, response) => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        responseHook: (span, cmdName, _cmdArgs, _response) => {
                             // Add Redis command info to span name
                             span.updateName(`Redis ${cmdName}`);
                             span.setAttribute("redis.command", cmdName);
@@ -197,11 +209,12 @@ export function initializeTracing() {
         sdk.start();
         log.info("OpenTelemetry tracing initialized");
         // Graceful shutdown with timeout
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const shutdownHandler = async (signal) => {
             log.info({ signal }, "Shutting down OpenTelemetry");
             try {
                 await Promise.race([
-                    sdk.shutdown(),
+                    sdk?.shutdown(),
                     new Promise((_, reject) => setTimeout(() => reject(new Error("Shutdown timeout")), 5000)),
                 ]);
                 log.info("OpenTelemetry SDK shut down successfully");

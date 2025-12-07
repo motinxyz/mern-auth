@@ -62,7 +62,7 @@ async function checkQueue() {
         const health = await queueServices.emailQueueProducer.getHealth();
         return {
             healthy: health.healthy,
-            circuitState: health.circuitBreaker?.state || "N/A",
+            circuitState: health.circuitBreaker?.state ?? "N/A",
         };
     }
     catch (error) {
@@ -77,14 +77,14 @@ async function checkQueue() {
  * Liveness probe handler - Is the process running?
  * Used by load balancers to check if the process should be restarted.
  */
-export function livenessHandler(req, res) {
+export function livenessHandler(_req, res) {
     res.status(HTTP_STATUS_CODES.OK).json({ status: "OK" });
 }
 /**
  * Readiness probe handler - Are dependencies ready to serve traffic?
  * Used by load balancers to determine if traffic should be routed to this instance.
  */
-export async function readinessHandler(req, res) {
+export async function readinessHandler(_req, res) {
     const startTime = Date.now();
     // Check all dependencies in parallel
     const [redisHealth, dbHealth, queueHealth] = await Promise.all([
@@ -92,7 +92,7 @@ export async function readinessHandler(req, res) {
         checkDatabase(),
         checkQueue(),
     ]);
-    const isReady = redisHealth.healthy && dbHealth.healthy && queueHealth.healthy;
+    const isReady = (redisHealth.healthy && dbHealth.healthy && queueHealth.healthy) === true;
     const response = {
         status: isReady ? "READY" : "NOT_READY",
         timestamp: new Date().toISOString(),
@@ -104,9 +104,9 @@ export async function readinessHandler(req, res) {
         },
     };
     // Log if not ready (for debugging)
-    if (!isReady) {
+    if (isReady === false) {
         logger.warn(response, "Readiness check failed");
     }
-    res.status(isReady ? HTTP_STATUS_CODES.OK : 503).json(response);
+    res.status(isReady === true ? HTTP_STATUS_CODES.OK : 503).json(response);
 }
 //# sourceMappingURL=health.handlers.js.map

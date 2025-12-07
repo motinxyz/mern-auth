@@ -3,7 +3,6 @@ import { NotFoundError, ApiError, HTTP_STATUS_CODES, createVerifyEmailKey, } fro
 import { HASHING_ALGORITHM } from "../../../constants/token.constants.js";
 import { VERIFICATION_STATUS } from "../../../constants/auth.constants.js";
 import { VERIFICATION_MESSAGES } from "../../../constants/core.messages.js";
-import { t } from "@auth/config";
 /**
  * Service responsible ONLY for email verification logic
  * Single Responsibility: Handle email verification process
@@ -28,7 +27,7 @@ export class VerificationService {
         this.logger.debug({ key: verifyKey }, VERIFICATION_MESSAGES.REDIS_KEY_CONSTRUCTED);
         // Get token data from Redis
         const userDataJSON = await this.redis.get(verifyKey);
-        if (!userDataJSON) {
+        if (userDataJSON === null) {
             this.logger.warn({ key: verifyKey }, VERIFICATION_MESSAGES.TOKEN_NOT_FOUND_REDIS);
             throw new NotFoundError("auth:verify.invalidToken");
         }
@@ -40,7 +39,7 @@ export class VerificationService {
         }
         catch (error) {
             this.logger.error({ error, redisData: userDataJSON }, VERIFICATION_MESSAGES.PARSE_REDIS_DATA_FAILED);
-            throw new ApiError(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, t("auth:errors.invalidDataFormat"));
+            throw new ApiError(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "auth:errors.invalidDataFormat");
         }
         // Find user
         const user = await this.User.findById(userData.userId);

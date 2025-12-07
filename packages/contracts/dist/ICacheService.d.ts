@@ -11,7 +11,7 @@ export interface ICacheService {
     /**
      * Set a value in cache with optional TTL
      */
-    set(key: string, value: string, expiryMode?: "EX" | "PX", ttl?: number): Promise<string>;
+    set(key: string, value: string, expiryMode?: string, ttl?: number): Promise<string>;
     /**
      * Delete a key from cache
      */

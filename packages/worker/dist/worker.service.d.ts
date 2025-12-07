@@ -1,33 +1,26 @@
-import QueueProcessorService from "./queue-processor.service.js";
-import type { ILogger } from "@auth/contracts";
+import type { WorkerServiceOptions, ProcessorRegistrationConfig, IQueueProcessor, WorkerHealth, WorkerMetrics, IDatabaseService } from "@auth/contracts";
 /**
  * Worker Service
  * Generic orchestrator for any queue processors
  */
 declare class WorkerService {
-    sentry: any;
-    logger: ILogger;
-    redisConnection: any;
-    processors: any[];
-    databaseService: any;
-    initServices: any[];
-    constructor(options?: any);
+    private readonly sentry;
+    private readonly logger;
+    private readonly redisConnection;
+    private readonly processors;
+    private readonly databaseService;
+    private readonly initServices;
+    constructor(options: WorkerServiceOptions);
     /**
      * Register a queue processor
-     * @param {Object} processorConfig - Configuration for the processor
-     * @param {string} processorConfig.queueName - Name of the queue
-     * @param {Function} processorConfig.processor - Job processor function
-     * @param {Object} processorConfig.workerConfig - Worker configuration
-     * @param {string} processorConfig.deadLetterQueueName - Dead letter queue name
      */
-    registerProcessor(processorConfig: any): QueueProcessorService;
+    registerProcessor(processorConfig: ProcessorRegistrationConfig): IQueueProcessor;
     /**
      * Start the worker service
      */
     start(): Promise<void>;
     /**
      * Stop the worker service gracefully
-     * @param {number} timeoutMs - Maximum time to wait for jobs to complete (default: 30s)
      */
     stop(timeoutMs?: number): Promise<void>;
     /**
@@ -45,18 +38,14 @@ declare class WorkerService {
     /**
      * Get health status of all processors
      */
-    getHealth(): Promise<{
-        healthy: boolean;
-        processors: any[];
-        database: any;
-    }>;
+    getHealth(): Promise<WorkerHealth>;
     /**
      * Get metrics from all processors
      */
-    getMetrics(): {
-        queueName: any;
-        metrics: any;
-    }[];
+    getMetrics(): Array<{
+        queueName: string;
+        metrics: WorkerMetrics;
+    }>;
     /**
      * Pause all processors
      */
@@ -68,11 +57,11 @@ declare class WorkerService {
     /**
      * Get all processors
      */
-    getProcessors(): any[];
+    getProcessors(): IQueueProcessor[];
     /**
      * Get database service instance
      */
-    getDatabaseService(): any;
+    getDatabaseService(): IDatabaseService | null;
 }
 export default WorkerService;
 //# sourceMappingURL=worker.service.d.ts.map

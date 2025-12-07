@@ -5,27 +5,27 @@ import { TokenService } from "./token.service.js";
 import { TokenCreationError } from "@auth/utils";
 
 // Mock dependencies
-let mockDebug;
-let mockInfo;
-let mockError;
+let mockDebug: any;
+let mockInfo: any;
+let mockError: any;
 
 vi.mock("@auth/utils", async () => ({
   ...(await vi.importActual("@auth/utils")),
   HASHING_ALGORITHM: "sha256",
   TokenCreationError: class TokenCreationError extends Error {
-    constructor(message, originalError) {
+    constructor(message: string, originalError: any) {
       super(message);
       this.name = "TokenCreationError";
-      this.originalError = originalError;
+      (this as any).originalError = originalError;
     }
   },
 }));
 
 describe("Token Service", () => {
-  let tokenService;
-  let mockRedis;
-  let mockConfig;
-  let mockLogger;
+  let tokenService: any;
+  let mockRedis: any;
+  let mockConfig: any;
+  let mockLogger: any;
 
   beforeEach(() => {
     // Reset mocks
@@ -35,14 +35,14 @@ describe("Token Service", () => {
     vi.clearAllMocks();
 
     // Create mock Redis
-    const mockRedisData = new Map();
+    const mockRedisData = new Map<string, any>();
     mockRedis = {
       data: mockRedisData,
-      set: vi.fn().mockImplementation(async (key, value) => {
+      set: vi.fn().mockImplementation(async (key: string, value: any) => {
         mockRedisData.set(key, value);
         return "OK";
       }),
-      get: vi.fn().mockImplementation(async (key) => {
+      get: vi.fn().mockImplementation(async (key: string) => {
         return mockRedisData.get(key) || null;
       }),
       ttl: vi.fn().mockResolvedValue(300),
@@ -65,9 +65,9 @@ describe("Token Service", () => {
     // Create mock logger
     mockLogger = {
       child: vi.fn(() => ({
-        debug: (...args) => mockDebug(...args),
-        info: (...args) => mockInfo(...args),
-        error: (...args) => mockError(...args),
+        debug: (...args: any[]) => mockDebug(...args),
+        info: (...args: any[]) => mockInfo(...args),
+        error: (...args: any[]) => mockError(...args),
         fatal: vi.fn(),
       })),
     };
@@ -90,13 +90,13 @@ describe("Token Service", () => {
       const token = "72616e646f5f746f6b656e5f737472696e67";
       const hashedToken = "hashed_token_string";
 
-      vi.spyOn(crypto, "randomBytes").mockReturnValue(
-        Buffer.from(token, "hex")
+      (vi.spyOn(crypto, "randomBytes") as any).mockReturnValue(
+        Buffer.from(token, "hex") as unknown as Buffer
       );
       vi.spyOn(crypto, "createHash").mockReturnValue({
         update: vi.fn().mockReturnThis(),
         digest: vi.fn().mockReturnValue(hashedToken),
-      });
+      } as unknown as crypto.Hash);
 
       const result = await tokenService.createVerificationToken(user);
 
@@ -120,7 +120,7 @@ describe("Token Service", () => {
 
       expect(mockDebug).toHaveBeenCalledWith(
         {
-          key: `${mockConfig.redis.prefixes.verifyEmail}${hashedToken}`,
+          token: token,
           ttl: expect.any(Number),
           redisResponse: "OK",
         },

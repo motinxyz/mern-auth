@@ -1,6 +1,5 @@
 import { ZodError } from "zod";
-import { getLogger, t } from "@auth/config";
-const logger = getLogger();
+// const _logger = getLogger();
 import { ValidationError } from "@auth/utils";
 /**
  * Middleware factory to validate requests against a Zod schema.
@@ -8,7 +7,7 @@ import { ValidationError } from "@auth/utils";
  * @param {import('zod').ZodSchema} schema - The Zod schema to validate against.
  * @returns {import('express').RequestHandler} An Express middleware function.
  */
-export const validate = (schema) => async (req, res, next) => {
+export const validate = (schema) => async (req, _res, next) => {
     try {
         // Determine what to validate based on HTTP method
         const dataToValidate = req.method === "GET" ? req.query : req.body;

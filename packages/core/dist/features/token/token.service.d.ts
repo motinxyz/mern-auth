@@ -33,14 +33,14 @@ export declare class TokenService {
     /**
      * Verify and consume a token
      */
-    verifyToken(token: string): Promise<{
+    verifyToken(_token: string): Promise<{
         userId: string;
         type: string;
     }>;
     /**
      * Delete a token
      */
-    deleteToken(token: string): Promise<void>;
+    deleteToken(_token: string): Promise<void>;
 }
 export {};
 //# sourceMappingURL=token.service.d.ts.map

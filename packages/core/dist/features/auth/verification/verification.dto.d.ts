@@ -4,12 +4,14 @@
  */
 export declare class VerificationDto {
     token: string;
-    constructor({ token }: any);
+    constructor({ token }: {
+        token: string;
+    });
     /**
      * Create DTO from Express request
      * @param {object} query - Request query parameters
      * @returns {VerificationDto}
      */
-    static fromRequest(query: any): VerificationDto;
+    static fromRequest(query: Record<string, string>): VerificationDto;
 }
 //# sourceMappingURL=verification.dto.d.ts.map

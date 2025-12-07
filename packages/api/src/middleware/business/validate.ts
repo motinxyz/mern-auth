@@ -1,8 +1,8 @@
 import { ZodError, type ZodSchema } from "zod";
-import { getLogger } from "@auth/config";
+// import { getLogger } from "@auth/config";
 import type { Request, Response, NextFunction } from "express";
 
-const _logger = getLogger();
+// const _logger = getLogger();
 import { ValidationError } from "@auth/utils";
 
 /**

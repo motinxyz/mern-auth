@@ -8,9 +8,8 @@ import { swaggerUi, swaggerSpec, swaggerUiOptions } from "./swagger/index.js";
 import { metricsMiddleware } from "./metrics/index.js";
 // core imports
 import { errorHandler, configureMiddleware } from "./middleware/index.js";
-import { NotFoundError, HTTP_STATUS_CODES } from "@auth/utils";
-import { i18nInstance, i18nMiddleware, redisConnection, config, } from "@auth/config";
-import { getDatabaseService } from "@auth/app-bootstrap";
+import { NotFoundError } from "@auth/utils";
+import { i18nInstance, i18nMiddleware, config, } from "@auth/config";
 import { apiLimiter } from "./middleware/index.js";
 import { createTimeoutMiddleware, timeoutErrorHandler, } from "./middleware/index.js";
 import { apiVersionMiddleware } from "./middleware/index.js";
@@ -21,8 +20,8 @@ const app = express();
 // Apply request timeout (30 seconds) - MUST be early in middleware chain
 app.use(...createTimeoutMiddleware(30000));
 // Apply i18n middleware before any other middleware that might need it.
-if (config.isTest) {
-    app.use((req, res, next) => {
+if (config.isTest === true) {
+    app.use((req, _res, next) => {
         req.t = ((key) => key);
         next();
     });
@@ -39,7 +38,7 @@ app.use(sentryUserMiddleware);
 // Add compression middleware for response compression
 app.use(compression({
     filter: (req, res) => {
-        if (req.headers["x-no-compression"])
+        if (req.headers["x-no-compression"] !== undefined)
             return false;
         return compression.filter(req, res);
     },
@@ -70,7 +69,7 @@ app.use("/api", router);
 // Swagger UI
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 // Handle 404 - Not Found routes
-app.use((req, res, next) => {
+app.use((_req, _res, next) => {
     next(new NotFoundError());
 });
 // Timeout error handler (MUST be before Sentry and global error handler)

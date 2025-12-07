@@ -15,7 +15,7 @@ const isDevelopment = process.env.NODE_ENV !== "production";
  * Create the startup logger with pretty printing in development
  */
 const startupLogger = pino({
-    level: process.env.LOG_LEVEL || "info",
+    level: process.env.LOG_LEVEL ?? "info",
     transport: isDevelopment
         ? {
             target: "pino-pretty",

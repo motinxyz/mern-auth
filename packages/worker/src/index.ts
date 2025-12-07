@@ -15,7 +15,7 @@ import { EmailService } from "@auth/email";
 import DatabaseService from "@auth/database";
 import WorkerService from "./worker.service.js";
 import { createEmailJobConsumer } from "./consumers/email.consumer.js";
-import type { IJob } from "@auth/contracts";
+// import type { IJob } from "@auth/contracts";
 
 const logger = getLogger();
 
@@ -38,8 +38,10 @@ async function main(): Promise<void> {
     // Note: Using type assertion as implementations may not exactly match interfaces
     const workerService = new WorkerService({
       logger,
-      redisConnection: redisConnection as unknown,
-      databaseService: databaseService as unknown as Parameters<typeof WorkerService>[0]["databaseService"],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      redisConnection: redisConnection as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      databaseService: databaseService as any,
       initServices: [
         // Initialize email service
         async () => { await emailService.initialize(); },
@@ -49,14 +51,16 @@ async function main(): Promise<void> {
     // Create email consumer using factory pattern (with DI)
     // Type assertion needed as EmailService implementation differs from contract
     const emailJobConsumer = createEmailJobConsumer({
-      emailService: emailService as Parameters<typeof createEmailJobConsumer>[0]["emailService"],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      emailService: emailService as any,
       logger,
     });
 
     // Register email processor with retry strategy
     workerService.registerProcessor({
       queueName: QUEUE_NAMES.EMAIL,
-      processor: emailJobConsumer as (job: IJob) => Promise<unknown>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      processor: emailJobConsumer as any,
       workerConfig: {
         concurrency: config.worker.concurrency,
         attempts: config.worker.maxRetries,
@@ -77,7 +81,7 @@ async function main(): Promise<void> {
     await workerService.start();
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.fatal("Failed to start worker", errorMessage);
+    logger.fatal(`Failed to start worker: ${errorMessage}`);
     process.exit(1);
   }
 }

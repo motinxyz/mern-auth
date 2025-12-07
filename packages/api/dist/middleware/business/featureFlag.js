@@ -1,11 +1,7 @@
-/**
- * Feature Flag Middleware
- * Checks if a feature is enabled before allowing access to a route
- */
 export const featureFlagMiddleware = (featureFlagService, flagName) => {
     return async (req, res, next) => {
         try {
-            const userId = req.user?.id || null;
+            const userId = req.user?.id ?? null;
             const isEnabled = await featureFlagService.isEnabled(flagName, userId);
             if (!isEnabled) {
                 return res.status(404).json({
@@ -14,11 +10,11 @@ export const featureFlagMiddleware = (featureFlagService, flagName) => {
                     message: "Feature not available",
                 });
             }
-            next();
+            return next();
         }
-        catch (error) {
+        catch (_error) {
             // If feature flag check fails, allow access (fail open)
-            next();
+            return next();
         }
     };
 };

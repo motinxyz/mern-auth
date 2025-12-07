@@ -1,4 +1,4 @@
-const RETRY_STRATEGIES = {
+export const _RETRY_STRATEGIES = {
     EXPONENTIAL: {
         type: "exponential",
         delay: 1000,
@@ -20,5 +20,4 @@ const RETRY_STRATEGIES = {
         attempts: 1, // Fail fast for non-critical
     },
 };
-export {};
 //# sourceMappingURL=retry-strategies.js.map

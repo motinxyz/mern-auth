@@ -14,7 +14,7 @@ class BaseRepository {
      * @param {string} name - Repository name for logging/tracing
      */
     constructor(model, name) {
-        if (!model) {
+        if (model === undefined || model === null) {
             throw new ConfigurationError(DB_ERRORS.MISSING_MODEL.replace("{repository}", name || "BaseRepository"));
         }
         this.model = model;
@@ -64,9 +64,9 @@ class BaseRepository {
             const query = this.model.find(filter);
             if (options.sort)
                 query.sort(options.sort);
-            if (options.skip)
+            if (options.skip !== undefined)
                 query.skip(options.skip);
-            if (options.limit)
+            if (options.limit !== undefined)
                 query.limit(options.limit);
             return query.exec();
         });

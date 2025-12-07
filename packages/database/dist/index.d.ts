@@ -19,7 +19,7 @@ declare class DatabaseService {
     constructor(options: {
         config: IConfig;
         logger: ILogger;
-        t?: (key: string, params?: unknown) => string;
+        t?: (key: string, params?: Record<string, unknown>) => string;
     });
     /**
      * Connect to database
@@ -35,17 +35,17 @@ declare class DatabaseService {
     getConnectionState(): {
         isConnected: boolean;
         readyState: mongoose.ConnectionStates;
-        readyStateLabel: any;
+        readyStateLabel: string;
     };
     /**
      * Health check
      */
     healthCheck(): Promise<{
         healthy: boolean;
-        reason?: undefined;
+        reason: string;
     } | {
         healthy: boolean;
-        reason: any;
+        reason?: undefined;
     }>;
     /**
      * Simple ping check

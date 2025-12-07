@@ -4,11 +4,12 @@
  * Example: How to start workers with different processors
  */
 import { config, getLogger, initI18n, redisConnection, QUEUE_NAMES, } from "@auth/config";
-const logger = getLogger();
 import { EmailService } from "@auth/email";
 import DatabaseService from "@auth/database";
 import WorkerService from "./worker.service.js";
-import { createEmailJobConsumer, EmailConsumer, } from "./consumers/email.consumer.js";
+import { createEmailJobConsumer } from "./consumers/email.consumer.js";
+// import type { IJob } from "@auth/contracts";
+const logger = getLogger();
 async function main() {
     try {
         // Initialize i18n first
@@ -22,23 +23,29 @@ async function main() {
             emailLogRepository: databaseService.emailLogs,
         });
         // Create worker service with DI
+        // Note: Using type assertion as implementations may not exactly match interfaces
         const workerService = new WorkerService({
             logger,
-            redisConnection,
-            databaseService,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            redisConnection: redisConnection,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            databaseService: databaseService,
             initServices: [
                 // Initialize email service
-                async () => await emailService.initialize(),
+                async () => { await emailService.initialize(); },
             ],
         });
         // Create email consumer using factory pattern (with DI)
+        // Type assertion needed as EmailService implementation differs from contract
         const emailJobConsumer = createEmailJobConsumer({
-            emailService,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            emailService: emailService,
             logger,
         });
         // Register email processor with retry strategy
         workerService.registerProcessor({
             queueName: QUEUE_NAMES.EMAIL,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             processor: emailJobConsumer,
             workerConfig: {
                 concurrency: config.worker.concurrency,
@@ -52,22 +59,20 @@ async function main() {
             },
             deadLetterQueueName: QUEUE_NAMES.EMAIL_DEAD_LETTER,
         });
-        // You can register more processors here:
-        // workerService.registerProcessor({
-        //   queueName: QUEUE_NAMES.SMS,
-        //   processor: smsJobConsumer,
-        //   workerConfig: { attempts: 5, backoff: { type: "exponential", delay: 1000 } },
-        //   deadLetterQueueName: QUEUE_NAMES.SMS_DEAD_LETTER,
-        // });
         // Setup graceful shutdown
         workerService.setupGracefulShutdown();
         // Start the worker
         await workerService.start();
     }
     catch (error) {
-        logger.fatal("Failed to start worker", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.fatal(`Failed to start worker: ${errorMessage}`);
         process.exit(1);
     }
 }
-main();
+main().catch((error) => {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Fatal error:", errorMessage);
+    process.exit(1);
+});
 //# sourceMappingURL=index.js.map

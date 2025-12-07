@@ -7,11 +7,12 @@
  * - Export to Grafana Cloud Tempo
  * - Graceful degradation
  */
+import { NodeSDK } from "@opentelemetry/sdk-node";
 /**
  * Initialize OpenTelemetry tracing
  * MUST be called before any other imports
  */
-export declare function initializeTracing(): any;
+export declare function initializeTracing(): NodeSDK | null;
 /**
  * Shutdown tracing
  */
@@ -19,5 +20,5 @@ export declare function shutdownTracing(): Promise<void>;
 /**
  * Get the OpenTelemetry SDK instance
  */
-export declare function getTracingSDK(): any;
+export declare function getTracingSDK(): NodeSDK | null;
 //# sourceMappingURL=tracing.d.ts.map

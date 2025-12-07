@@ -2,7 +2,6 @@ import { getDatabaseService } from "@auth/app-bootstrap";
 import { config, t, getLogger } from "@auth/config";
 import { handleBounce, ResendProvider, MailerSendProvider } from "@auth/email";
 const logger = getLogger();
-/* eslint-disable import/no-unused-modules */
 export class WebhooksController {
     webhookLogger;
     resend;
@@ -42,6 +41,7 @@ export class WebhooksController {
             const eventJson = JSON.parse(payload);
             const bounceData = provider.parseWebhookEvent(eventJson);
             this.webhookLogger.info({ provider: provider.name, eventType: eventJson.type }, "Received webhook");
+            // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- Safety check for runtime
             if (!bounceData) {
                 return res
                     .status(200)
@@ -57,18 +57,22 @@ export class WebhooksController {
             if (result.action === "retry_alternate_provider") {
                 this.webhookLogger.info({ email: bounceData.email }, "Retrying with alternate provider");
                 // Dynamic import to avoid circular dependency if any
-                const { getQueueServices } = await import("@auth/queues");
+                const { getQueueServices: _getQueueServices } = await import("@auth/queues");
                 // In a real implementation: reconstruct job and use emailProducer.
                 // For now, allow the log to trigger alerts or manual recovery.
-                if (result.emailLog && result.emailLog.metadata) {
+                if (result.emailLog !== undefined &&
+                    result.emailLog !== null &&
+                    result.emailLog.metadata !== undefined) {
                     this.webhookLogger.warn("Auto-retry logic triggered.");
                 }
             }
             return res.status(200).json({ success: true, result });
         }
         catch (error) {
-            this.webhookLogger.error({ error: error.message, stack: error.stack }, `Failed to handle ${provider.name} webhook`);
-            return res.status(500).json({ success: false, error: error.message });
+            const errMessage = error.message;
+            const errStack = error.stack;
+            this.webhookLogger.error({ error: errMessage, stack: errStack }, `Failed to handle ${provider.name} webhook`);
+            return res.status(500).json({ success: false, error: errMessage });
         }
     }
     /**
@@ -89,7 +93,7 @@ export class WebhooksController {
      * Health check for webhooks
      * GET /webhooks/health
      */
-    checkHealth = (req, res) => {
+    checkHealth = (_req, res) => {
         res.status(200).json({ status: "ok", service: "webhooks" });
     };
 }

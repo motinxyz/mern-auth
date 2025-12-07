@@ -1,53 +1,37 @@
-import { Worker, Queue } from "bullmq";
-import type { ILogger } from "@auth/contracts";
+import { Worker } from "bullmq";
+import type { ILogger, IJob, ISentry, WorkerConfig, WorkerMetrics, IQueueProcessor } from "@auth/contracts";
+/**
+ * Queue processor options
+ */
+interface QueueProcessorServiceOptions {
+    queueName: string;
+    connection: unknown;
+    processor: (job: IJob) => Promise<unknown>;
+    logger: ILogger;
+    sentry?: ISentry;
+    workerConfig?: WorkerConfig;
+    deadLetterQueueName?: string;
+}
 /**
  * Generic Queue Processor Service
  * Handles any BullMQ job processing with metrics and health checks
  */
-declare class QueueProcessorService {
-    queueName: string;
-    connection: any;
-    processor: any;
-    logger: ILogger;
-    workerConfig: any;
-    deadLetterQueueName: string | undefined;
-    sentry: any;
-    worker: Worker | null;
-    deadLetterQueue: Queue | null;
-    metrics: {
-        processed: number;
-        completed: number;
-        failed: number;
-        active: number;
-        totalProcessingTime: number;
-        lastProcessedAt: Date | null;
-    };
-    constructor(options?: any);
+declare class QueueProcessorService implements IQueueProcessor {
+    readonly queueName: string;
+    private readonly connection;
+    private readonly processorFn;
+    private readonly logger;
+    private readonly workerConfig;
+    private readonly deadLetterQueueName;
+    private readonly sentry;
+    private worker;
+    private deadLetterQueue;
+    private metrics;
+    constructor(options: QueueProcessorServiceOptions);
     /**
      * Get default worker configuration
      */
-    getDefaultConfig(): {
-        concurrency: number;
-        removeOnComplete: {
-            count: number;
-        };
-        removeOnFail: {
-            count: number;
-        };
-        limiter: {
-            max: number;
-            duration: number;
-        };
-        stalledInterval: number;
-        lockDuration: number;
-        drainDelay: number;
-        attempts: number;
-        backoff: {
-            type: string;
-            delay: number;
-        };
-        disableStalledJobCheck: boolean;
-    };
+    private getDefaultConfig;
     /**
      * Initialize the queue processor
      */
@@ -55,48 +39,21 @@ declare class QueueProcessorService {
     /**
      * Setup event handlers for the worker
      */
-    setupEventHandlers(): void;
+    private setupEventHandlers;
     /**
      * Get processor metrics
      */
-    getMetrics(): {
-        averageProcessingTime: number;
-        successRate: number;
-        failureRate: number;
-        processed: number;
-        completed: number;
-        failed: number;
-        active: number;
-        totalProcessingTime: number;
-        lastProcessedAt: Date | null;
-    };
+    getMetrics(): WorkerMetrics;
     /**
      * Get health status
      */
     getHealth(): Promise<{
         healthy: boolean;
-        queueName: string;
-        isRunning: boolean;
-        isPaused: boolean;
-        metrics: {
-            averageProcessingTime: number;
-            successRate: number;
-            failureRate: number;
-            processed: number;
-            completed: number;
-            failed: number;
-            active: number;
-            totalProcessingTime: number;
-            lastProcessedAt: Date | null;
-        };
-        reason?: undefined;
-    } | {
-        healthy: boolean;
-        reason: any;
-        queueName?: undefined;
-        isRunning?: undefined;
-        isPaused?: undefined;
-        metrics?: undefined;
+        queueName?: string;
+        isRunning?: boolean;
+        isPaused?: boolean;
+        reason?: string;
+        metrics?: WorkerMetrics;
     }>;
     /**
      * Pause the worker
@@ -113,7 +70,7 @@ declare class QueueProcessorService {
     /**
      * Get worker instance
      */
-    getWorker(): Worker<any, any, string>;
+    getWorker(): Worker | null;
 }
 export default QueueProcessorService;
 //# sourceMappingURL=queue-processor.service.d.ts.map

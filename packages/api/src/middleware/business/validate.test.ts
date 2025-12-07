@@ -18,9 +18,9 @@ vi.mock("@auth/utils", async () => {
   const actual = await vi.importActual("@auth/utils");
   return {
     ...actual,
-    ValidationError: vi.fn().mockImplementation(function (errors, message) {
+    ValidationError: vi.fn().mockImplementation(function (this: any, errors: any, message: any) {
       this.errors = errors;
-      this.statusCode = actual.HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY;
+      this.statusCode = (actual as any).HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY;
       this.message = message || "Validation Error";
       this.success = false;
     }),
@@ -28,7 +28,7 @@ vi.mock("@auth/utils", async () => {
 });
 
 describe("Validate Middleware", () => {
-  let req, res, next;
+  let req: any, res: any, next: any;
 
   beforeEach(() => {
     req = {

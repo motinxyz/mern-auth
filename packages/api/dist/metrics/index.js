@@ -49,20 +49,6 @@ const circuitBreakerFailures = meter.createCounter("circuit_breaker_failures_tot
     description: "Total number of circuit breaker failures",
 });
 /**
- * Active Database Connections Gauge
- */
-const dbConnectionsActive = meter.createUpDownCounter("db_connections_active", {
-    description: "Number of active database connections",
-});
-/**
- * Redis Operations Duration Histogram
- * Tracks Redis operation duration
- */
-const redisOperationDuration = meter.createHistogram("redis_operation_duration_seconds", {
-    description: "Duration of Redis operations in seconds",
-    unit: "s",
-});
-/**
  * Email Sent Total Counter
  * Tracks total emails sent
  */
@@ -77,7 +63,7 @@ export const metricsMiddleware = (req, res, next) => {
     // Track when response finishes
     res.on("finish", () => {
         const duration = (Date.now() - start) / 1000; // Convert to seconds
-        const route = req.route ? req.route.path : req.path;
+        const route = req.route !== undefined ? req.route.path : req.path;
         const attributes = {
             method: req.method,
             route,
@@ -91,7 +77,6 @@ export const metricsMiddleware = (req, res, next) => {
 /**
  * Update circuit breaker metrics
  */
-/* eslint-disable import/no-unused-modules */
 export const updateCircuitBreakerMetrics = (name, state, isFailure = false) => {
     // State: 'closed' = 0, 'half-open' = 1, 'open' = 2
     const stateValue = state === "closed" ? 0 : state === "half-open" ? 1 : 2;
@@ -107,7 +92,6 @@ export const updateCircuitBreakerMetrics = (name, state, isFailure = false) => {
 /**
  * Update queue job metrics
  */
-/* eslint-disable import/no-unused-modules */
 export const updateQueueMetrics = (queueName, jobType, status, duration) => {
     const attributes = {
         queue_name: queueName,
@@ -120,12 +104,11 @@ export const updateQueueMetrics = (queueName, jobType, status, duration) => {
 /**
  * Update email metrics
  */
-/* eslint-disable import/no-unused-modules */
 export const updateEmailMetrics = (type, status, provider) => {
     emailSentTotal.add(1, {
         type,
         status,
-        provider: provider || "unknown",
+        provider: provider ?? "unknown",
     });
 };
 //# sourceMappingURL=index.js.map

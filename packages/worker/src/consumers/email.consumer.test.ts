@@ -13,7 +13,8 @@ vi.mock("@auth/config", () => ({
   })),
   t: vi.fn((key) => key),
   i18nInstance: {
-    getFixedT: vi.fn().mockResolvedValue((key) => key),
+     
+    getFixedT: vi.fn().mockResolvedValue((key: any) => key),
   },
   config: {},
   EMAIL_JOB_TYPES: {
@@ -22,9 +23,12 @@ vi.mock("@auth/config", () => ({
 }));
 
 describe("Email Consumer", () => {
-  let mockEmailService;
-  let mockLogger;
-  let emailJobConsumer;
+   
+  let mockEmailService: any;
+   
+  let mockLogger: any;
+   
+  let emailJobConsumer: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,7 +51,8 @@ describe("Email Consumer", () => {
   });
 
   it("should throw error if emailService is not provided", () => {
-    expect(() => createEmailJobConsumer({ logger: mockLogger })).toThrow(
+     
+    expect(() => createEmailJobConsumer({ logger: mockLogger } as any)).toThrow(
       "EmailService is required"
     );
   });

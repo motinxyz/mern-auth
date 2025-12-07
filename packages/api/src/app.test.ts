@@ -11,7 +11,7 @@ import {
 } from "vitest";
 
 const { mockI18nMiddlewareHandle, mockMiddleware } = vi.hoisted(() => {
-  const mockMiddleware = vi.fn((req, res, next) => {
+  const mockMiddleware = vi.fn((req: any, _res: any, next: any) => {
     req.t = vi.fn((key) => key); // Mock req.t
     next();
   });
@@ -26,7 +26,7 @@ vi.mock("ioredis", async () => {
   return { default: MockRedis };
 });
 
-vi.mock("mongoose", async (importActual) => {
+vi.mock("mongoose", async (importActual: any) => {
   const actualMongoose = await importActual("mongoose");
   const { EventEmitter } = await import("node:events");
   return {
@@ -45,11 +45,11 @@ vi.mock("@auth/queues/producers", () => ({
 }));
 
 vi.mock("./middleware/core/loggerMiddleware.js", () => ({
-  httpLogger: (req, res, next) => next(),
+  httpLogger: (_req: any, _res: any, next: any) => next(),
 }));
 
-vi.mock("@auth/config", async (importActual) => {
-  const actual = await importActual();
+vi.mock("@auth/config", async (importActual: any) => {
+  const actual: any = await importActual();
 
   // Create a modified config object with dynamic environment getters
   const modifiedConfig = {
@@ -66,7 +66,7 @@ vi.mock("@auth/config", async (importActual) => {
   };
 
   return {
-    ...actual,
+    ...(actual as any),
     config: modifiedConfig,
     // Override named exports
     i18nMiddleware: {
@@ -85,11 +85,11 @@ vi.mock("@auth/config", async (importActual) => {
 });
 
 describe("Health Check", () => {
-  let app;
+  let app: any;
   beforeAll(async () => {
     process.env.NODE_ENV = "test"; // Explicitly set NODE_ENV for this test block
     const mongoose = (await import("mongoose")).default;
-    mongoose.connection.readyState = 1;
+    (mongoose.connection as any).readyState = 1;
     const appModule = await import("./app.js");
     app = appModule.default;
   });
@@ -106,7 +106,7 @@ describe("Health Check", () => {
 });
 
 describe("Not Found Handler", () => {
-  let app;
+  let app: any;
   beforeAll(async () => {
     process.env.NODE_ENV = "test"; // Explicitly set NODE_ENV for this test block
     const appModule = await import("./app.js");
@@ -123,7 +123,7 @@ describe("Not Found Handler", () => {
 });
 
 describe("Swagger UI", () => {
-  let app;
+  let app: any;
   beforeAll(async () => {
     process.env.NODE_ENV = "test"; // Explicitly set NODE_ENV for this test block
     const appModule = await import("./app.js");
@@ -143,9 +143,9 @@ describe("Swagger UI", () => {
 });
 
 describe("Health Check Service Status", () => {
-  let app;
-  let mongoose;
-  let redisConnection;
+  let app: any;
+  let mongoose: any;
+  let redisConnection: any;
 
   beforeAll(async () => {
     process.env.NODE_ENV = "test"; // Explicitly set NODE_ENV for this test block
@@ -157,17 +157,17 @@ describe("Health Check Service Status", () => {
     mongoose = (await import("mongoose")).default;
     const configModule = await import("@auth/config");
     redisConnection = configModule.redisConnection;
-    mongoose.connection.readyState = 1; // Ensure DB is connected for most tests
+    (mongoose.connection as any).readyState = 1; // Ensure DB is connected for most tests
     redisConnection.status = "ready"; // Ensure Redis is connected for most tests
   });
 
   afterEach(() => {
-    mongoose.connection.readyState = 1;
+    (mongoose.connection as any).readyState = 1;
     redisConnection.status = "ready";
   });
 
   it("should return 503 when the database is not connected", async () => {
-    mongoose.connection.readyState = 0; // 0 = disconnected
+    (mongoose.connection as any).readyState = 0; // 0 = disconnected
     const res = await request(app).get("/api/health");
     expect(res.statusCode).toEqual(503);
     expect(res.body.services.mongodb.status).toBe("DOWN");
@@ -187,7 +187,7 @@ describe("Health Check Service Status", () => {
 });
 
 describe("i18n Middleware in non-test environment", () => {
-  let app;
+  let app: any;
 
   beforeAll(async () => {
     vi.resetModules(); // Reset module registry to ensure a fresh import
@@ -195,7 +195,7 @@ describe("i18n Middleware in non-test environment", () => {
 
     // Re-apply mongoose mock after resetting modules
     vi.mock("mongoose", async (importActual) => {
-      const actualMongoose = await importActual("mongoose");
+      const actualMongoose: any = await importActual();
       const { EventEmitter } = await import("node:events");
       return {
         ...actualMongoose,

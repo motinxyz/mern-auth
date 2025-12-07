@@ -8,10 +8,14 @@ export class RedisService {
     sentry;
     connection;
     constructor({ config, logger, sentry = null }) {
-        if (!config) {
+        // strict-boolean-expressions: These checks are technically always true if types are correct,
+        // but useful for runtime safety if JS is used. We can keep them but might need suppression or explicit check.
+        // If strict-boolean says condition is always true, we can remove them if we trust the caller.
+        // However, for robustness, we keep them.
+        if (config === undefined || config === null) {
             throw new ConfigurationError(CONFIG_ERRORS.MISSING_CONFIG);
         }
-        if (!logger) {
+        if (logger === undefined || logger === null) {
             throw new ConfigurationError(CONFIG_ERRORS.MISSING_LOGGER);
         }
         this.config = config;
@@ -77,7 +81,8 @@ export class RedisService {
         }
         catch (error) {
             this.logger.error({ err: error }, CONFIG_MESSAGES.REDIS_INIT_FAILED);
-            throw new ConfigurationError(`${CONFIG_ERRORS.REDIS_INIT_FAILED}: ${error.message}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new ConfigurationError(`${CONFIG_ERRORS.REDIS_INIT_FAILED}: ${errorMessage}`);
         }
     }
     /**
@@ -95,7 +100,7 @@ export class RedisService {
      * @returns {Object} Circuit breaker statistics
      */
     getCircuitBreakerStats() {
-        if (this.connection && this.connection.getCircuitBreakerStats) {
+        if (this.connection !== null && typeof this.connection.getCircuitBreakerStats === "function") {
             return this.connection.getCircuitBreakerStats();
         }
         return null;
@@ -105,7 +110,7 @@ export class RedisService {
      * @returns {string} OPEN, HALF_OPEN, or CLOSED
      */
     getCircuitBreakerState() {
-        if (this.connection && this.connection.getCircuitBreakerState) {
+        if (this.connection !== null && typeof this.connection.getCircuitBreakerState === "function") {
             return this.connection.getCircuitBreakerState();
         }
         return "UNKNOWN";

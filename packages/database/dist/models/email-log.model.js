@@ -66,8 +66,8 @@ emailLogSchema.statics.findByStatus = function (status, limit = 100) {
     return this.find({ status }).sort({ createdAt: -1 }).limit(limit);
 };
 emailLogSchema.statics.getStats = async function (userId) {
-    const stats = await this.aggregate([
-        ...(userId
+    const stats = (await this.aggregate([
+        ...(userId !== null
             ? [{ $match: { userId: new mongoose.Types.ObjectId(userId) } }]
             : []),
         {
@@ -76,10 +76,10 @@ emailLogSchema.statics.getStats = async function (userId) {
                 count: { $sum: 1 },
             },
         },
-    ]);
+    ]));
     return stats.reduce((acc, { _id, count }) => {
         // eslint-disable-next-line security/detect-object-injection
-        if (_id)
+        if (_id !== null && _id !== undefined)
             acc[_id] = count;
         return acc;
     }, {});

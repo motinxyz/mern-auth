@@ -3,7 +3,15 @@ import DatabaseService from "./index.js";
 
 // Mock mongoose with Schema.Types support
 vi.mock("mongoose", () => {
-  const MockSchema = class {
+  class MockSchema {
+    pre: any;
+    methods: any;
+    statics: any;
+    index: any;
+    set: any;
+    virtual: any;
+    static Types: any;
+
     constructor() {
       this.pre = vi.fn();
       this.methods = {};
@@ -15,7 +23,7 @@ vi.mock("mongoose", () => {
         set: vi.fn(),
       });
     }
-  };
+  }
   MockSchema.Types = {
     ObjectId: "ObjectId",
     String: String,
@@ -53,9 +61,9 @@ vi.mock("mongoose", () => {
 });
 
 describe("DatabaseService", () => {
-  let service;
-  let mockLogger;
-  let mockConfig;
+  let service: any;
+  let mockLogger: any;
+  let mockConfig: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -65,6 +73,7 @@ describe("DatabaseService", () => {
       warn: vi.fn(),
       error: vi.fn(),
       debug: vi.fn(),
+      fatal: vi.fn(),
       child: vi.fn().mockReturnThis(),
     };
 
@@ -79,7 +88,11 @@ describe("DatabaseService", () => {
       dbWaitQueueTimeoutMs: 10000,
       serverSelectionTimeoutMs: 5000,
       socketTimeoutMs: 45000,
-    };
+      nodeEnv: "test",
+      port: 3000,
+      apiVersion: "v1",
+      serviceName: "test",
+    } as unknown;
 
     service = new DatabaseService({
       config: mockConfig,
@@ -99,6 +112,6 @@ describe("DatabaseService", () => {
   });
 
   it("should throw if config is missing", () => {
-    expect(() => new DatabaseService({ logger: mockLogger })).toThrow();
+    expect(() => new DatabaseService({ logger: mockLogger } as any)).toThrow();
   });
 });

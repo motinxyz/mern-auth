@@ -29,7 +29,7 @@ declare class MigrationRunner {
     /**
      * Run a specific migration
      */
-    runMigration(filename: any, direction?: string): Promise<void>;
+    runMigration(filename: string, direction?: "up" | "down"): Promise<void>;
     /**
      * Get migration status
      */

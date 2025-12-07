@@ -5,8 +5,8 @@ export declare const WorkerConfigSchema: z.ZodObject<{
     backoff: z.ZodDefault<z.ZodObject<{
         type: z.ZodDefault<z.ZodEnum<{
             exponential: "exponential";
-            linear: "linear";
             fixed: "fixed";
+            linear: "linear";
         }>>;
         delay: z.ZodDefault<z.ZodNumber>;
     }, z.core.$strip>>;

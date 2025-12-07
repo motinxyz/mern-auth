@@ -10,43 +10,43 @@ declare class UserRepository extends BaseRepository<UserDocument> {
     /**
      * Find user by email
      */
-    findByEmail(email: string): Promise<import("mongoose").Document<unknown, {}, UserDocument, {}, import("mongoose").DefaultSchemaOptions> & UserDocument & Required<{
+    findByEmail(email: string): Promise<(import("mongoose").Document<unknown, {}, UserDocument, {}, import("mongoose").DefaultSchemaOptions> & UserDocument & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
-    }>;
+    }) | null>;
     /**
      * Find user by normalized email
      */
-    findByNormalizedEmail(normalizedEmail: string): Promise<import("mongoose").Document<unknown, {}, UserDocument, {}, import("mongoose").DefaultSchemaOptions> & UserDocument & Required<{
+    findByNormalizedEmail(normalizedEmail: string): Promise<(import("mongoose").Document<unknown, {}, UserDocument, {}, import("mongoose").DefaultSchemaOptions> & UserDocument & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
-    }>;
+    }) | null>;
     /**
      * Mark email as bounced
      */
-    markEmailBounced(userId: string, reason: string): Promise<import("mongoose").Document<unknown, {}, UserDocument, {}, import("mongoose").DefaultSchemaOptions> & UserDocument & Required<{
+    markEmailBounced(userId: string, reason: string): Promise<(import("mongoose").Document<unknown, {}, UserDocument, {}, import("mongoose").DefaultSchemaOptions> & UserDocument & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
-    }>;
+    }) | null>;
     /**
      * Mark email as complained
      */
-    markEmailComplaint(userId: string): Promise<import("mongoose").Document<unknown, {}, UserDocument, {}, import("mongoose").DefaultSchemaOptions> & UserDocument & Required<{
+    markEmailComplaint(userId: string): Promise<(import("mongoose").Document<unknown, {}, UserDocument, {}, import("mongoose").DefaultSchemaOptions> & UserDocument & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
-    }>;
+    }) | null>;
     /**
      * Verify user email
      */
-    verifyEmail(userId: string): Promise<import("mongoose").Document<unknown, {}, UserDocument, {}, import("mongoose").DefaultSchemaOptions> & UserDocument & Required<{
+    verifyEmail(userId: string): Promise<(import("mongoose").Document<unknown, {}, UserDocument, {}, import("mongoose").DefaultSchemaOptions> & UserDocument & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
-    }>;
+    }) | null>;
     /**
      * Find users with pagination
      */

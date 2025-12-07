@@ -31,6 +31,7 @@ describe("DatabaseConnectionManager", () => {
             warn: vi.fn(),
             error: vi.fn(),
             debug: vi.fn(),
+            fatal: vi.fn(),
         };
         mockConfig = {
             dbURI: "mongodb://localhost:27017",
@@ -43,6 +44,10 @@ describe("DatabaseConnectionManager", () => {
             dbWaitQueueTimeoutMs: 10000,
             serverSelectionTimeoutMs: 5000,
             socketTimeoutMs: 45000,
+            nodeEnv: "test",
+            port: 3000,
+            apiVersion: "v1",
+            serviceName: "test",
         };
         manager = new DatabaseConnectionManager({
             config: mockConfig,

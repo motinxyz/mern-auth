@@ -23,14 +23,16 @@ import { VerificationController } from "./features/auth/verification/verificatio
 
 // Instantiate services with explicit dependencies
 const tokenService = new TokenService({
-  redis: redisConnection,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  redis: redisConnection as any,
   config,
   logger,
 });
 
 const registrationService = new RegistrationService({
   userModel: User,
-  redis: redisConnection,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  redis: redisConnection as any,
   config,
   emailProducer: getQueueServices().emailProducerService,
   tokenService,
@@ -40,7 +42,8 @@ const registrationService = new RegistrationService({
 
 const verificationService = new VerificationService({
   userModel: User,
-  redis: redisConnection,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  redis: redisConnection as any,
   config,
   logger,
 });

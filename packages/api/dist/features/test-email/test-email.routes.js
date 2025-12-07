@@ -23,7 +23,7 @@ const testEmailSchema = z.object({
  */
 router.post("/test-email", validate(testEmailSchema), async (req, res) => {
     try {
-        const { to, subject, text, html } = req.body;
+        const { to, subject, text: _text, html: _html } = req.body;
         testLogger.info({ to, subject }, "Sending test email");
         const emailService = getEmailService();
         const result = await emailService.sendEmail({

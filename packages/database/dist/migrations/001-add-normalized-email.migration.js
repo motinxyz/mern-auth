@@ -4,6 +4,7 @@
  * This migration adds the normalizedEmail field to existing users
  * to support Gmail dot-ignoring and prevent duplicate accounts
  */
+import mongoose from "mongoose";
 import { normalizeEmail } from "@auth/utils";
 export async function up(db, session, logger) {
     const users = await db.collection("users").find({}).toArray();

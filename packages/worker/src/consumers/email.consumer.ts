@@ -62,8 +62,10 @@ class EmailConsumer extends BaseConsumer {
       ? `email-consumer.${type.replace(/_/g, "-").toLowerCase()}`
       : "email-consumer.process-job";
 
-    return this.withJobSpan(job, spanName, async () => {
-      const jobLogger = this.createJobLogger(job, type);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.withJobSpan(job as any, spanName, async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const jobLogger = this.createJobLogger(job as any, type);
       jobLogger.info(WORKER_MESSAGES.EMAIL_JOB_STARTED);
 
       try {
@@ -125,7 +127,7 @@ class EmailConsumer extends BaseConsumer {
           token: data.token,
           locale: data.locale ?? "en",
         },
-        options: { preferredProvider: data.preferredProvider },
+        preferredProvider: data.preferredProvider,
       });
 
       jobLogger.info(

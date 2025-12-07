@@ -1,3 +1,14 @@
+import type { Redis } from "ioredis";
+import type { ILogger } from "@auth/contracts";
+interface CircuitBreakerOptions {
+    timeout?: number;
+    errorThresholdPercentage?: number;
+    resetTimeout?: number;
+    rollingCountTimeout?: number;
+    rollingCountBuckets?: number;
+    name?: string;
+    volumeThreshold?: number;
+}
 /**
  * Create a circuit breaker for Redis operations
  *
@@ -10,5 +21,6 @@
  * @param {Object} options - Configuration options
  * @returns {Object} Circuit breaker wrapped Redis client
  */
-export declare const createRedisCircuitBreaker: (redisConnection: any, logger: any, sentry?: any, options?: {}) => any;
+export declare const createRedisCircuitBreaker: (redisConnection: Redis, logger: ILogger, sentry?: any | null, options?: CircuitBreakerOptions) => Redis;
+export {};
 //# sourceMappingURL=redis-circuit-breaker.d.ts.map

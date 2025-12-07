@@ -1,6 +1,26 @@
 import CircuitBreaker from "opossum";
 import { CONFIG_MESSAGES } from "./constants/config.messages.js";
 /**
+ * Determine if a Redis command is non-critical
+ * Non-critical commands can fail gracefully without breaking the app
+ */
+function isNonCriticalCommand(command) {
+    if (typeof command !== "string")
+        return false;
+    const nonCriticalCommands = [
+        "get", // Cache reads
+        "set", // Cache writes
+        "setex", // Cache writes with expiry
+        "del", // Cache deletes
+        "keys", // Cache key lookups
+        "ttl", // Cache TTL checks
+        "incr", // Rate limit counters (can fall back to memory)
+        "decr",
+        "expire",
+    ];
+    return nonCriticalCommands.includes(command.toLowerCase());
+}
+/**
  * Create a circuit breaker for Redis operations
  *
  * Prevents cascading failures when Redis is slow or unavailable.
@@ -12,13 +32,15 @@ import { CONFIG_MESSAGES } from "./constants/config.messages.js";
  * @param {Object} options - Configuration options
  * @returns {Object} Circuit breaker wrapped Redis client
  */
-export const createRedisCircuitBreaker = (redisConnection, logger, sentry = null, options = {}) => {
+export const createRedisCircuitBreaker = (redisConnection, logger, 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+sentry = null, options = {}) => {
     const circuitBreakerLogger = logger.child({
         module: "redis-circuit-breaker",
     });
     // Get timeout from options (preferred) or default
     // Upstash Redis (serverless) needs longer timeouts due to sleep/wake cycles
-    const timeout = options.timeout || 10000;
+    const timeout = options.timeout ?? 10000;
     // Circuit breaker options
     const cbOptions = {
         timeout, // Configurable timeout (default 10s for Upstash)
@@ -30,9 +52,13 @@ export const createRedisCircuitBreaker = (redisConnection, logger, sentry = null
         volumeThreshold: 10, // Minimum 10 requests before opening circuit
     };
     // Wrap Redis commands in circuit breaker
-    const executeCommand = async (command, ...args) => {
+    // Wrap Redis commands in circuit breaker
+    const executeCommand = async (...args) => {
+        const command = args[0];
+        const commandArgs = args.slice(1);
+        // @ts-expect-error - Redis methods access with unknown args
         // eslint-disable-next-line security/detect-object-injection
-        return await redisConnection[command](...args);
+        return await redisConnection[command](...commandArgs);
     };
     const breaker = new CircuitBreaker(executeCommand, cbOptions);
     // Event handlers
@@ -41,7 +67,7 @@ export const createRedisCircuitBreaker = (redisConnection, logger, sentry = null
             stats: breaker.stats,
             errorRate: (breaker.stats.failures / breaker.stats.fires) * 100,
         }, CONFIG_MESSAGES.REDIS_CB_OPENED);
-        if (sentry) {
+        if (sentry !== null && sentry !== undefined) {
             sentry.captureMessage("Redis circuit breaker opened", {
                 level: "warning",
                 extra: {
@@ -59,7 +85,7 @@ export const createRedisCircuitBreaker = (redisConnection, logger, sentry = null
             stats: breaker.stats,
             successRate: (breaker.stats.successes / breaker.stats.fires) * 100,
         }, CONFIG_MESSAGES.REDIS_CB_CLOSED);
-        if (sentry) {
+        if (sentry !== null && sentry !== undefined) {
             sentry.captureMessage("Redis circuit breaker closed - service recovered", {
                 level: "info",
                 extra: {
@@ -70,7 +96,9 @@ export const createRedisCircuitBreaker = (redisConnection, logger, sentry = null
     });
     // Only log failures and timeouts, not every success
     breaker.on("failure", (error) => {
-        circuitBreakerLogger.warn({ error: error.message }, CONFIG_MESSAGES.REDIS_CB_COMMAND_FAILED);
+        // Determine the error message safely
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        circuitBreakerLogger.warn({ error: errorMessage }, CONFIG_MESSAGES.REDIS_CB_COMMAND_FAILED);
     });
     breaker.on("timeout", () => {
         circuitBreakerLogger.warn(CONFIG_MESSAGES.REDIS_CB_COMMAND_TIMEOUT);
@@ -111,19 +139,21 @@ export const createRedisCircuitBreaker = (redisConnection, logger, sentry = null
                 "getCircuitBreakerState",
             ];
             // Pass through non-command properties
-            // eslint-disable-next-line security/detect-object-injection
+            // eslint-disable-next-line security/detect-object-injection, @typescript-eslint/no-explicit-any
             if (passThrough.includes(prop) || typeof target[prop] !== "function") {
-                // eslint-disable-next-line security/detect-object-injection
+                // eslint-disable-next-line security/detect-object-injection, @typescript-eslint/no-explicit-any
                 return target[prop];
             }
             // Wrap commands in circuit breaker
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return async (...args) => {
                 try {
                     return await breaker.fire(prop, ...args);
                 }
                 catch (error) {
                     // Circuit is open or command failed
-                    circuitBreakerLogger.error({ command: prop, error: error.message }, CONFIG_MESSAGES.REDIS_CB_OPERATION_FAILED);
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    circuitBreakerLogger.error({ command: String(prop), error: errorMessage }, CONFIG_MESSAGES.REDIS_CB_OPERATION_FAILED);
                     // For non-critical operations, return null instead of throwing
                     // This allows graceful degradation
                     if (isNonCriticalCommand(prop)) {
@@ -135,27 +165,8 @@ export const createRedisCircuitBreaker = (redisConnection, logger, sentry = null
             };
         },
     });
-    // Expose circuit breaker stats
     proxiedRedis.getCircuitBreakerStats = () => breaker.stats;
     proxiedRedis.getCircuitBreakerState = () => breaker.opened ? "OPEN" : breaker.halfOpen ? "HALF_OPEN" : "CLOSED";
     return proxiedRedis;
-};
-/**
- * Determine if a Redis command is non-critical
- * Non-critical commands can fail gracefully without breaking the app
- */
-const isNonCriticalCommand = (command) => {
-    const nonCriticalCommands = [
-        "get", // Cache reads
-        "set", // Cache writes
-        "setex", // Cache writes with expiry
-        "del", // Cache deletes
-        "keys", // Cache key lookups
-        "ttl", // Cache TTL checks
-        "incr", // Rate limit counters (can fall back to memory)
-        "decr",
-        "expire",
-    ];
-    return nonCriticalCommands.includes(command.toLowerCase());
 };
 //# sourceMappingURL=redis-circuit-breaker.js.map

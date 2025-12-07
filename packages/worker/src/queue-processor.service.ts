@@ -211,7 +211,8 @@ class QueueProcessorService implements IQueueProcessor {
     this.worker = new Worker(
       this.queueName,
       wrappedProcessor,
-      workerOptions as Parameters<typeof Worker>[2]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      workerOptions as any
     );
 
     this.setupEventHandlers();

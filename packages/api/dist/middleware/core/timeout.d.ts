@@ -1,3 +1,10 @@
+import type { Request, Response, NextFunction } from "express";
+interface TimeoutRequest extends Request {
+    timedout?: boolean;
+    user?: {
+        id: string;
+    };
+}
 /**
  * Request Timeout Middleware
  *
@@ -14,5 +21,6 @@ export declare const createTimeoutMiddleware: (duration?: number) => any[];
  * Must be placed AFTER all routes but BEFORE the global error handler.
  * Catches timed-out requests and sends appropriate error response.
  */
-export declare const timeoutErrorHandler: (req: any, res: any, next: any) => any;
+export declare const timeoutErrorHandler: (req: TimeoutRequest, res: Response, next: NextFunction) => void;
+export {};
 //# sourceMappingURL=timeout.d.ts.map

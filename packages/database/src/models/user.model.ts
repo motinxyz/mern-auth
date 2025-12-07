@@ -104,12 +104,12 @@ userSchema.index({ createdAt: -1, role: 1 }); // Admin dashboards: recent users 
  * @returns {void}
  */
 userSchema.set("toJSON", {
-  transform: (doc, ret) => {
-    (ret as Record<string, unknown>).id = ret._id.toString();
-    delete ret._id;
-    delete ret.__v;
+  transform: (_doc, ret) => {
+    (ret as Record<string, unknown>).id = (ret as { _id: mongoose.Types.ObjectId })._id.toString();
+    delete (ret as { _id?: unknown })._id;
+    delete (ret as { __v?: unknown }).__v;
     // Ensure the password hash is never sent, even by accident
-    delete ret.password;
+    delete (ret as { password?: unknown }).password;
   },
 });
 
@@ -134,7 +134,7 @@ userSchema.pre("save", async function () {
  * @param {string} candidatePassword - The password to compare.
  * @returns {Promise<boolean>} A promise that resolves to true if the passwords match, false otherwise.
  */
-userSchema.methods.comparePassword = async function (candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword: string) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 

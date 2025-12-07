@@ -1,4 +1,4 @@
-import { Worker, Queue } from "bullmq";
+import { Worker, Queue, Job } from "bullmq";
 import { WORKER_MESSAGES, WORKER_ERRORS } from "./constants/worker.messages.js";
 import { ConfigurationError } from "@auth/utils";
 import { captureJobError } from "./monitoring/sentry.js";
@@ -10,7 +10,7 @@ import { workerJobDuration, workerJobTotal, workerActiveJobs, workerDlqTotal, wo
 class QueueProcessorService {
     queueName;
     connection;
-    processor;
+    processorFn;
     logger;
     workerConfig;
     deadLetterQueueName;
@@ -18,24 +18,24 @@ class QueueProcessorService {
     worker;
     deadLetterQueue;
     metrics;
-    constructor(options = {}) {
-        if (!options.queueName) {
+    constructor(options) {
+        if (options.queueName === undefined || options.queueName === "") {
             throw new ConfigurationError(WORKER_ERRORS.MISSING_CONFIG.replace("{config}", "queueName"));
         }
-        if (!options.connection) {
+        if (options.connection === undefined) {
             throw new ConfigurationError(WORKER_ERRORS.MISSING_CONFIG.replace("{config}", "connection"));
         }
-        if (!options.processor) {
+        if (options.processor === undefined) {
             throw new ConfigurationError(WORKER_ERRORS.MISSING_CONFIG.replace("{config}", "processor"));
         }
-        if (!options.logger) {
+        if (options.logger === undefined) {
             throw new ConfigurationError(WORKER_ERRORS.MISSING_CONFIG.replace("{config}", "logger"));
         }
         this.queueName = options.queueName;
         this.connection = options.connection;
-        this.processor = options.processor;
+        this.processorFn = options.processor;
         this.logger = options.logger.child({ queue: this.queueName });
-        this.workerConfig = options.workerConfig || this.getDefaultConfig();
+        this.workerConfig = options.workerConfig ?? this.getDefaultConfig();
         this.deadLetterQueueName = options.deadLetterQueueName;
         this.sentry = options.sentry;
         this.worker = null;
@@ -76,7 +76,7 @@ class QueueProcessorService {
      */
     async initialize() {
         // Create dead-letter queue if specified
-        if (this.deadLetterQueueName) {
+        if (this.deadLetterQueueName !== undefined && this.deadLetterQueueName !== "") {
             this.deadLetterQueue = new Queue(this.deadLetterQueueName, {
                 connection: this.connection,
             });
@@ -88,16 +88,25 @@ class QueueProcessorService {
             this.metrics.processed++;
             // Record active job metric
             workerActiveJobs.add(1, { queue: this.queueName });
-            const traceId = job.data?.traceContext?.traceId;
+            const traceId = job.data?.traceContext !== undefined
+                ? job.data.traceContext?.traceId
+                : undefined;
             const logContext = {
                 job: { id: job.id, name: job.name, attempt: job.attemptsMade + 1 },
             };
-            if (traceId) {
+            if (traceId !== undefined) {
                 logContext.traceId = traceId;
             }
             this.logger.info(logContext, WORKER_MESSAGES.JOB_PROCESSING);
             try {
-                const result = await this.processor(job);
+                const jobAsIJob = {
+                    id: job.id ?? "",
+                    name: job.name,
+                    data: job.data,
+                    attemptsMade: job.attemptsMade,
+                    opts: job.opts,
+                };
+                const result = await this.processorFn(jobAsIJob);
                 const processingTime = Date.now() - startTime;
                 this.metrics.totalProcessingTime += processingTime;
                 this.metrics.lastProcessedAt = new Date();
@@ -134,18 +143,20 @@ class QueueProcessorService {
             settings: {
                 backoffStrategy: (attemptsMade) => {
                     if (this.workerConfig.backoff?.type === "exponential") {
-                        return this.workerConfig.backoff.delay * Math.pow(2, attemptsMade);
+                        return (this.workerConfig.backoff.delay ?? 1000) * Math.pow(2, attemptsMade);
                     }
-                    return this.workerConfig.backoff?.delay || 1000;
+                    return this.workerConfig.backoff?.delay ?? 1000;
                 },
             },
         };
         // Only add stalledInterval if not disabled
-        if (!this.workerConfig.disableStalledJobCheck) {
+        if (this.workerConfig.disableStalledJobCheck !== true) {
             workerOptions.stalledInterval = this.workerConfig.stalledInterval;
         }
         // Create worker with retry configuration
-        this.worker = new Worker(this.queueName, wrappedProcessor, workerOptions);
+        this.worker = new Worker(this.queueName, wrappedProcessor, 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        workerOptions);
         this.setupEventHandlers();
         this.logger.info(`${WORKER_MESSAGES.PROCESSOR_INITIALIZED}: ${this.queueName}`);
     }
@@ -153,19 +164,23 @@ class QueueProcessorService {
      * Setup event handlers for the worker
      */
     setupEventHandlers() {
+        if (this.worker === null)
+            return;
         this.worker.on("failed", async (job, err) => {
             this.metrics.failed++;
             // Record failure metric
             workerJobTotal.add(1, {
                 queue: this.queueName,
                 status: "failed",
-                job_type: job?.name || "unknown",
+                job_type: job?.name ?? "unknown",
             });
             // Capture to Sentry with rich context
-            if (this.sentry) {
+            if (this.sentry !== undefined && job !== undefined) {
                 captureJobError(err, job);
             }
-            const traceId = job?.data?.traceContext?.traceId;
+            const traceId = job?.data !== undefined
+                ? job.data?.traceContext?.traceId
+                : undefined;
             const logContext = {
                 job: {
                     id: job?.id,
@@ -173,16 +188,16 @@ class QueueProcessorService {
                     attempt: job?.attemptsMade,
                     maxAttempts: this.workerConfig.attempts,
                 },
-                err,
+                err: err.message,
             };
-            if (traceId) {
+            if (traceId !== undefined) {
                 logContext.traceId = traceId;
             }
             this.logger.error(logContext, `${WORKER_MESSAGES.JOB_FAILED}: ${err.message}`);
             // Move to DLQ only if max attempts reached
-            if (job &&
-                this.deadLetterQueue &&
-                job.attemptsMade >= this.workerConfig.attempts) {
+            if (job !== undefined &&
+                this.deadLetterQueue !== null &&
+                job.attemptsMade >= (this.workerConfig.attempts ?? 3)) {
                 await this.deadLetterQueue.add(job.name, job.data, { lifo: true });
                 this.logger.warn({ jobId: job.id }, WORKER_MESSAGES.JOB_MOVED_TO_DLQ);
                 // Record DLQ metric
@@ -194,12 +209,14 @@ class QueueProcessorService {
         });
         this.worker.on("completed", (job, result) => {
             this.metrics.completed++;
-            const traceId = job.data?.traceContext?.traceId;
+            const traceId = job.data?.traceContext !== undefined
+                ? job.data.traceContext?.traceId
+                : undefined;
             const logContext = {
                 job: { id: job.id, name: job.name },
                 result,
             };
-            if (traceId) {
+            if (traceId !== undefined) {
                 logContext.traceId = traceId;
             }
             this.logger.info(logContext, WORKER_MESSAGES.JOB_COMPLETED);
@@ -211,7 +228,7 @@ class QueueProcessorService {
             this.logger.info(`${WORKER_MESSAGES.WORKER_READY}: ${this.queueName}`);
         });
         this.worker.on("error", (err) => {
-            this.logger.error({ err }, WORKER_MESSAGES.WORKER_ERROR);
+            this.logger.error({ err: err.message }, WORKER_MESSAGES.WORKER_ERROR);
         });
         this.worker.on("stalled", (jobId) => {
             this.logger.warn({ jobId }, WORKER_MESSAGES.JOB_STALLED);
@@ -240,7 +257,7 @@ class QueueProcessorService {
      * Get health status
      */
     async getHealth() {
-        if (!this.worker) {
+        if (this.worker === null) {
             return {
                 healthy: false,
                 reason: "Worker not initialized",
@@ -258,9 +275,10 @@ class QueueProcessorService {
             };
         }
         catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             return {
                 healthy: false,
-                reason: error.message,
+                reason: errorMessage,
             };
         }
     }
@@ -268,7 +286,7 @@ class QueueProcessorService {
      * Pause the worker
      */
     async pause() {
-        if (this.worker) {
+        if (this.worker !== null) {
             await this.worker.pause();
             this.logger.info(`${WORKER_MESSAGES.WORKER_PAUSED}: ${this.queueName}`);
         }
@@ -277,7 +295,7 @@ class QueueProcessorService {
      * Resume the worker
      */
     async resume() {
-        if (this.worker) {
+        if (this.worker !== null) {
             await this.worker.resume();
             this.logger.info(`${WORKER_MESSAGES.WORKER_RESUMED}: ${this.queueName}`);
         }
@@ -286,11 +304,11 @@ class QueueProcessorService {
      * Close the worker gracefully
      */
     async close() {
-        if (this.worker) {
+        if (this.worker !== null) {
             await this.worker.close();
             this.logger.info(`${WORKER_MESSAGES.PROCESSOR_CLOSED}: ${this.queueName}`);
         }
-        if (this.deadLetterQueue) {
+        if (this.deadLetterQueue !== null) {
             await this.deadLetterQueue.close();
         }
     }

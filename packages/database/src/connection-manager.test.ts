@@ -9,10 +9,10 @@ const mockOn = vi.fn();
 
 vi.mock("mongoose", () => ({
   default: {
-    connect: (...args) => mockConnect(...args),
-    disconnect: (...args) => mockDisconnect(...args),
+    connect: (...args: any[]) => mockConnect(...args),
+    disconnect: (...args: any[]) => mockDisconnect(...args),
     connection: {
-      on: (...args) => mockOn(...args),
+      on: (...args: any[]) => mockOn(...args),
       readyState: 1,
       db: {
         admin: () => ({
@@ -24,9 +24,9 @@ vi.mock("mongoose", () => ({
 }));
 
 describe("DatabaseConnectionManager", () => {
-  let manager;
-  let mockLogger;
-  let mockConfig;
+  let manager: any;
+  let mockLogger: any;
+  let mockConfig: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -36,6 +36,7 @@ describe("DatabaseConnectionManager", () => {
       warn: vi.fn(),
       error: vi.fn(),
       debug: vi.fn(),
+      fatal: vi.fn(),
     };
 
     mockConfig = {
@@ -49,7 +50,11 @@ describe("DatabaseConnectionManager", () => {
       dbWaitQueueTimeoutMs: 10000,
       serverSelectionTimeoutMs: 5000,
       socketTimeoutMs: 45000,
-    };
+      nodeEnv: "test",
+      port: 3000,
+      apiVersion: "v1",
+      serviceName: "test",
+    } as unknown;
 
     manager = new DatabaseConnectionManager({
       config: mockConfig,
@@ -64,13 +69,13 @@ describe("DatabaseConnectionManager", () => {
   describe("Constructor", () => {
     it("should throw ConfigurationError if config is missing", () => {
       expect(
-        () => new DatabaseConnectionManager({ logger: mockLogger })
+        () => new DatabaseConnectionManager({ logger: mockLogger } as any)
       ).toThrow();
     });
 
     it("should throw ConfigurationError if logger is missing", () => {
       expect(
-        () => new DatabaseConnectionManager({ config: mockConfig })
+        () => new DatabaseConnectionManager({ config: mockConfig } as any)
       ).toThrow();
     });
 

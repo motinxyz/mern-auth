@@ -93,6 +93,7 @@ export interface WorkerServiceOptions {
     environment?: string;
     databaseService?: IDatabaseService;
     initServices?: Array<() => Promise<void>>;
+    t?: (key: string, params?: Record<string, unknown>) => string;
 }
 /**
  * Queue processor options
@@ -102,6 +103,7 @@ export interface QueueProcessorOptions {
     connection: IRedisConnection;
     processor: (job: IJob) => Promise<unknown>;
     logger: ILogger;
+    t?: (key: string, params?: Record<string, unknown>) => string;
     sentry?: ISentry;
     workerConfig?: WorkerConfig;
     deadLetterQueueName?: string;

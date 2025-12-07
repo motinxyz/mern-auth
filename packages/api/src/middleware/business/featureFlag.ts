@@ -26,10 +26,10 @@ export const featureFlagMiddleware = (featureFlagService: FeatureFlagService, fl
         });
       }
 
-      next();
+      return next();
     } catch (_error) {
       // If feature flag check fails, allow access (fail open)
-      next();
+      return next();
     }
   };
 };

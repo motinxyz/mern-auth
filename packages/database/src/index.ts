@@ -26,7 +26,7 @@ class DatabaseService {
   constructor(options: {
     config: IConfig;
     logger: ILogger;
-    t?: (key: string, params?: unknown) => string;
+    t?: (key: string, params?: Record<string, unknown>) => string;
   }) {
     if (options.config === undefined || options.config === null) {
       throw new ConfigurationError(

@@ -5,7 +5,7 @@ import { ApiResponse, HTTP_STATUS_CODES } from "@auth/utils";
  */
 export const responseHandler = (req, res, next) => {
     // If there's no data, it's likely a 404 or an unhandled route, so we pass to the next middleware (which should be the error handler).
-    if (!res.locals.data) {
+    if (res.locals.data === undefined) {
         return next();
     }
     const { statusCode, data, message } = res.locals.data;

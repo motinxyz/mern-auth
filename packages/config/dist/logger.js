@@ -3,10 +3,9 @@
  * Uses the observability module for production-grade logging
  */
 import { getObservabilityLogger } from "./observability/logger.js";
-import config from "./env.js";
 let loggerInstance;
 export function getLogger() {
-    if (!loggerInstance) {
+    if (loggerInstance === undefined) {
         loggerInstance = getObservabilityLogger({
             redact: {
                 paths: [

@@ -41,8 +41,8 @@ export class AuthAdapter {
      * @returns {Response}
      */
     toExpressResponse(result, res) {
-        if (this.logger) {
-            this.logger.debug("Sending response", { statusCode: result.statusCode });
+        if (this.logger !== undefined) {
+            this.logger.debug({ statusCode: result.statusCode }, "Sending response");
         }
         return res.status(result.statusCode).json(result.data);
     }
@@ -52,7 +52,8 @@ export class AuthAdapter {
      * @returns {string}
      */
     getLocale(req) {
-        return req.locale || req.headers["accept-language"]?.split(",")[0] || "en";
+        const localeRequest = req;
+        return localeRequest.locale ?? req.headers["accept-language"]?.split(",")[0] ?? "en";
     }
 }
 //# sourceMappingURL=auth.adapter.js.map

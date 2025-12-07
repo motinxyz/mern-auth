@@ -11,7 +11,7 @@ vi.mock("@auth/utils", async () => {
   const actual = await vi.importActual("@auth/utils");
   return {
     ...actual,
-    normalizeEmail: (email) => email.toLowerCase(), // Simple mock for testing
+    normalizeEmail: (email: any) => email.toLowerCase(), // Simple mock for testing
   };
 });
 
@@ -38,7 +38,7 @@ vi.mock("@auth/config", () => ({
       error: vi.fn(),
     })),
   },
-  t: vi.fn((key) => key),
+  t: vi.fn((key: any) => key),
   config: {
     redis: {
       prefixes: {
@@ -55,9 +55,9 @@ vi.mock("@auth/config", () => ({
 
 // Mock mongoose
 vi.mock("mongoose", async () => {
-  const actualMongoose = await vi.importActual("mongoose");
+  const actualMongoose = (await vi.importActual("mongoose")) as any;
   const session = {
-    withTransaction: vi.fn().mockImplementation(async (fn) => fn(session)),
+    withTransaction: vi.fn().mockImplementation(async (fn: any) => fn(session)),
     endSession: vi.fn(),
   };
   return {
@@ -71,13 +71,13 @@ vi.mock("mongoose", async () => {
 });
 
 // Mock database
-vi.mock("@auth/database", async (importOriginal) => {
-  const actual = await importOriginal();
+vi.mock("@auth/database", async (importOriginal: any) => {
+  const actual: any = await importOriginal();
   actual.User.create = vi.fn();
   actual.User.findById = vi.fn();
   actual.User.db = {
     startSession: vi.fn().mockResolvedValue({
-      withTransaction: vi.fn().mockImplementation(async (fn) => fn()),
+      withTransaction: vi.fn().mockImplementation(async (fn: any) => fn()),
       endSession: vi.fn(),
     }),
   };
@@ -85,19 +85,19 @@ vi.mock("@auth/database", async (importOriginal) => {
 });
 
 describe("Registration Service", () => {
-  let mockRedisConnection;
-  let mockConfig;
-  let registrationService;
-  let mockEmailProducer;
-  let MockUserModel;
-  let mockRedis;
-  let mockTokenService;
-  let mockSentry;
-  let mockLogger;
+  let mockRedisConnection: any;
+  let mockConfig: any;
+  let registrationService: any;
+  let mockEmailProducer: any;
+  let MockUserModel: any;
+  let mockRedis: any;
+  let mockTokenService: any;
+  let mockSentry: any;
+  let mockLogger: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const configModule = await vi.importMock("@auth/config");
+    const configModule: any = await vi.importMock("@auth/config");
     mockRedisConnection = configModule.redisConnection;
     mockConfig = configModule.config;
 
@@ -157,8 +157,8 @@ describe("Registration Service", () => {
         withTransaction: vi.fn().mockImplementation(async (fn) => fn(session)),
         endSession: vi.fn(),
       };
-      User.db.startSession.mockResolvedValue(session);
-      User.create.mockResolvedValue([newUser]);
+      (User.db.startSession as any).mockResolvedValue(session);
+      (User.create as any).mockResolvedValue([newUser]);
       registrationService.tokenService.createVerificationToken.mockResolvedValue(
         "test_token"
       );
@@ -206,17 +206,17 @@ describe("Registration Service", () => {
       };
 
       const session = {
-        withTransaction: vi.fn().mockImplementation(async (fn) => fn(session)),
+        withTransaction: vi.fn().mockImplementation(async (fn: any) => fn(session)),
         endSession: vi.fn(),
       };
-      User.db.startSession.mockResolvedValue(session);
+      (User.db.startSession as any).mockResolvedValue(session);
 
-      const dbError = new Error("Duplicate key");
+      const dbError: any = new Error("Duplicate key");
       dbError.code = 11000;
       dbError.keyPattern = { email: 1 };
       dbError.keyValue = { email: "test@example.com" };
 
-      User.create.mockRejectedValue(dbError);
+      (User.create as any).mockRejectedValue(dbError);
       mockRedisConnection.get.mockResolvedValue(null);
 
       await expect(registrationService.register(userData)).rejects.toThrow(
@@ -242,8 +242,8 @@ describe("Registration Service", () => {
         withTransaction: vi.fn().mockImplementation(async (fn) => fn(session)),
         endSession: vi.fn(),
       };
-      User.db.startSession.mockResolvedValue(session);
-      User.create.mockResolvedValue([newUser]);
+      (User.db.startSession as any).mockResolvedValue(session);
+      (User.create as any).mockResolvedValue([newUser]);
       registrationService.tokenService.createVerificationToken.mockResolvedValue(
         "test_token"
       );
@@ -277,8 +277,8 @@ describe("Registration Service", () => {
         withTransaction: vi.fn().mockImplementation(async (fn) => fn(session)),
         endSession: vi.fn(),
       };
-      User.db.startSession.mockResolvedValue(session);
-      User.create.mockResolvedValue([newUser]);
+      (User.db.startSession as any).mockResolvedValue(session);
+      (User.create as any).mockResolvedValue([newUser]);
       registrationService.tokenService.createVerificationToken.mockResolvedValue(
         "test_token"
       );

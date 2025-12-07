@@ -57,13 +57,13 @@ export class HealthController {
         });
       }
 
-      res.status(HTTP_STATUS_CODES.OK).json({
+      return res.status(HTTP_STATUS_CODES.OK).json({
         status: "READY",
         services,
       });
     } catch (error) {
       healthLogger.error({ error: (error as Error).message }, "Health check error");
-      res.status(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+      return res.status(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR).json({
         status: "ERROR",
         message: "Internal server error during health check",
       });

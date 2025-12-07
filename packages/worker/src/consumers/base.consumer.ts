@@ -53,7 +53,8 @@ class BaseConsumer {
   ): Promise<R> {
     const jobData = job.data as { traceContext?: { traceId: string; spanId: string } };
     const traceContext = jobData.traceContext;
-    const links = traceContext !== undefined ? [createSpanLink(traceContext)] : [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const links = traceContext !== undefined ? [createSpanLink(traceContext as any)] : [];
 
     return withSpan(
       spanName,
@@ -67,7 +68,10 @@ class BaseConsumer {
 
         return processor();
       },
-      { links, tracerName: "auth-worker", component: "worker" }
+      {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        links: links as any[], tracerName: "auth-worker", component: "worker"
+      }
     );
   }
 

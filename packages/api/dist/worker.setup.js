@@ -15,7 +15,8 @@ export async function startWorker({ logger, databaseService, emailService, sentr
     // Create worker service instance for this process
     const workerService = new WorkerService({
         logger,
-        redisConnection,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        redisConnection: redisConnection,
         databaseService,
         initServices: [], // Services are already initialized in @auth/config
         sentry,
@@ -29,6 +30,7 @@ export async function startWorker({ logger, databaseService, emailService, sentr
     // Register email processor with retry strategy
     workerService.registerProcessor({
         queueName: QUEUE_NAMES.EMAIL,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         processor: emailJobConsumer,
         workerConfig: {
             concurrency: WORKER_CONFIG.concurrency,

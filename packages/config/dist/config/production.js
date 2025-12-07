@@ -1,4 +1,4 @@
-/* eslint-disable import/no-unused-modules */
+// packages/config/src/config/production.js
 // packages/config/src/config/production.js
 // Production-specific configurations
 export default {

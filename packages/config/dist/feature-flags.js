@@ -1,17 +1,17 @@
-import { ConfigurationError } from "@auth/utils";
-import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
 /**
  * Feature Flag Service
  * Enables/disables features dynamically using Redis
  */
+import { ConfigurationError } from "@auth/utils";
+import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
 export class FeatureFlagService {
     redis;
     logger;
     constructor({ redis, logger }) {
-        if (!redis) {
+        if (redis === undefined || redis === null) {
             throw new ConfigurationError(CONFIG_ERRORS.FF_REDIS_REQUIRED);
         }
-        if (!logger) {
+        if (logger === undefined || logger === null) {
             throw new ConfigurationError(CONFIG_ERRORS.FF_LOGGER_REQUIRED);
         }
         this.redis = redis;
@@ -19,9 +19,6 @@ export class FeatureFlagService {
     }
     /**
      * Check if a feature is enabled
-     * @param {string} flagName - Feature flag name
-     * @param {string} userId - Optional user ID for user-specific flags
-     * @returns {Promise<boolean>}
      */
     async isEnabled(flagName, userId = null) {
         try {
@@ -34,16 +31,16 @@ export class FeatureFlagService {
                 return false;
             }
             // Check user-specific flag
-            if (userId) {
+            if (userId !== null) {
                 const userFlag = await this.redis.get(`flag:${flagName}:user:${userId}`);
                 if (userFlag === "true") {
                     return true;
                 }
             }
             // Check percentage rollout
-            if (userId) {
+            if (userId !== null) {
                 const rolloutPercentage = await this.redis.get(`flag:${flagName}:rollout`);
-                if (rolloutPercentage) {
+                if (rolloutPercentage !== null && rolloutPercentage !== "") {
                     const percentage = parseInt(rolloutPercentage, 10);
                     const userHash = this.hashUserId(userId);
                     return userHash < percentage;
@@ -53,14 +50,14 @@ export class FeatureFlagService {
             return false;
         }
         catch (error) {
-            this.logger.error({ err: error, flagName, userId }, CONFIG_ERRORS.FF_CHECK_ERROR);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error({ err: errorMessage, flagName, userId }, CONFIG_ERRORS.FF_CHECK_ERROR);
             // Fail open - if Redis is down, allow the feature
             return true;
         }
     }
     /**
      * Enable a feature globally
-     * @param {string} flagName - Feature flag name
      */
     async enable(flagName) {
         try {
@@ -68,13 +65,13 @@ export class FeatureFlagService {
             this.logger.info({ flagName }, CONFIG_MESSAGES.FF_ENABLED);
         }
         catch (error) {
-            this.logger.error({ err: error, flagName }, CONFIG_ERRORS.FF_ENABLE_FAILED);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error({ err: errorMessage, flagName }, CONFIG_ERRORS.FF_ENABLE_FAILED);
             throw error;
         }
     }
     /**
      * Disable a feature globally
-     * @param {string} flagName - Feature flag name
      */
     async disable(flagName) {
         try {
@@ -82,14 +79,13 @@ export class FeatureFlagService {
             this.logger.info({ flagName }, CONFIG_MESSAGES.FF_DISABLED);
         }
         catch (error) {
-            this.logger.error({ err: error, flagName }, CONFIG_ERRORS.FF_DISABLE_FAILED);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error({ err: errorMessage, flagName }, CONFIG_ERRORS.FF_DISABLE_FAILED);
             throw error;
         }
     }
     /**
      * Enable a feature for a specific user
-     * @param {string} flagName - Feature flag name
-     * @param {string} userId - User ID
      */
     async enableForUser(flagName, userId) {
         try {
@@ -97,14 +93,13 @@ export class FeatureFlagService {
             this.logger.info({ flagName, userId }, CONFIG_MESSAGES.FF_ENABLED_FOR_USER);
         }
         catch (error) {
-            this.logger.error({ err: error, flagName, userId }, CONFIG_ERRORS.FF_ENABLE_USER_FAILED);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error({ err: errorMessage, flagName, userId }, CONFIG_ERRORS.FF_ENABLE_USER_FAILED);
             throw error;
         }
     }
     /**
      * Set percentage rollout for a feature
-     * @param {string} flagName - Feature flag name
-     * @param {number} percentage - Percentage of users (0-100)
      */
     async setRolloutPercentage(flagName, percentage) {
         if (percentage < 0 || percentage > 100) {
@@ -115,14 +110,13 @@ export class FeatureFlagService {
             this.logger.info({ flagName, percentage }, CONFIG_MESSAGES.FF_ROLLOUT_SET);
         }
         catch (error) {
-            this.logger.error({ err: error, flagName, percentage }, CONFIG_ERRORS.FF_ROLLOUT_FAILED);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error({ err: errorMessage, flagName, percentage }, CONFIG_ERRORS.FF_ROLLOUT_FAILED);
             throw error;
         }
     }
     /**
      * Hash user ID to determine rollout eligibility
-     * @param {string} userId - User ID
-     * @returns {number} Hash value between 0-100
      */
     hashUserId(userId) {
         let hash = 0;
@@ -135,7 +129,6 @@ export class FeatureFlagService {
     }
     /**
      * Get all feature flags
-     * @returns {Promise<Object>} Map of flag names to their status
      */
     async getAllFlags() {
         try {
@@ -148,13 +141,14 @@ export class FeatureFlagService {
                 }
                 const flagName = key.replace("flag:", "");
                 const value = await this.redis.get(key);
-                // eslint-disable-next-line security/detect-object-injection
+                // eslint-disable-next-line security/detect-object-injection -- flagName is derived from controlled Redis keys
                 flags[flagName] = value === "true";
             }
             return flags;
         }
         catch (error) {
-            this.logger.error({ err: error }, CONFIG_ERRORS.FF_GET_ALL_FAILED);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error({ err: errorMessage }, CONFIG_ERRORS.FF_GET_ALL_FAILED);
             return {};
         }
     }

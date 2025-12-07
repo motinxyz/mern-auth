@@ -21,10 +21,10 @@ export class RegistrationDto {
      */
     static fromRequest(body, locale) {
         return new RegistrationDto({
-            name: body.name,
-            email: body.email,
-            password: body.password,
-            locale: locale || "en",
+            name: String(body.name ?? ""),
+            email: String(body.email ?? ""),
+            password: String(body.password ?? ""),
+            locale: locale ?? "en",
         });
     }
 }

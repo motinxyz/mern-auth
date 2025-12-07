@@ -2,30 +2,8 @@ import { redisConnection, getLogger } from "@auth/config";
 const logger = getLogger();
 import { API_MESSAGES } from "../../constants/api.messages.js";
 const cacheLogger = logger.child({ module: "cache" });
-/**
- * API Response Caching Middleware
- *
- * Caches GET request responses in Redis for a specified duration.
- * Useful for read-heavy endpoints that don't change frequently.
- *
- * @param {number} duration - Cache duration in seconds
- * @param {object} options - Additional options
- * @param {string} options.keyPrefix - Custom key prefix (default: 'cache:')
- * @param {function} options.shouldCache - Custom function to determine if response should be cached
- * @returns {Function} Express middleware
- *
- * @example
- * // Cache for 5 minutes
- * router.get('/api/v1/users/:id', cacheMiddleware(300), getUserHandler);
- *
- * // Cache with custom options
- * router.get('/api/v1/posts', cacheMiddleware(60, {
- *   keyPrefix: 'posts:',
- *   shouldCache: (req, res) => res.statusCode === 200
- * }), getPostsHandler);
- */
 export const cacheMiddleware = (duration, options = {}) => {
-    const { keyPrefix = "cache:", shouldCache = (req, res) => res.statusCode === 200, } = options;
+    const { keyPrefix = "cache:", shouldCache = (_req, res) => res.statusCode === 200, } = options;
     return async (req, res, next) => {
         // Only cache GET requests
         if (req.method !== "GET") {
@@ -36,7 +14,7 @@ export const cacheMiddleware = (duration, options = {}) => {
         try {
             // Try to get cached response
             const cached = await redisConnection.get(cacheKey);
-            if (cached) {
+            if (cached !== null) {
                 cacheLogger.debug({ cacheKey }, API_MESSAGES.CACHE_HIT);
                 res.setHeader("X-Cache", "HIT");
                 res.setHeader("X-Cache-Key", cacheKey);
@@ -84,7 +62,6 @@ export const cacheMiddleware = (duration, options = {}) => {
  * // Invalidate all user caches
  * await invalidateCache('cache:/api/v1/users/*');
  */
-/* eslint-disable import/no-unused-modules */
 export const invalidateCache = async (pattern) => {
     try {
         const keys = await redisConnection.keys(pattern);

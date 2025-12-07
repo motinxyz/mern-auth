@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/strict-boolean-expressions */
 import pinoHttp, { stdSerializers } from "pino-http";
 import { v4 as uuidv4 } from "uuid";
 import { config, getLogger } from "@auth/config";
@@ -19,7 +20,7 @@ export const httpLogger = pinoHttp({
         return id;
     },
     // Add custom properties to every log entry
-    customProps: (req, res) => {
+    customProps: (req, _res) => {
         // Extract OpenTelemetry trace context
         const span = trace.getActiveSpan();
         const spanContext = span?.spanContext();
@@ -61,7 +62,7 @@ export const httpLogger = pinoHttp({
         },
     // Use a custom log level to control verbosity.
     // In development, we log successful requests at 'debug' level.
-    customLogLevel: function (req, res, err) {
+    customLogLevel: function (_req, res, err) {
         if (res.statusCode >= 400 && res.statusCode < 500) {
             return "warn";
         }

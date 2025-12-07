@@ -3,7 +3,10 @@ import { VerificationController } from "./verification.controller.js";
 
 vi.mock("@auth/utils", () => ({
   ApiResponse: class {
-    constructor(statusCode, data, message) {
+    statusCode: any;
+    data: any;
+    message: any;
+    constructor(statusCode: any, data: any, message: any) {
       this.statusCode = statusCode;
       this.data = data;
       this.message = message;
@@ -20,8 +23,8 @@ vi.mock("@auth/config", () => ({
 }));
 
 describe("Verification Controller", () => {
-  let verificationController;
-  let mockVerificationService;
+  let verificationController: any;
+  let mockVerificationService: any;
 
   beforeEach(() => {
     mockVerificationService = {

@@ -40,28 +40,34 @@ vi.mock("@auth/config", () => ({
 
 // Mock database
 vi.mock("@auth/database", async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual: any = await importOriginal();
   actual.User.findById = vi.fn();
   return actual;
 });
 
 describe("Verification Service", () => {
-  let mockRedisConnection;
-  let mockConfig;
-  let verificationService;
+  let mockRedisConnection: any;
+  let mockConfig: any;
+  let verificationService: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const configModule = await vi.importMock("@auth/config");
+    const configModule: any = await vi.importMock("@auth/config");
     mockRedisConnection = configModule.redisConnection;
     mockConfig = configModule.config;
 
     const mockLogger = {
+      info: vi.fn(),
+      debug: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      fatal: vi.fn(),
       child: vi.fn(() => ({
         info: vi.fn(),
         debug: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
+        fatal: vi.fn(),
       })),
     };
 
@@ -69,7 +75,7 @@ describe("Verification Service", () => {
       userModel: User,
       redis: mockRedisConnection,
       config: mockConfig,
-      logger: mockLogger,
+      logger: mockLogger as any,
     });
   });
 
@@ -89,7 +95,7 @@ describe("Verification Service", () => {
 
       mockRedisConnection.get.mockResolvedValue(JSON.stringify(userData));
       mockRedisConnection.del.mockResolvedValue(1);
-      User.findById.mockResolvedValue(user);
+      (User.findById as any).mockResolvedValue(user);
 
       const result = await verificationService.verify(token);
 
@@ -113,7 +119,7 @@ describe("Verification Service", () => {
 
       mockRedisConnection.get.mockResolvedValue(JSON.stringify(userData));
       mockRedisConnection.del.mockResolvedValue(1);
-      User.findById.mockResolvedValue(user);
+      (User.findById as any).mockResolvedValue(user);
 
       const result = await verificationService.verify(token);
 
@@ -137,7 +143,7 @@ describe("Verification Service", () => {
       const userData = { userId: "123" };
 
       mockRedisConnection.get.mockResolvedValue(JSON.stringify(userData));
-      User.findById.mockResolvedValue(null);
+      (User.findById as any).mockResolvedValue(null);
 
       await expect(verificationService.verify(token)).rejects.toThrow(
         NotFoundError

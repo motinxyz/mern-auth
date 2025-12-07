@@ -15,7 +15,7 @@ class ValidationError extends ApiError {
         // Process the errors array to ensure consistent format
         const formattedErrors = errors.map((err) => {
             // Support both Zod error format and custom format
-            if ("path" in err && err.path) {
+            if ("path" in err) {
                 // Zod format
                 return {
                     field: Array.isArray(err.path) ? err.path.join(".") : err.path,

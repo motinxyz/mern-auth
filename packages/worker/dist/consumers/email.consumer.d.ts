@@ -1,39 +1,50 @@
 import BaseConsumer from "./base.consumer.js";
+import type { ILogger, IJob, JobResult, IEmailService } from "@auth/contracts";
+/**
+ * Email consumer options
+ */
+interface EmailConsumerOptions {
+    emailService: IEmailService;
+    logger: ILogger;
+}
+/**
+ * Email job data structure
+ */
+interface EmailJobData {
+    type: string;
+    data: {
+        user?: {
+            id: string;
+            email: string;
+        };
+        token?: string;
+        locale?: string;
+        preferredProvider?: string;
+    };
+    traceContext?: {
+        traceId: string;
+    };
+}
 /**
  * Email Job Consumer
  * Processes email-related jobs from the queue.
  * Uses BaseConsumer for common tracing and logging functionality.
  */
 declare class EmailConsumer extends BaseConsumer {
-    /**
-     * @param {object} options
-     * @param {object} options.emailService - Service capable of sending emails
-     * @param {object} options.logger - Pino logger instance
-     */
-    emailService: any;
-    constructor(options: any);
+    private readonly emailService;
+    constructor(options: EmailConsumerOptions);
     /**
      * Process an email job
-     * @param {object} job - BullMQ job
-     * @returns {Promise<object>} Processing result
      */
-    process(job: any): Promise<any>;
+    process(job: IJob<EmailJobData>): Promise<JobResult>;
     /**
      * Handle verification email job
-     * @private
      */
-    handleVerificationEmail(job: any, data: any, jobLogger: any): Promise<{
-        status: string;
-        message: string;
-    }>;
+    private handleVerificationEmail;
 }
 /**
  * Create email job consumer (Factory Pattern)
- * @param {object} options
- * @param {object} options.emailService - Service capable of sending emails
- * @param {object} options.logger - Pino logger instance
- * @returns {Function} Job processor function for WorkerService
  */
-export declare const createEmailJobConsumer: (options: any) => (job: any) => Promise<any>;
+export declare const createEmailJobConsumer: (options: EmailConsumerOptions) => ((job: IJob<EmailJobData>) => Promise<JobResult>);
 export { EmailConsumer };
 //# sourceMappingURL=email.consumer.d.ts.map

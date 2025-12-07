@@ -8,7 +8,7 @@
  * - Graceful degradation
  */
 import { metrics } from "@opentelemetry/api";
-import { observabilityConfig, isMetricsEnabled } from "./config.js";
+import { isMetricsEnabled } from "./config.js";
 import { createModuleLogger } from "../logging/startup-logger.js";
 const log = createModuleLogger("metrics");
 const meter = metrics.getMeter("auth-config-metrics");
@@ -16,13 +16,14 @@ const meter = metrics.getMeter("auth-config-metrics");
  * Initialize metrics
  * (Now handled by OpenTelemetry SDK in tracing.js)
  */
-export function initializeMetrics() {
-    if (!isMetricsEnabled()) {
+export const initializeMetrics = () => {
+    const metricsEnabled = isMetricsEnabled();
+    if (metricsEnabled !== true) {
         log.info("Metrics disabled");
         return;
     }
     log.info("Metrics enabled (OpenTelemetry)");
-}
+};
 /**
  * Get the Prometheus registry
  * @deprecated OTel manages its own registry

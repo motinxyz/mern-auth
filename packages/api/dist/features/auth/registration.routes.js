@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { validate } from "../../middleware/index.js";
 import { registrationSchema } from "@auth/core";
-import { authLimiter } from "../../middleware/index.js";
 import { authController } from "./auth.adapter.instance.js";
 import { AUTH_ROUTES } from "@auth/utils";
 const router = Router();
@@ -29,6 +28,6 @@ const router = Router();
  *       429:
  *         description: Too many requests
  */
-router.post(AUTH_ROUTES.REGISTER, authLimiter, validate(registrationSchema), authController.register);
+router.post(AUTH_ROUTES.REGISTER, validate(registrationSchema), authController.register);
 export default router;
 //# sourceMappingURL=registration.routes.js.map

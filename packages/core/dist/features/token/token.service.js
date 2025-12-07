@@ -49,7 +49,7 @@ export class TokenService {
             const result = await this.redis.set(verifyKey, userDataToStore, "EX", this.config.verificationTokenExpiresIn);
             // Verify the token was stored correctly
             const ttl = await this.redis.ttl(verifyKey);
-            this.logger.debug({ key: verifyKey, ttl, redisResponse: result }, TOKEN_MESSAGES.TOKEN_STORED_REDIS);
+            this.logger.debug({ token: verificationToken, ttl, redisResponse: result }, TOKEN_MESSAGES.TOKEN_STORED_REDIS);
             return verificationToken;
         }
         catch (error) {
@@ -61,13 +61,13 @@ export class TokenService {
     /**
      * Verify and consume a token
      */
-    async verifyToken(token) {
+    async verifyToken(_token) {
         throw new Error("Method not implemented.");
     }
     /**
      * Delete a token
      */
-    async deleteToken(token) {
+    async deleteToken(_token) {
         throw new Error("Method not implemented.");
     }
 }

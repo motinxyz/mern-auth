@@ -11,7 +11,7 @@
  * Initialize metrics
  * (Now handled by OpenTelemetry SDK in tracing.js)
  */
-export declare function initializeMetrics(): void;
+export declare const initializeMetrics: () => void;
 /**
  * Get the Prometheus registry
  * @deprecated OTel manages its own registry

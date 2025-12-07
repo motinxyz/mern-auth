@@ -2,6 +2,9 @@
  * Observability Configuration
  * Centralized configuration for all observability features
  */
+interface TempoHeaders {
+    Authorization?: string;
+}
 export declare const observabilityConfig: {
     enabled: any;
     loki: {
@@ -32,17 +35,14 @@ export declare const observabilityConfig: {
         environment: any;
         hostname: any;
         tempo: {
-            url: any;
-            headers: {
-                Authorization: string;
-            } | {
-                Authorization?: undefined;
-            };
+            url: string;
+            headers: TempoHeaders;
         };
     };
 };
-export declare function isObservabilityEnabled(): any;
+export declare function isObservabilityEnabled(): boolean;
 export declare function isLokiEnabled(): boolean;
-export declare function isMetricsEnabled(): any;
-export declare function isTracingEnabled(): any;
+export declare function isMetricsEnabled(): boolean;
+export declare function isTracingEnabled(): boolean;
+export {};
 //# sourceMappingURL=config.d.ts.map

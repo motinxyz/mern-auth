@@ -25,7 +25,7 @@ export const apiVersionMiddleware = (options = {}) => {
             ? pathParts[versionIndex] // eslint-disable-line security/detect-object-injection
             : null;
         // Add version to request for logging
-        req.apiVersion = requestedVersion || currentVersion;
+        req.apiVersion = requestedVersion ?? currentVersion;
         // Log version usage
         versionLogger.debug({
             requestId: req.id,
@@ -33,12 +33,14 @@ export const apiVersionMiddleware = (options = {}) => {
             path: req.path,
         }, API_MESSAGES.API_VERSION_REQUEST);
         // Add deprecation headers if this version is deprecated
-        if (deprecatedVersion && requestedVersion === deprecatedVersion) {
+        if (deprecatedVersion !== null &&
+            deprecatedVersion !== undefined &&
+            requestedVersion === deprecatedVersion) {
             res.setHeader("Deprecation", "true");
-            if (sunsetDate) {
+            if (sunsetDate !== null && sunsetDate !== undefined) {
                 res.setHeader("Sunset", sunsetDate);
             }
-            if (successorVersion) {
+            if (successorVersion !== null && successorVersion !== undefined) {
                 const successorPath = req.path.replace(`/${deprecatedVersion}/`, `/${successorVersion}/`);
                 res.setHeader("Link", `<${successorPath}>; rel="successor-version"`);
             }

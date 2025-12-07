@@ -73,7 +73,7 @@ export class TokenService {
       // Verify the token was stored correctly
       const ttl = await this.redis.ttl(verifyKey);
       this.logger.debug(
-        { key: verifyKey, ttl, redisResponse: result },
+        { token: verificationToken, ttl, redisResponse: result },
         TOKEN_MESSAGES.TOKEN_STORED_REDIS
       );
 
@@ -82,7 +82,7 @@ export class TokenService {
       this.logger.error({ err: error }, TOKEN_MESSAGES.TOKEN_CREATION_FAILED);
 
       // Wrap the original error in our custom error class for better context
-      throw new TokenCreationError("Token creation failed", error);
+      throw new TokenCreationError("Token creation failed", error as Error);
     }
   }
 

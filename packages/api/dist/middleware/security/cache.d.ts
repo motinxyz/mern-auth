@@ -1,13 +1,10 @@
+import type { Request, Response, NextFunction } from "express";
 /**
  * API Response Caching Middleware
  *
  * Caches GET request responses in Redis for a specified duration.
  * Useful for read-heavy endpoints that don't change frequently.
  *
- * @param {number} duration - Cache duration in seconds
- * @param {object} options - Additional options
- * @param {string} options.keyPrefix - Custom key prefix (default: 'cache:')
- * @param {function} options.shouldCache - Custom function to determine if response should be cached
  * @returns {Function} Express middleware
  *
  * @example
@@ -20,7 +17,11 @@
  *   shouldCache: (req, res) => res.statusCode === 200
  * }), getPostsHandler);
  */
-export declare const cacheMiddleware: (duration: any, options?: {}) => (req: any, res: any, next: any) => Promise<any>;
+interface CacheOptions {
+    keyPrefix?: string;
+    shouldCache?: (req: Request, res: Response) => boolean;
+}
+export declare const cacheMiddleware: (duration: number, options?: CacheOptions) => (req: Request, res: Response, next: NextFunction) => Promise<void | Response<any, Record<string, any>>>;
 /**
  * Invalidate cache for a specific key or pattern
  *
@@ -34,5 +35,6 @@ export declare const cacheMiddleware: (duration: any, options?: {}) => (req: any
  * // Invalidate all user caches
  * await invalidateCache('cache:/api/v1/users/*');
  */
-export declare const invalidateCache: (pattern: any) => Promise<number>;
+export declare const invalidateCache: (pattern: string) => Promise<number>;
+export {};
 //# sourceMappingURL=cache.d.ts.map

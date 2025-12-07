@@ -78,7 +78,7 @@ export async function initializeCommonServices() {
             }
         });
         if (criticalFailures.length > 0) {
-            logger.fatal(BOOTSTRAP_MESSAGES.FAILED_TO_START_SERVICES, `Exiting in ${config.shutdownTimeoutMs / 1000} seconds...`);
+            logger.fatal(`${BOOTSTRAP_MESSAGES.FAILED_TO_START_SERVICES} Exiting in ${config.shutdownTimeoutMs / 1000} seconds...`);
             // Give some time for logs to be flushed and external systems to react
             await new Promise((resolve) => setTimeout(resolve, config.shutdownTimeoutMs));
             process.exit(1);

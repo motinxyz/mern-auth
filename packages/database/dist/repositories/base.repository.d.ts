@@ -26,7 +26,7 @@ declare class BaseRepository<T extends mongoose.Document> {
      */
     findById(id: string): Promise<mongoose.IfAny<T, any, mongoose.Document<unknown, {}, T, {}, mongoose.DefaultSchemaOptions> & mongoose.Require_id<T> & {
         __v: number;
-    }>>;
+    }> | null>;
     /**
      * Find one document matching filter
      * @param {object} filter - Query filter
@@ -34,7 +34,7 @@ declare class BaseRepository<T extends mongoose.Document> {
      */
     findOne(filter: Record<string, unknown>): Promise<mongoose.IfAny<T, any, mongoose.Document<unknown, {}, T, {}, mongoose.DefaultSchemaOptions> & mongoose.Require_id<T> & {
         __v: number;
-    }>>;
+    }> | null>;
     /**
      * Find multiple documents matching filter
      * @param {object} filter - Query filter
@@ -78,7 +78,7 @@ declare class BaseRepository<T extends mongoose.Document> {
         new: boolean;
     }): Promise<mongoose.IfAny<T, any, mongoose.Document<unknown, {}, T, {}, mongoose.DefaultSchemaOptions> & mongoose.Require_id<T> & {
         __v: number;
-    }>>;
+    }> | null>;
     /**
      * Delete document by ID
      * @param {string} id - Document ID
@@ -86,7 +86,7 @@ declare class BaseRepository<T extends mongoose.Document> {
      */
     delete(id: string): Promise<mongoose.IfAny<T, any, mongoose.Document<unknown, {}, T, {}, mongoose.DefaultSchemaOptions> & mongoose.Require_id<T> & {
         __v: number;
-    }>>;
+    }> | null>;
     /**
      * Count documents matching filter
      * @param {object} filter - Query filter

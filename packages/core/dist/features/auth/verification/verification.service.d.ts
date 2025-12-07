@@ -16,7 +16,7 @@ export declare class VerificationService {
         config: IConfig;
         logger: ILogger;
     });
-    verify(token: any): Promise<{
+    verify(token: string): Promise<{
         status: "ALREADY_VERIFIED";
     } | {
         status: "VERIFIED";

@@ -10,9 +10,9 @@ import { setSentryUser, addSentryBreadcrumb, startSentryTransaction, } from "./c
 /**
  * Middleware to set Sentry user context for authenticated requests
  */
-export const sentryUserMiddleware = (req, res, next) => {
+export const sentryUserMiddleware = (req, _res, next) => {
     // Set user context if authenticated
-    if (req.user) {
+    if (req.user !== undefined) {
         setSentryUser(req.user);
     }
     // Add breadcrumb for this request
@@ -28,14 +28,13 @@ export const sentryUserMiddleware = (req, res, next) => {
 /**
  * Middleware to track performance of critical operations
  */
-/* eslint-disable import/no-unused-modules */
 export const sentryPerformanceMiddleware = (req, res, next) => {
     // Only track important endpoints
     const shouldTrack = req.path.includes("/auth/") || req.path.includes("/api/v1/");
     if (!shouldTrack) {
         return next();
     }
-    const transaction = startSentryTransaction("http.server", `${req.method} ${req.route?.path || req.path}`, {
+    const transaction = startSentryTransaction("http.server", `${req.method} ${req.route?.path !== undefined ? req.route.path : req.path}`, {
         method: req.method,
         url: req.url,
     });
@@ -49,21 +48,18 @@ export const sentryPerformanceMiddleware = (req, res, next) => {
 /**
  * Add breadcrumb for authentication events
  */
-/* eslint-disable import/no-unused-modules */
 export function addAuthBreadcrumb(event, data = {}) {
     addSentryBreadcrumb("auth", event, data, "info");
 }
 /**
  * Add breadcrumb for email events
  */
-/* eslint-disable import/no-unused-modules */
 export function addEmailBreadcrumb(event, data = {}) {
     addSentryBreadcrumb("email", event, data, "info");
 }
 /**
  * Add breadcrumb for database events
  */
-/* eslint-disable import/no-unused-modules */
 export function addDatabaseBreadcrumb(event, data = {}) {
     addSentryBreadcrumb("database", event, data, "info");
 }

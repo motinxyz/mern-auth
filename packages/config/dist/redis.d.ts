@@ -8,7 +8,7 @@ import type { ILogger, IConfig } from "@auth/contracts";
  * Includes circuit breaker for graceful degradation when Redis fails.
  */
 export interface ExtendedRedis extends Redis {
-    getCircuitBreakerStats(): any;
+    getCircuitBreakerStats(): Record<string, unknown>;
     getCircuitBreakerState(): string;
 }
 export declare class RedisService {
@@ -35,7 +35,7 @@ export declare class RedisService {
      * Get circuit breaker stats
      * @returns {Object} Circuit breaker statistics
      */
-    getCircuitBreakerStats(): any;
+    getCircuitBreakerStats(): Record<string, unknown> | null;
     /**
      * Get circuit breaker state
      * @returns {string} OPEN, HALF_OPEN, or CLOSED

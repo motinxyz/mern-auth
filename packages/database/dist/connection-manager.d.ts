@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
-import type { ILogger } from "@auth/contracts";
+import type { ILogger, IConfig } from "@auth/contracts";
 /**
  * Database Connection Manager
  * Provides connection state management and health checks
  */
 declare class DatabaseConnectionManager {
-    config: any;
+    config: IConfig;
     logger: ILogger;
     isConnected: boolean;
     constructor(options: {
-        config: any;
+        config: IConfig;
         logger: ILogger;
     });
     /**
@@ -31,24 +31,21 @@ declare class DatabaseConnectionManager {
     getConnectionState(): {
         isConnected: boolean;
         readyState: mongoose.ConnectionStates;
-        readyStateLabel: any;
+        readyStateLabel: string;
     };
     /**
      * Get human-readable connection state
      */
-    getReadyStateLabel(): any;
-    /**
-     * Health check
-     */
+    getReadyStateLabel(): string;
     /**
      * Health check
      */
     healthCheck(): Promise<{
         healthy: boolean;
-        reason?: undefined;
+        reason: string;
     } | {
         healthy: boolean;
-        reason: any;
+        reason?: undefined;
     }>;
     /**
      * Simple ping check

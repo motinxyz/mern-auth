@@ -1,3 +1,13 @@
+import type { Request, Response, NextFunction } from "express";
+interface ApiVersionOptions {
+    currentVersion?: string;
+    deprecatedVersion?: string | null;
+    sunsetDate?: string | null;
+    successorVersion?: string | null;
+}
+interface VersionedRequest extends Request {
+    apiVersion?: string;
+}
 /**
  * API Version Tracking and Deprecation Middleware
  *
@@ -11,7 +21,8 @@
  * @param {string} options.successorVersion - Successor version (e.g., 'v2')
  * @returns {Function} Express middleware
  */
-export declare const apiVersionMiddleware: (options?: any) => (req: any, res: any, next: any) => void;
+export declare const apiVersionMiddleware: (options?: ApiVersionOptions) => (req: VersionedRequest, res: Response, next: NextFunction) => void;
+export {};
 /**
  * Version-specific deprecation configuration
  *

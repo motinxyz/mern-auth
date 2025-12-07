@@ -21,7 +21,7 @@ import crypto from "crypto";
 // Read from process.env directly - DO NOT import @auth/config here
 // Sentry must be initialized before any other modules load
 const SENTRY_DSN = process.env.SENTRY_DSN;
-const NODE_ENV = process.env.NODE_ENV || "development";
+const NODE_ENV = process.env.NODE_ENV ?? "development";
 const IS_PRODUCTION = NODE_ENV === "production";
 const IS_DEVELOPMENT = NODE_ENV === "development";
 const SENTRY_DEV_ENABLED = process.env.SENTRY_DEV_ENABLED === "true";
@@ -29,7 +29,7 @@ const SENTRY_DEV_ENABLED = process.env.SENTRY_DEV_ENABLED === "true";
  * Hash sensitive data (PII) for Sentry
  */
 function hashPII(value) {
-    if (!value)
+    if (value === undefined || value === null || value === "")
         return "";
     return crypto
         .createHash("sha256")
@@ -39,12 +39,12 @@ function hashPII(value) {
 }
 // Only initialize Sentry if DSN is provided (not in tests)
 export const initSentry = () => {
-    if (SENTRY_DSN) {
+    if (SENTRY_DSN !== undefined && SENTRY_DSN !== "") {
         Sentry.init({
             dsn: SENTRY_DSN,
             environment: NODE_ENV,
             // Release tracking - critical for debugging
-            release: `auth-api@${process.env.npm_package_version || "1.0.0"}`, // NPM version is standard env
+            release: `auth-api@${process.env.npm_package_version ?? "1.0.0"}`, // NPM version is standard env
             // Performance Monitoring
             tracesSampleRate: IS_PRODUCTION ? 0.1 : 1.0,
             // Session tracking for user impact analysis
@@ -67,57 +67,51 @@ export const initSentry = () => {
                 }
                 // Custom fingerprinting for better error grouping
                 const error = hint.originalException;
-                if (error) {
+                if (error !== null && error !== undefined) {
                     // Group validation errors by field
-                    if (error.name === "ValidationError" && error.errors) {
+                    if (error.name === "ValidationError" && error.errors !== undefined) {
                         const fields = Object.keys(error.errors).sort().join(",");
                         event.fingerprint = ["validation-error", fields];
                     }
                     // Group database errors by code
                     if (error.code === 11000) {
-                        const field = Object.keys(error.keyPattern || {})[0];
-                        event.fingerprint = ["duplicate-key", field || "unknown"];
+                        const keyPattern = error.keyPattern ?? {};
+                        const field = Object.keys(keyPattern)[0];
+                        event.fingerprint = ["duplicate-key", field ?? "unknown"];
                     }
                     // Group API errors by status code and endpoint
-                    if (error.statusCode && event.request?.url) {
+                    if (error.statusCode !== undefined && event.request?.url !== undefined) {
                         const endpoint = event.request.url.split("?")[0];
                         event.fingerprint = [
                             "api-error",
                             String(error.statusCode),
-                            endpoint,
+                            endpoint ?? "unknown",
                         ];
                     }
                 }
                 return event;
             },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Sentry options are complex
         });
     }
     return Sentry;
 };
-/**
- * Set user context for error tracking
- * Call this after user authentication
- */
 export function setSentryUser(user) {
-    if (!user) {
+    if (user === null || user === undefined) {
         Sentry.setUser(null);
         return;
     }
     Sentry.setUser({
-        id: user.id || user._id?.toString(),
-        email: hashPII(user.email), // Hash email for privacy
+        id: user.id ?? user._id?.toString(),
+        email: hashPII(user.email),
         username: user.name,
-        role: user.role,
     });
 }
-/**
- * Add breadcrumb for debugging
- */
 export function addSentryBreadcrumb(category, message, data = {}, level = "info") {
     Sentry.addBreadcrumb({
         category,
         message,
-        level: level,
+        level,
         data,
         timestamp: Date.now() / 1000,
     });
@@ -126,25 +120,22 @@ export function addSentryBreadcrumb(category, message, data = {}, level = "info"
  * Start a Sentry transaction for performance monitoring
  */
 export function startSentryTransaction(op, name, data = {}) {
+    // @ts-expect-error - Sentry transaction API not fully typed
     return Sentry.startTransaction({
         op,
         name,
         data,
     });
 }
-/**
- * Capture exception with context
- */
-/* eslint-disable import/no-unused-modules */
 export const captureSentryException = (error, context = {}) => {
     Sentry.captureException(error, {
-        tags: context.tags || {},
-        extra: context.extra || {},
-        level: context.level || "error",
+        tags: context.tags ?? {},
+        extra: context.extra ?? {},
+        level: context.level ?? "error",
     });
 };
 // Export Sentry with mock handlers for test environment
-const SentryInstance = SENTRY_DSN
+const SentryInstance = (SENTRY_DSN !== undefined && SENTRY_DSN !== "")
     ? Sentry
     : {
         setupExpressErrorHandler: () => { },

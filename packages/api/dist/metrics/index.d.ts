@@ -1,17 +1,18 @@
+import type { Request, Response, NextFunction } from "express";
 /**
  * Middleware to track HTTP metrics
  */
-export declare const metricsMiddleware: (req: any, res: any, next: any) => void;
+export declare const metricsMiddleware: (req: Request, res: Response, next: NextFunction) => void;
 /**
  * Update circuit breaker metrics
  */
-export declare const updateCircuitBreakerMetrics: (name: any, state: any, isFailure?: boolean) => void;
+export declare const updateCircuitBreakerMetrics: (name: string, state: string, isFailure?: boolean) => void;
 /**
  * Update queue job metrics
  */
-export declare const updateQueueMetrics: (queueName: any, jobType: any, status: any, duration: any) => void;
+export declare const updateQueueMetrics: (queueName: string, jobType: string, status: string, duration: number) => void;
 /**
  * Update email metrics
  */
-export declare const updateEmailMetrics: (type: any, status: any, provider: any) => void;
+export declare const updateEmailMetrics: (type: string, status: string, provider?: string) => void;
 //# sourceMappingURL=index.d.ts.map

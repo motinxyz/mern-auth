@@ -18,7 +18,7 @@ class DatabaseService {
     emailLogRepository;
     auditLogRepository;
     constructor(options) {
-        if (!options.config) {
+        if (options.config === undefined || options.config === null) {
             throw new ConfigurationError(DB_ERRORS.MISSING_CONFIG.replace("{option}", "config"));
         }
         this.connectionManager = new DatabaseConnectionManager(options);

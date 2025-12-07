@@ -3,13 +3,14 @@ import WorkerService from "./worker.service.js";
 
 // Mock QueueProcessorService
 vi.mock("./queue-processor.service.js", () => {
-  const MockProcessor = vi.fn(function () {
+   
+  const MockProcessor = vi.fn(function (this: any) {
     this.queueName = "test-queue";
   });
-  MockProcessor.prototype.initialize = vi.fn().mockResolvedValue();
-  MockProcessor.prototype.close = vi.fn().mockResolvedValue();
-  MockProcessor.prototype.pause = vi.fn().mockResolvedValue();
-  MockProcessor.prototype.resume = vi.fn().mockResolvedValue();
+  MockProcessor.prototype.initialize = vi.fn().mockResolvedValue(undefined);
+  MockProcessor.prototype.close = vi.fn().mockResolvedValue(undefined);
+  MockProcessor.prototype.pause = vi.fn().mockResolvedValue(undefined);
+  MockProcessor.prototype.resume = vi.fn().mockResolvedValue(undefined);
   MockProcessor.prototype.getHealth = vi.fn().mockResolvedValue({
     healthy: true,
     queueName: "test-queue",
@@ -24,11 +25,16 @@ vi.mock("./queue-processor.service.js", () => {
 });
 
 describe("WorkerService", () => {
-  let service;
-  let mockLogger;
-  let mockT;
-  let mockRedisConnection;
-  let mockDatabaseService;
+   
+  let service: any;
+   
+  let mockLogger: any;
+   
+  let mockT: any;
+   
+  let mockRedisConnection: any;
+   
+  let mockDatabaseService: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -39,15 +45,16 @@ describe("WorkerService", () => {
       fatal: vi.fn(),
     };
 
-    mockT = vi.fn((key) => key);
+     
+    mockT = vi.fn((key: any) => key);
 
     mockRedisConnection = {
-      quit: vi.fn().mockResolvedValue(),
+      quit: vi.fn().mockResolvedValue(undefined),
     };
 
     mockDatabaseService = {
-      connect: vi.fn().mockResolvedValue(),
-      disconnect: vi.fn().mockResolvedValue(),
+      connect: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn().mockResolvedValue(undefined),
       healthCheck: vi.fn().mockResolvedValue({ healthy: true }),
       ping: vi.fn().mockResolvedValue(true),
     };
@@ -62,7 +69,8 @@ describe("WorkerService", () => {
 
   describe("Initialization", () => {
     it("should require mandatory options", () => {
-      expect(() => new WorkerService({})).toThrow();
+       
+      expect(() => new WorkerService({} as any)).toThrow();
     });
 
     it("should register processors", () => {
@@ -85,7 +93,7 @@ describe("WorkerService", () => {
     });
 
     it("should start service and dependencies", async () => {
-      const initService = vi.fn().mockResolvedValue();
+      const initService = vi.fn().mockResolvedValue(undefined);
       service.initServices = [initService];
 
       await service.start();

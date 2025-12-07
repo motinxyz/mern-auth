@@ -2,7 +2,14 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import DatabaseService from "./index.js";
 // Mock mongoose with Schema.Types support
 vi.mock("mongoose", () => {
-    const MockSchema = class {
+    class MockSchema {
+        pre;
+        methods;
+        statics;
+        index;
+        set;
+        virtual;
+        static Types;
         constructor() {
             this.pre = vi.fn();
             this.methods = {};
@@ -14,7 +21,7 @@ vi.mock("mongoose", () => {
                 set: vi.fn(),
             });
         }
-    };
+    }
     MockSchema.Types = {
         ObjectId: "ObjectId",
         String: String,
@@ -60,6 +67,7 @@ describe("DatabaseService", () => {
             warn: vi.fn(),
             error: vi.fn(),
             debug: vi.fn(),
+            fatal: vi.fn(),
             child: vi.fn().mockReturnThis(),
         };
         mockConfig = {
@@ -73,6 +81,10 @@ describe("DatabaseService", () => {
             dbWaitQueueTimeoutMs: 10000,
             serverSelectionTimeoutMs: 5000,
             socketTimeoutMs: 45000,
+            nodeEnv: "test",
+            port: 3000,
+            apiVersion: "v1",
+            serviceName: "test",
         };
         service = new DatabaseService({
             config: mockConfig,

@@ -5,16 +5,18 @@ import { Worker, Queue } from "bullmq";
 // Mock BullMQ
 vi.mock("bullmq", () => {
   const MockWorker = vi.fn();
-  MockWorker.prototype.on = vi.fn();
-  MockWorker.prototype.close = vi.fn().mockResolvedValue();
-  MockWorker.prototype.pause = vi.fn().mockResolvedValue();
-  MockWorker.prototype.resume = vi.fn().mockResolvedValue();
-  MockWorker.prototype.isRunning = vi.fn().mockResolvedValue(true);
-  MockWorker.prototype.isPaused = vi.fn().mockResolvedValue(false);
+   
+  (MockWorker.prototype as any).on = vi.fn();
+  (MockWorker.prototype as any).close = vi.fn().mockResolvedValue(undefined);
+  (MockWorker.prototype as any).pause = vi.fn().mockResolvedValue(undefined);
+  (MockWorker.prototype as any).resume = vi.fn().mockResolvedValue(undefined);
+  (MockWorker.prototype as any).isRunning = vi.fn().mockResolvedValue(true);
+  (MockWorker.prototype as any).isPaused = vi.fn().mockResolvedValue(false);
 
   const MockQueue = vi.fn();
-  MockQueue.prototype.add = vi.fn().mockResolvedValue();
-  MockQueue.prototype.close = vi.fn().mockResolvedValue();
+   
+  (MockQueue.prototype as any).add = vi.fn().mockResolvedValue(undefined);
+  (MockQueue.prototype as any).close = vi.fn().mockResolvedValue(undefined);
 
   return {
     Worker: MockWorker,
@@ -23,10 +25,14 @@ vi.mock("bullmq", () => {
 });
 
 describe("QueueProcessorService", () => {
-  let service;
-  let mockOptions;
-  let mockLogger;
-  let mockT;
+   
+  let service: any;
+   
+  let mockOptions: any;
+   
+  let mockLogger: any;
+   
+  let mockT: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -39,7 +45,8 @@ describe("QueueProcessorService", () => {
       debug: vi.fn(),
     };
 
-    mockT = vi.fn((key) => key);
+     
+    mockT = vi.fn((key: any) => key);
 
     mockOptions = {
       queueName: "test-queue",
@@ -58,7 +65,8 @@ describe("QueueProcessorService", () => {
 
   describe("Initialization", () => {
     it("should require mandatory options", () => {
-      expect(() => new QueueProcessorService({})).toThrow();
+       
+      expect(() => new QueueProcessorService({} as any)).toThrow();
     });
 
     it("should initialize worker", async () => {
@@ -109,7 +117,8 @@ describe("QueueProcessorService", () => {
         })
       );
 
-      const workerOptions = Worker.mock.calls[Worker.mock.calls.length - 1][2];
+       
+      const workerOptions = (Worker as any).mock.calls[(Worker as any).mock.calls.length - 1][2];
       expect(workerOptions.stalledInterval).toBeUndefined();
     });
 
@@ -124,23 +133,27 @@ describe("QueueProcessorService", () => {
       });
       await service.initialize();
 
-      const workerOptions = Worker.mock.calls[Worker.mock.calls.length - 1][2];
+       
+      const workerOptions = (Worker as any).mock.calls[(Worker as any).mock.calls.length - 1][2];
       expect(workerOptions.stalledInterval).toBe(30000);
     });
   });
 
   describe("Event Handlers", () => {
-    let workerInstance;
+     
+    let workerInstance: any;
 
     beforeEach(async () => {
       await service.initialize();
-      workerInstance = Worker.mock.instances[0];
+       
+      workerInstance = (Worker as any).mock.instances[0];
     });
 
     it("should handle failed jobs", async () => {
       // Find 'failed' handler
-      const failedHandler = workerInstance.on.mock.calls.find(
-        (call) => call[0] === "failed"
+      const failedHandler = (workerInstance as any).on.mock.calls.find(
+         
+        (call: any) => call[0] === "failed"
       )[1];
 
       const job = { id: "1", name: "job", attemptsMade: 1 };
@@ -159,12 +172,14 @@ describe("QueueProcessorService", () => {
         workerConfig: { attempts: 3 },
       });
       await service.initialize();
-      workerInstance = Worker.mock.instances[1]; // New instance
+       
+      workerInstance = (Worker as any).mock.instances[1]; // New instance
 
       // Get the handler registered for this specific worker instance
       // Since 'on' is a prototype mock, calls are shared. We need the last one.
-      const failedCalls = workerInstance.on.mock.calls.filter(
-        (call) => call[0] === "failed"
+      const failedCalls = (workerInstance as any).on.mock.calls.filter(
+         
+        (call: any) => call[0] === "failed"
       );
       const failedHandler = failedCalls[failedCalls.length - 1][1];
 
@@ -178,7 +193,8 @@ describe("QueueProcessorService", () => {
 
       await failedHandler(job, error);
 
-      const dlqInstance = Queue.mock.instances[0];
+       
+      const dlqInstance = (Queue as any).mock.instances[0];
       expect(dlqInstance.add).toHaveBeenCalledWith(
         "job",
         { foo: "bar" },

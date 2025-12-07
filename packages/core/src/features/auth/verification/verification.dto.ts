@@ -16,7 +16,7 @@ export class VerificationDto {
    */
   static fromRequest(query: Record<string, string>) {
     return new VerificationDto({
-      token: query.token,
+      token: query.token ?? "",
     });
   }
 }

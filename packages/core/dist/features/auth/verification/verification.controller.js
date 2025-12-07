@@ -11,7 +11,7 @@ export class VerificationController {
     }
     /**
      * Verify user email
-     * @param {VerifyEmailDto} dto - Email verification data
+     * @param {VerificationDto} dto - Email verification data
      * @param {string} locale - User locale for i18n
      * @returns {Promise<ControllerResult>}
      */

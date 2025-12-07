@@ -14,5 +14,5 @@ import pino from "pino";
  * @param {string} module - Module name (e.g., 'tracing', 'metrics', 'shipper')
  * @returns {pino.Logger} Child logger with module context
  */
-export declare function createModuleLogger(module: any): pino.Logger<never, boolean>;
+export declare function createModuleLogger(module: string): pino.Logger;
 //# sourceMappingURL=startup-logger.d.ts.map

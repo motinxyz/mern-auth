@@ -4,7 +4,7 @@ import securityPlugin from "eslint-plugin-security";
 import prettierConfig from "eslint-config-prettier";
 import globals from "globals";
 
-export default tseslint.config(
+export default [
   // Base JS recommendations
   js.configs.recommended,
 
@@ -53,13 +53,17 @@ export default tseslint.config(
 
   // Disables for specific files
   {
+    ...tseslint.configs.disableTypeChecked,
     files: ["**/*.js"],
-    extends: [tseslint.configs.disableTypeChecked],
   },
+
   // Test files and vitest configs - disable strict type checking
   {
+    ...tseslint.configs.disableTypeChecked,
     files: ["**/*.test.ts", "**/vitest.config.ts"],
-    extends: [tseslint.configs.disableTypeChecked],
+  },
+  {
+    files: ["**/*.test.ts", "**/vitest.config.ts"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/strict-boolean-expressions": "off",
@@ -68,5 +72,5 @@ export default tseslint.config(
   },
 
   // Prettier must be last
-  prettierConfig
-);
+  prettierConfig,
+];

@@ -13,8 +13,9 @@ export const apiLimiter = rateLimit({
         sendCommand: (...args) => redisConnection.call(...args),
         prefix: "rl:api:",
     }),
-    message: (req, res) => {
-        const retryAfterMinutes = Math.ceil(res.getHeader("Retry-After") / 60);
+    message: (_req, res) => {
+        const retryAfter = res.getHeader("Retry-After");
+        const retryAfterMinutes = Math.ceil(Number(retryAfter) / 60);
         return t("rateLimit:apiTooManyRequests", { retryAfterMinutes });
     },
 });
@@ -29,12 +30,13 @@ export const authLimiter = rateLimit({
         sendCommand: (...args) => redisConnection.call(...args),
         prefix: "rl:auth:",
     }),
-    message: (req, res) => {
-        const retryAfterMinutes = Math.ceil(res.getHeader("Retry-After") / 60);
+    message: (_req, res) => {
+        const retryAfter = res.getHeader("Retry-After");
+        const retryAfterMinutes = Math.ceil(Number(retryAfter) / 60);
         return t("rateLimit:authTooManyAttempts", { retryAfterMinutes });
     },
     // `skip` is the recommended way to disable rate limiting.
-    skip: (req, res) => {
+    skip: () => {
         const isDev = config.isDevelopment;
         // if (isDev) logger.debug("Auth rate limit skipped for development.");
         return isDev;

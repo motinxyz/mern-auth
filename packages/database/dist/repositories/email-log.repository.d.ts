@@ -10,11 +10,11 @@ declare class EmailLogRepository extends BaseRepository<EmailLogDocument> {
     /**
      * Update email status
      */
-    updateStatus(id: string, status: string, additionalData?: Record<string, unknown>): Promise<import("mongoose").Document<unknown, {}, EmailLogDocument, {}, import("mongoose").DefaultSchemaOptions> & EmailLogDocument & Required<{
+    updateStatus(id: string, status: string, additionalData?: Record<string, unknown>): Promise<(import("mongoose").Document<unknown, {}, EmailLogDocument, {}, import("mongoose").DefaultSchemaOptions> & EmailLogDocument & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
-    }>;
+    }) | null>;
     /**
      * Find logs by user
      */
@@ -30,22 +30,22 @@ declare class EmailLogRepository extends BaseRepository<EmailLogDocument> {
     /**
      * Find by message ID
      */
-    findByMessageId(messageId: string): Promise<import("mongoose").Document<unknown, {}, EmailLogDocument, {}, import("mongoose").DefaultSchemaOptions> & EmailLogDocument & Required<{
+    findByMessageId(messageId: string): Promise<(import("mongoose").Document<unknown, {}, EmailLogDocument, {}, import("mongoose").DefaultSchemaOptions> & EmailLogDocument & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
-    }>;
+    }) | null>;
     /**
      * Record bounce
      */
     recordBounce(messageId: string, bounceData: {
         type: string;
         reason: string;
-    }): Promise<import("mongoose").Document<unknown, {}, EmailLogDocument, {}, import("mongoose").DefaultSchemaOptions> & EmailLogDocument & Required<{
+    }): Promise<(import("mongoose").Document<unknown, {}, EmailLogDocument, {}, import("mongoose").DefaultSchemaOptions> & EmailLogDocument & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
-    }>;
+    }) | null>;
     /**
      * Get recent failures
      */

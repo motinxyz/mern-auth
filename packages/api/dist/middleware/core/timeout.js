@@ -17,8 +17,8 @@ export const createTimeoutMiddleware = (duration = 30000) => {
         // Apply timeout
         timeout(duration),
         // Check if request timed out before proceeding
-        (req, res, next) => {
-            if (!req.timedout) {
+        (req, _res, next) => {
+            if (req.timedout !== true) {
                 next();
             }
         },
@@ -31,7 +31,7 @@ export const createTimeoutMiddleware = (duration = 30000) => {
  * Catches timed-out requests and sends appropriate error response.
  */
 export const timeoutErrorHandler = (req, res, next) => {
-    if (req.timedout) {
+    if (req.timedout === true) {
         timeoutLogger.warn({
             requestId: req.id,
             method: req.method,
@@ -40,12 +40,13 @@ export const timeoutErrorHandler = (req, res, next) => {
         }, "Request timed out");
         // Don't send response if headers already sent
         if (!res.headersSent) {
-            return res.status(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE).json({
+            res.status(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE).json({
                 success: false,
                 statusCode: HTTP_STATUS_CODES.SERVICE_UNAVAILABLE,
                 message: "Request timeout",
                 error: "The server took too long to respond. Please try again.",
             });
+            return;
         }
     }
     next();

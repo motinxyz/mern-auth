@@ -18,7 +18,7 @@ declare class AuditLogRepository extends BaseRepository<AuditLogDocument> {
      * Create audit log entry
      * @param {Object} logData - Audit log data
      */
-    create(logData: Partial<AuditLogDocument>): Promise<AuditLogDocument | null>;
+    create(logData: Partial<AuditLogDocument>): Promise<AuditLogDocument>;
     /**
      * Get audit logs for a user
      * @param {string} userId - User ID

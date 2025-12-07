@@ -8,7 +8,7 @@
  * - File rotation support for production
  * - Trace ID correlation
  */
-import pino from "pino";
+import pino, {} from "pino";
 import config from "../env.js";
 import { trace } from "@opentelemetry/api";
 // Force IPv4 preference for all network connections
@@ -17,7 +17,7 @@ import dns from "node:dns";
 try {
     dns.setDefaultResultOrder("ipv4first");
 }
-catch (error) {
+catch {
     // Ignore error if specific node version doesn't support this (though v18+ does)
 }
 /**
@@ -28,16 +28,16 @@ catch (error) {
  */
 export function getObservabilityLogger(options = {}) {
     const baseConfig = {
-        level: config.logLevel || "info",
+        level: config.logLevel ?? "info",
         formatters: {
-            level: (label) => ({ level: label }),
+            level: (label, _number) => ({ level: label }),
         },
         timestamp: pino.stdTimeFunctions.isoTime,
         // Mixin: Automatically inject trace context from OpenTelemetry
         mixin() {
             const span = trace.getActiveSpan();
             const spanContext = span?.spanContext();
-            if (spanContext) {
+            if (spanContext !== undefined) {
                 return {
                     traceId: spanContext.traceId,
                     spanId: spanContext.spanId,
@@ -51,7 +51,10 @@ export function getObservabilityLogger(options = {}) {
     // Development: Pretty printing for readability + File logging
     if (config.env === "development") {
         const devConfig = { ...baseConfig };
-        delete devConfig.formatters; // Transports don't support custom level formatters in the main config
+        // Transports don't support custom level formatters in the main config
+        if ("formatters" in devConfig) {
+            delete devConfig.formatters;
+        }
         return pino({
             ...devConfig,
             transport: {
@@ -78,8 +81,9 @@ export function getObservabilityLogger(options = {}) {
     }
     // Production: Ship to Loki directly
     // This replaces the experimental custom shipper service
-    if (config.observability.grafana.loki.url &&
-        config.observability.grafana.loki.user) {
+    const lokiUrl = config.observability.grafana.loki.url;
+    const lokiUser = config.observability.grafana.loki.user;
+    if (lokiUrl !== undefined && lokiUrl !== "" && lokiUser !== undefined && lokiUser !== "") {
         return pino({
             ...baseConfig,
             transport: {
@@ -87,13 +91,13 @@ export function getObservabilityLogger(options = {}) {
                 options: {
                     batching: true,
                     interval: 5, // Ship every 5 seconds
-                    host: config.observability.grafana.loki.url.replace(/\/$/, ""), // Ensure no trailing slash
+                    host: lokiUrl.replace(/\/$/, ""), // Ensure no trailing slash
                     basicAuth: {
-                        username: config.observability.grafana.loki.user,
+                        username: lokiUser,
                         password: config.observability.grafana.loki.apiKey,
                     },
                     labels: {
-                        app: config.observability.serviceName || "auth-api",
+                        app: config.observability.serviceName ?? "auth-api",
                         environment: config.env,
                     },
                 },
@@ -109,7 +113,7 @@ export function getObservabilityLogger(options = {}) {
  */
 export function getLoggerWithTrace(traceId, options = {}) {
     const logger = getObservabilityLogger(options);
-    if (traceId) {
+    if (traceId !== undefined && traceId !== "") {
         return logger.child({ traceId });
     }
     return logger;
