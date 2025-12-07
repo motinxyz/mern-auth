@@ -1,1 +1,0 @@
-{"version":3,"file":"TokenCreationError.d.ts","sourceRoot":"","sources":["../../../src/errors/operational/TokenCreationError.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,OAAO,EAAE,SAAS,EAAE,MAAM,sBAAsB,CAAC;AAGjD;;;;;;;GAOG;AACH,qBAAa,kBAAmB,SAAQ,SAAS;gBACnC,OAAO,SAAgC,EAAE,KAAK,CAAC,EAAE,KAAK;CAGnE;AAED,eAAe,kBAAkB,CAAC"}

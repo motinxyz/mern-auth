@@ -49,7 +49,7 @@ export interface IProviderService {
  */
 export interface IEmailService {
     initialize(): Promise<void>;
-    sendEmail(options: any): Promise<EmailSendResult>;
+    sendEmail(options: SendEmailOptions): Promise<EmailSendResult>;
     sendVerificationEmail(user: { id: string; email: string; name: string }, token: string, locale?: string, options?: { preferredProvider?: string }): Promise<EmailSendResult>;
     getCircuitBreakerHealth(): CircuitBreakerHealth;
 }

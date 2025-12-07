@@ -1,44 +1,50 @@
 /**
+ * IEmailProvider - Interface for email provider adapters
+ *
+ * Implementations: ResendProvider, MailerSendProvider
+ */
+
+/**
  * Email send options
  */
 export interface MailOptions {
-    to: string;
-    from: string;
-    subject: string;
-    html: string;
-    text?: string;
+    readonly to: string;
+    readonly from: string;
+    readonly subject: string;
+    readonly html: string;
+    readonly text?: string;
 }
 
 /**
  * Result from sending an email
  */
 export interface EmailSendResult {
-    messageId: string;
-    provider: string;
-    accepted?: string[];
-    response?: number;
+    readonly messageId: string;
+    readonly provider: string;
+    readonly accepted?: readonly string[];
+    readonly response?: number;
 }
 
 /**
  * Parsed bounce/complaint data from webhooks
  */
 export interface BounceData {
-    type?: "bounce" | "complaint";
-    bounceType?: "soft" | "hard";
-    email: string;
-    messageId: string;
-    reason?: string;
-    timestamp: Date;
-    originalEvent?: unknown;
+    readonly type?: "bounce" | "complaint";
+    readonly bounceType?: "soft" | "hard";
+    readonly email: string;
+    readonly messageId: string;
+    readonly reason?: string;
+    readonly timestamp: Date;
+    readonly originalEvent?: unknown;
 }
 
 /**
  * Health check result
  */
 export interface ProviderHealthResult {
-    healthy: boolean;
-    name: string;
-    error?: string;
+    readonly healthy: boolean;
+    readonly name: string;
+    readonly error?: string;
 }
 
 /**
@@ -60,7 +66,7 @@ export interface IEmailProvider {
      */
     verifyWebhookSignature(
         payload: string,
-        headers: Record<string, string | string[] | undefined>
+        headers: Readonly<Record<string, string | string[] | undefined>>
     ): boolean;
 
     /**

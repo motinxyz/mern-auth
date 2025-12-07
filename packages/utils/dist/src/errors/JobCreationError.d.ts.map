@@ -1,1 +1,0 @@
-{"version":3,"file":"JobCreationError.d.ts","sourceRoot":"","sources":["../../../src/errors/JobCreationError.ts"],"names":[],"mappings":"AAAA;;GAEG;AACH,MAAM,CAAC,OAAO,OAAO,gBAAiB,SAAQ,KAAK;IACjD,SAAgB,aAAa,EAAE,KAAK,GAAG,IAAI,CAAC;gBAEhC,OAAO,EAAE,MAAM,EAAE,aAAa,GAAE,KAAK,GAAG,IAAW;CAKhE"}

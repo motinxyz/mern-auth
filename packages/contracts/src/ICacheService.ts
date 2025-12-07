@@ -15,7 +15,7 @@ export interface ICacheService {
     set(
         key: string,
         value: string,
-        expiryMode?: string,
+        expiryMode?: "EX" | "PX",
         ttl?: number
     ): Promise<string>;
 

@@ -1,62 +1,67 @@
+/**
+ * @auth/contracts - Database Interfaces
+ *
+ * Entity and repository interfaces for database operations.
+ */
+
 import type { IRepository, FindOptions } from "./IRepository.js";
 
 /**
  * User document interface
  */
 export interface IUser {
-    _id: string;
-    id?: string;
-    name: string;
-    email: string;
-    password: string;
-    isVerified: boolean;
-    locale: string;
-    createdAt: Date;
-    updatedAt: Date;
-    emailValid?: boolean;
-    emailBounceCount?: number;
-    lastEmailBounce?: Date;
-    emailComplaintReceived?: boolean;
-    lastEmailComplaint?: Date;
+    readonly _id: string;
+    readonly name: string;
+    readonly email: string;
+    readonly password: string;
+    readonly isVerified: boolean;
+    readonly locale: string;
+    readonly createdAt: Date;
+    readonly updatedAt: Date;
+    readonly emailValid?: boolean;
+    readonly emailBounceCount?: number;
+    readonly lastEmailBounce?: Date;
+    readonly emailComplaintReceived?: boolean;
+    readonly lastEmailComplaint?: Date;
 }
 
 /**
  * Email log document interface
  */
 export interface IEmailLog {
-    _id: string;
-    messageId: string;
-    to: string;
-    from: string;
-    subject: string;
-    template?: string;
-    provider?: string;
-    status: "pending" | "sent" | "delivered" | "bounced" | "failed";
-    sentAt?: Date;
-    deliveredAt?: Date;
-    bouncedAt?: Date;
-    bounceType?: "soft" | "hard";
-    bounceReason?: string;
-    metadata?: Record<string, unknown>;
-    createdAt: Date;
-    updatedAt: Date;
+    readonly _id: string;
+    readonly messageId: string;
+    readonly to: string;
+    readonly from: string;
+    readonly subject: string;
+    readonly template?: string;
+    readonly provider?: string;
+    readonly status: "pending" | "sent" | "delivered" | "bounced" | "failed";
+    readonly sentAt?: Date;
+    readonly deliveredAt?: Date;
+    readonly bouncedAt?: Date;
+    readonly bounceType?: "soft" | "hard";
+    readonly bounceReason?: string;
+    readonly metadata?: Readonly<Record<string, unknown>>;
+    readonly createdAt: Date;
+    readonly updatedAt: Date;
 }
 
 /**
  * Audit log document interface
  */
 export interface IAuditLog {
-    _id: string;
-    userId?: string;
-    action: string;
-    resource: string;
-    resourceId?: string;
-    ipAddress?: string;
-    userAgent?: string;
-    metadata?: Record<string, unknown>;
-    success: boolean;
-    errorMessage?: string;
-    createdAt: Date;
+    readonly _id: string;
+    readonly userId?: string;
+    readonly action: string;
+    readonly resource: string;
+    readonly resourceId?: string;
+    readonly ipAddress?: string;
+    readonly userAgent?: string;
+    readonly metadata?: Readonly<Record<string, unknown>>;
+    readonly success: boolean;
+    readonly errorMessage?: string;
+    readonly createdAt: Date;
 }
 
 /**
@@ -92,19 +97,19 @@ export interface IAuditLogRepository extends IRepository<IAuditLog> {
  * Pagination result
  */
 export interface PaginationResult {
-    total: number;
-    page: number;
-    pages: number;
-    limit: number;
+    readonly total: number;
+    readonly page: number;
+    readonly pages: number;
+    readonly limit: number;
 }
 
 /**
  * Database service interface
  */
 export interface IDatabaseService {
-    userRepository: IUserRepository;
-    emailLogRepository: IEmailLogRepository;
-    auditLogRepository: IAuditLogRepository;
+    readonly userRepository: IUserRepository;
+    readonly emailLogRepository: IEmailLogRepository;
+    readonly auditLogRepository: IAuditLogRepository;
 
     ping(): Promise<boolean>;
     getConnectionState(): { readyState: number };
