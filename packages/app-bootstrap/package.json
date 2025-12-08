@@ -26,6 +26,6 @@
     "@auth/utils": "workspace:*"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0"
+    "@types/express": "^5.0.6"
   }
 }
