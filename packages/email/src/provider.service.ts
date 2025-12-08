@@ -125,11 +125,30 @@ class ProviderService implements IProviderService {
             EMAIL_MESSAGES.PROVIDER_ATTEMPT.replace("{provider}", provider.name)
           );
 
-          const result = await provider.send(mailOptions);
+          // Individual span for each provider attempt
+          const result = await withSpan(
+            `email.provider.${provider.name}`,
+            async () => {
+              addSpanAttributes({
+                "email.provider.name": provider.name,
+                "email.provider.attempt": true,
+              });
+
+              const sendResult = await provider.send(mailOptions);
+
+              addSpanAttributes({
+                "email.message_id": sendResult.messageId ?? "unknown",
+                "email.provider.success": true,
+              });
+
+              return sendResult;
+            }
+          );
 
           addSpanAttributes({
             "email.provider": provider.name,
             "email.message_id": result.messageId ?? "unknown",
+            "email.success": true,
           });
 
           this.logger.info(
@@ -141,6 +160,12 @@ class ProviderService implements IProviderService {
         } catch (error) {
           const err = error as Error;
           errors.push({ provider: provider.name, error: err });
+
+          addSpanAttributes({
+            [`email.provider.${provider.name}.failed`]: true,
+            [`email.provider.${provider.name}.error`]: err.message,
+          });
+
           this.logger.warn(
             { provider: provider.name, error: err.message },
             EMAIL_MESSAGES.PROVIDER_FAILOVER.replace("{provider}", provider.name)

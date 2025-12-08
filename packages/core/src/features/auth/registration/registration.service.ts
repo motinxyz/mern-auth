@@ -256,7 +256,7 @@ export class RegistrationService {
             try {
               const traceContext = getTraceContext(); // Get current trace context
 
-              await this.emailProducer.addJob(
+              const job = await this.emailProducer.addJob(
                 EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL,
                 {
                   user: {
@@ -272,6 +272,12 @@ export class RegistrationService {
                   jobId: `verify-email-${newUser._id}`,
                 }
               );
+
+              // Add job ID to span for queue correlation
+              addSpanAttributes({
+                "queue.job_id": job.id ?? `verify-email-${newUser._id}`,
+                "queue.job_type": EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL,
+              });
             } catch (emailJobError) {
               this.logger.error(
                 { emailJobError, userId: newUser._id },

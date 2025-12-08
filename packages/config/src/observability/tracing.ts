@@ -297,6 +297,15 @@ export function initializeTracing() {
               span.setAttribute("redis.command", cmdName);
             },
           },
+          // ioredis instrumentation - used by @auth/config redisConnection
+          "@opentelemetry/instrumentation-ioredis": {
+            enabled: true,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            responseHook: (span: any, cmdName: any, _cmdArgs: any, _response: any) => {
+              span.updateName(`Redis ${cmdName}`);
+              span.setAttribute("redis.command", cmdName);
+            },
+          },
         }),
       ],
     });
