@@ -113,6 +113,11 @@ export function getObservabilityLogger(options: Partial<LoggerOptions> = {}): Lo
             app: config.observability.serviceName ?? "auth-api",
             environment: config.env,
           },
+          // Critical for Grafana Cloud compatibility:
+          replaceTimestamp: true, // Use Loki's expected timestamp format
+          silenceErrors: false, // Log shipping errors to console
+          // Don't promote log properties to labels (causes parsing issues)
+          propsToLabels: [],
         },
       },
     });
