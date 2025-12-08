@@ -16,7 +16,7 @@ router.use(`/${API_VERSION}/auth`, authLimiter, authRoutes);
 router.use("/health", healthRoutes);
 
 // Test routes - only available in non-production environments
-if (config.isTest || config.env === "development") {
+if (config.isTest || config.isDevelopment) {
     router.use("/test-email", testEmailRoutes);
 }
 

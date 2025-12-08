@@ -59,7 +59,7 @@ export function getObservabilityLogger(options: Partial<LoggerOptions> = {}): Lo
   };
 
   // Development: Pretty printing for readability + File logging
-  if (config.env === "development") {
+  if (config.isDevelopment) {
     const devConfig: LoggerOptions = { ...baseConfig };
     // Transports don't support custom level formatters in the main config
     if ("formatters" in devConfig) {

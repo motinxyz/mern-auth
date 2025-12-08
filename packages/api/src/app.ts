@@ -31,6 +31,12 @@ import { webhookRoutes } from "./features/webhooks/index.js";
 // creates express router
 const app = express();
 
+// Trust first proxy (Render, Railway, etc.) - MUST be set before rate limiting
+// See: https://expressjs.com/en/guide/behind-proxies.html
+if (config.isProduction) {
+  app.set("trust proxy", 1);
+}
+
 // Apply request timeout (30 seconds) - MUST be early in middleware chain
 app.use(...createTimeoutMiddleware(30000));
 

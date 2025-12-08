@@ -76,7 +76,7 @@ workerService = await startWorker({
 });
 
 // Log health and metrics periodically (only in production)
-if (config.env === "production" && workerService !== undefined) {
+if (config.isProduction && workerService !== undefined) {
   const service = workerService;
   // Log worker health every 5 minutes
   setInterval(
