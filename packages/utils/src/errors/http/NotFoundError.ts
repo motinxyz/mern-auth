@@ -17,7 +17,7 @@ import { ERROR_CODES } from "../../types/index.js";
  * ```
  */
 export class NotFoundError extends HttpError {
-  constructor(message = "system:errors.notFound") {
+  constructor(message = "system:process.errors.notFound") {
     super(HTTP_STATUS_CODES.NOT_FOUND, message, ERROR_CODES.NOT_FOUND);
   }
 }

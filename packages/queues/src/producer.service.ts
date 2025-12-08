@@ -1,16 +1,29 @@
+import type { JobsOptions } from "bullmq";
 import { ConfigurationError, withSpan, addSpanAttributes } from "@auth/utils";
-import type { ILogger } from "@auth/contracts";
+import type { ILogger, QueueJob, JobOptions, QueueHealth } from "@auth/contracts";
+import type QueueProducerService from "./queue-producer.service.js";
 import { QUEUE_MESSAGES, QUEUE_ERRORS } from "./constants/queue.messages.js";
 
 /**
+ * Producer Service Options
+ */
+export interface ProducerServiceOptions {
+  readonly queueService: QueueProducerService;
+  readonly logger: ILogger;
+}
+
+/**
  * Producer Service
- * Generic job producer with DI
+ *
+ * Generic job producer with DI.
+ * Wraps QueueProducerService with convenience methods.
+ * Implements IQueueProducer contract.
  */
 class ProducerService {
-  public queueService: any;
-  public logger: ILogger;
+  private readonly queueService: QueueProducerService;
+  private readonly logger: ILogger;
 
-  constructor(options: any = {}) {
+  constructor(options: ProducerServiceOptions) {
     if (!options.queueService) {
       throw new ConfigurationError(QUEUE_ERRORS.PRODUCER_MISSING_QUEUE);
     }
@@ -23,32 +36,57 @@ class ProducerService {
   }
 
   /**
-   * Add a job to the queue
-   * @param {string} jobType - The job type
-   * @param {object} data - The job data
-   * @param {object} customOptions - Optional BullMQ job options
+   * Convert contract JobOptions to BullMQ JobsOptions
+   * Uses conditional spread to satisfy exactOptionalPropertyTypes
    */
-  async addJob(jobType, data, customOptions = {}) {
+  private toBullMqOptions(options: JobOptions): JobsOptions {
+    return {
+      ...(options.jobId !== undefined && { jobId: options.jobId }),
+      ...(options.delay !== undefined && { delay: options.delay }),
+      ...(options.attempts !== undefined && { attempts: options.attempts }),
+      ...(options.backoff !== undefined && { backoff: options.backoff }),
+      ...(options.priority !== undefined && { priority: options.priority }),
+      ...(options.removeOnComplete !== undefined && { removeOnComplete: options.removeOnComplete }),
+      ...(options.removeOnFail !== undefined && { removeOnFail: options.removeOnFail }),
+    };
+  }
+
+  /**
+   * Add a job to the queue
+   * @param jobType - The job type
+   * @param data - The job data
+   * @param customOptions - Optional job options
+   */
+  async addJob(jobType: string, data: unknown, customOptions: JobOptions = {}): Promise<QueueJob> {
     return withSpan("ProducerService.addJob", async () => {
       addSpanAttributes({ "job.type": jobType });
 
-      this.logger.info({ jobType, data }, QUEUE_MESSAGES.ADDING_JOB);
+      this.logger.info({ jobType }, QUEUE_MESSAGES.ADDING_JOB);
 
       try {
+        const bullMqOptions = this.toBullMqOptions(customOptions);
+
         const job = await this.queueService.addJob(
           jobType,
           { type: jobType, data },
-          customOptions
+          bullMqOptions
         );
 
-        addSpanAttributes({ "job.id": job.id });
+        if (job.id) {
+          addSpanAttributes({ "job.id": job.id });
+        }
         this.logger.debug({ jobId: job.id, jobType }, QUEUE_MESSAGES.JOB_ADDED);
-        return job;
+
+        // Map BullMQ Job to contract QueueJob using conditional spread for optional id
+        const result: QueueJob = {
+          ...(job.id !== undefined && { id: job.id }),
+          name: job.name,
+          data: job.data,
+          opts: customOptions,
+        };
+        return result;
       } catch (error) {
-        this.logger.error(
-          { err: error, jobType, data },
-          QUEUE_ERRORS.JOB_CREATION_FAILED
-        );
+        this.logger.error({ err: error, jobType }, QUEUE_ERRORS.JOB_CREATION_FAILED);
         throw error;
       }
     });
@@ -56,17 +94,17 @@ class ProducerService {
 
   /**
    * Add a job with deduplication (using jobId)
-   * @param {string} jobType - The job type
-   * @param {object} data - The job data
-   * @param {string} deduplicationKey - Unique key for deduplication
-   * @param {object} customOptions - Optional BullMQ job options
+   * @param jobType - The job type
+   * @param data - The job data
+   * @param deduplicationKey - Unique key for deduplication
+   * @param customOptions - Optional job options
    */
   async addJobWithDeduplication(
-    jobType,
-    data,
-    deduplicationKey,
-    customOptions = {}
-  ) {
+    jobType: string,
+    data: unknown,
+    deduplicationKey: string,
+    customOptions: JobOptions = {}
+  ): Promise<QueueJob> {
     return this.addJob(jobType, data, {
       ...customOptions,
       jobId: deduplicationKey,
@@ -75,12 +113,17 @@ class ProducerService {
 
   /**
    * Add a delayed job
-   * @param {string} jobType - The job type
-   * @param {object} data - The job data
-   * @param {number} delayMs - Delay in milliseconds
-   * @param {object} customOptions - Optional BullMQ job options
+   * @param jobType - The job type
+   * @param data - The job data
+   * @param delayMs - Delay in milliseconds
+   * @param customOptions - Optional job options
    */
-  async addDelayedJob(jobType, data, delayMs, customOptions = {}) {
+  async addDelayedJob(
+    jobType: string,
+    data: unknown,
+    delayMs: number,
+    customOptions: JobOptions = {}
+  ): Promise<QueueJob> {
     return this.addJob(jobType, data, {
       ...customOptions,
       delay: delayMs,
@@ -89,16 +132,38 @@ class ProducerService {
 
   /**
    * Add a job with priority
-   * @param {string} jobType - The job type
-   * @param {object} data - The job data
-   * @param {number} priority - Priority (lower number = higher priority)
-   * @param {object} customOptions - Optional BullMQ job options
+   * @param jobType - The job type
+   * @param data - The job data
+   * @param priority - Priority (lower number = higher priority)
+   * @param customOptions - Optional job options
    */
-  async addPriorityJob(jobType, data, priority, customOptions = {}) {
+  async addPriorityJob(
+    jobType: string,
+    data: unknown,
+    priority: number,
+    customOptions: JobOptions = {}
+  ): Promise<QueueJob> {
     return this.addJob(jobType, data, {
       ...customOptions,
       priority,
     });
+  }
+
+  /**
+   * Get queue health status
+   */
+  async getHealth(): Promise<QueueHealth> {
+    const health = await this.queueService.getHealth();
+
+    // Map internal health result to contract, converting null to undefined
+    return {
+      healthy: health.healthy,
+      ...(health.circuitBreaker && {
+        circuitBreaker: {
+          state: health.circuitBreaker.state,
+        },
+      }),
+    };
   }
 }
 

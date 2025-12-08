@@ -1,4 +1,7 @@
-import { Queue } from "bullmq";
+import { Queue, Job } from "bullmq";
+import type { JobsOptions } from "bullmq";
+import type { Redis } from "ioredis";
+import type { ZodSchema, ZodError } from "zod";
 import {
   ConfigurationError,
   QueueError,
@@ -12,79 +15,110 @@ import type { ILogger } from "@auth/contracts";
 import { metrics } from "@opentelemetry/api";
 import { QUEUE_MESSAGES, QUEUE_ERRORS } from "./constants/queue.messages.js";
 
+/**
+ * Local Circuit Breaker Interface
+ * Decouples from opossum dependency to avoid type issues without adding heavier dependencies
+ */
+interface ICircuitBreaker<TResponse = unknown> {
+  fire(...args: unknown[]): Promise<TResponse>;
+  on(event: string, listener: (...args: unknown[]) => void): this;
+  opened: boolean;
+}
+
 // OTel metrics for queue producer
 const meter = metrics.getMeter("auth-queues");
-const producerJobsAdded = meter.createCounter(
-  "queue_producer_jobs_added_total",
-  {
-    description: "Total jobs added to queue",
-  }
-);
-const producerLatency = meter.createHistogram(
-  "queue_producer_latency_seconds",
-  {
-    description: "Time to add job to queue in seconds",
-    unit: "s",
-  }
-);
+const producerJobsAdded = meter.createCounter("queue_producer_jobs_added_total", {
+  description: "Total jobs added to queue",
+});
+const producerLatency = meter.createHistogram("queue_producer_latency_seconds", {
+  description: "Time to add job to queue in seconds",
+  unit: "s",
+});
+
+/**
+ * Queue Producer Service Options
+ */
+export interface QueueProducerOptions {
+  readonly queueName: string;
+  readonly connection: Redis;
+  readonly logger: ILogger;
+  readonly defaultJobOptions?: JobsOptions;
+  readonly jobSchema?: ZodSchema;
+  readonly enableCircuitBreaker?: boolean;
+  readonly circuitBreakerTimeout?: number;
+}
+
+/**
+ * Queue health result
+ */
+export interface QueueHealthResult {
+  readonly healthy: boolean;
+  readonly reason?: string;
+  readonly queueName?: string;
+  readonly redis?: {
+    readonly connected: boolean;
+    readonly latencyMs: number;
+  };
+  readonly metrics?: QueueMetrics | null;
+  readonly circuitBreaker?: {
+    readonly state: "open" | "closed";
+  } | null;
+}
+
+/**
+ * Queue metrics
+ */
+interface QueueMetrics {
+  readonly queueName: string;
+  readonly waiting: number;
+  readonly active: number;
+  readonly completed: number;
+  readonly failed: number;
+  readonly delayed: number;
+  readonly total: number;
+}
 
 /**
  * Queue Producer Service
- * Generic queue management for producing jobs with DI
  *
- * @implements {import('@auth/contracts').IQueueProducer}
+ * Generic queue management for producing jobs with DI.
+ * Uses BullMQ with circuit breaker pattern and OTEL observability.
  */
 class QueueProducerService {
-  public queueName: string;
-  public connection: any;
-  public logger: ILogger;
-  public defaultJobOptions: any;
-  public jobSchema: any;
-  public enableCircuitBreaker: boolean;
-  public circuitBreakerTimeout: number;
-  public queue: Queue | null;
-  public circuitBreaker: any;
+  public readonly queueName: string;
+  private readonly connection: Redis;
+  private readonly logger: ILogger;
+  private readonly defaultJobOptions: JobsOptions;
+  private readonly jobSchema: ZodSchema | null;
+  private readonly enableCircuitBreaker: boolean;
+  private readonly circuitBreakerTimeout: number;
+  private queue: Queue | null = null;
+  private circuitBreaker: ICircuitBreaker<Job> | null = null;
 
-  constructor(options: any = {}) {
+  constructor(options: QueueProducerOptions) {
     if (!options.queueName) {
-      throw new ConfigurationError(
-        QUEUE_ERRORS.MISSING_CONFIG.replace("{config}", "queueName")
-      );
+      throw new ConfigurationError(QUEUE_ERRORS.MISSING_CONFIG.replace("{config}", "queueName"));
     }
     if (!options.connection) {
-      throw new ConfigurationError(
-        QUEUE_ERRORS.MISSING_CONFIG.replace("{config}", "connection")
-      );
+      throw new ConfigurationError(QUEUE_ERRORS.MISSING_CONFIG.replace("{config}", "connection"));
     }
     if (!options.logger) {
-      throw new ConfigurationError(
-        QUEUE_ERRORS.MISSING_CONFIG.replace("{config}", "logger")
-      );
+      throw new ConfigurationError(QUEUE_ERRORS.MISSING_CONFIG.replace("{config}", "logger"));
     }
 
     this.queueName = options.queueName;
     this.connection = options.connection;
     this.logger = options.logger.child({ queue: this.queueName });
-    this.defaultJobOptions =
-      options.defaultJobOptions || this.getDefaultJobOptions();
-
-    // Optional: Zod schema for job data validation
-    this.jobSchema = options.jobSchema || null;
-
-    // Optional: Enable circuit breaker (default: true)
+    this.defaultJobOptions = options.defaultJobOptions ?? this.getDefaultJobOptions();
+    this.jobSchema = options.jobSchema ?? null;
     this.enableCircuitBreaker = options.enableCircuitBreaker !== false;
-
-    // Circuit breaker timeout (externalized config)
-    this.circuitBreakerTimeout = options.circuitBreakerTimeout || 3000;
-
-    this.queue = null;
-    this.circuitBreaker = null;
+    this.circuitBreakerTimeout = options.circuitBreakerTimeout ?? 3000;
   }
 
   /**
    * Get default job options
    */
-  getDefaultJobOptions() {
+  private getDefaultJobOptions(): JobsOptions {
     return {
       attempts: 3,
       backoff: {
@@ -103,74 +137,56 @@ class QueueProducerService {
   /**
    * Initialize the queue
    */
-  async initialize() {
+  async initialize(): Promise<void> {
     return withSpan("QueueProducerService.initialize", async () => {
       addSpanAttributes({ "queue.name": this.queueName });
 
       this.queue = new Queue(this.queueName, {
         connection: this.connection,
         defaultJobOptions: this.defaultJobOptions,
-        // enableReadyEvent: false, // Not supported in recent BullMQ versions match
-        // enableKeyEvents: false,
       });
 
       this.setupEventHandlers();
 
-      // Setup circuit breaker for addJob operation
       if (this.enableCircuitBreaker) {
         this.circuitBreaker = createCircuitBreaker(
-          async (jobName: string, data: any, jobOptions: any) => {
-            return await this.queue!.add(jobName, data, jobOptions);
+          async (jobName: string, data: unknown, jobOptions: JobsOptions): Promise<Job> => {
+            return this.queue!.add(jobName, data, jobOptions);
           },
           {
             name: `${this.queueName}-CircuitBreaker`,
             timeout: this.circuitBreakerTimeout,
           }
-        );
+        ) as unknown as ICircuitBreaker<Job>;
 
-        // Log circuit breaker events
         this.circuitBreaker.on("open", () => {
-          this.logger.error(
-            { queueName: this.queueName },
-            QUEUE_MESSAGES.CIRCUIT_BREAKER_OPEN
-          );
+          this.logger.error({ queueName: this.queueName }, QUEUE_MESSAGES.CIRCUIT_BREAKER_OPEN);
         });
 
         this.circuitBreaker.on("close", () => {
-          this.logger.info(
-            { queueName: this.queueName },
-            QUEUE_MESSAGES.CIRCUIT_BREAKER_CLOSED
-          );
+          this.logger.info({ queueName: this.queueName }, QUEUE_MESSAGES.CIRCUIT_BREAKER_CLOSED);
         });
       }
 
-      this.logger.info(
-        { module: "queue", queueName: this.queueName },
-        QUEUE_MESSAGES.QUEUE_INITIALIZED
-      );
+      this.logger.info({ module: "queue", queueName: this.queueName }, QUEUE_MESSAGES.QUEUE_INITIALIZED);
     });
   }
 
   /**
    * Setup event handlers
    */
-  setupEventHandlers() {
-    this.queue.on("error", (err) => {
-      this.logger.error(
-        { err, queueName: this.queueName },
-        QUEUE_ERRORS.QUEUE_ERROR
-      );
-    });
+  private setupEventHandlers(): void {
+    if (!this.queue) return;
 
-    this.queue.on("waiting", (jobId) => {
-      this.logger.debug({ jobId }, QUEUE_MESSAGES.JOB_WAITING);
+    this.queue.on("error", (err: Error) => {
+      this.logger.error({ err, queueName: this.queueName }, QUEUE_ERRORS.QUEUE_ERROR);
     });
   }
 
   /**
    * Add a job to the queue
    */
-  async addJob(jobName: string, data: any, customOptions: any = {}) {
+  async addJob<T>(jobName: string, data: T, customOptions: JobsOptions = {}): Promise<Job<T>> {
     return withSpan("QueueProducerService.addJob", async () => {
       addSpanAttributes({
         "queue.name": this.queueName,
@@ -183,32 +199,26 @@ class QueueProducerService {
 
       // Validate job data if schema provided
       if (this.jobSchema) {
-        try {
-          this.jobSchema.parse(data);
-        } catch (error) {
-          this.logger.error(
-            { err: error, jobData: data },
-            QUEUE_ERRORS.JOB_DATA_VALIDATION_FAILED
-          );
-          throw new ValidationError(error.errors, "Invalid job data");
+        const result = this.jobSchema.safeParse(data);
+        if (!result.success) {
+          const zodError = result.error as ZodError;
+          this.logger.error({ err: zodError, jobData: data }, QUEUE_ERRORS.JOB_DATA_VALIDATION_FAILED);
+          throw new ValidationError(zodError.issues, "Invalid job data");
         }
       }
 
-      this.logger.info(
-        { job: { name: jobName, data } },
-        QUEUE_MESSAGES.ADDING_JOB
-      );
+      this.logger.info({ job: { name: jobName } }, QUEUE_MESSAGES.ADDING_JOB);
 
       const startTime = Date.now();
 
       try {
-        const jobOptions = {
+        const jobOptions: JobsOptions = {
           ...this.defaultJobOptions,
           ...customOptions,
         };
 
         // Use circuit breaker if enabled
-        const job = this.enableCircuitBreaker
+        const job: Job = this.enableCircuitBreaker && this.circuitBreaker
           ? await this.circuitBreaker.fire(jobName, data, jobOptions)
           : await this.queue.add(jobName, data, jobOptions);
 
@@ -221,39 +231,25 @@ class QueueProducerService {
           status: "success",
         });
 
-        addSpanAttributes({ "job.id": job.id });
-
-        if (customOptions.jobId) {
-          this.logger.debug(
-            { jobId: customOptions.jobId, jobName },
-            QUEUE_MESSAGES.DEDUPLICATION_JOB
-          );
+        if (job.id) {
+          addSpanAttributes({ "job.id": job.id });
         }
 
-        return job;
+        return job as Job<T>;
       } catch (error) {
-        // Record failure metric
         producerJobsAdded.add(1, {
           queue: this.queueName,
           job_type: jobName,
           status: "failed",
         });
 
-        // Check if circuit breaker is open
-        if (error.code === "EOPENBREAKER") {
-          this.logger.error(
-            { queueName: this.queueName },
-            QUEUE_MESSAGES.CIRCUIT_BREAKER_OPEN
-          );
-          throw new CircuitBreakerError(
-            QUEUE_MESSAGES.CIRCUIT_BREAKER_UNAVAILABLE
-          );
+        const err = error as Error & { code?: string };
+        if (err.code === "EOPENBREAKER") {
+          this.logger.error({ queueName: this.queueName }, QUEUE_MESSAGES.CIRCUIT_BREAKER_OPEN);
+          throw new CircuitBreakerError(QUEUE_MESSAGES.CIRCUIT_BREAKER_UNAVAILABLE);
         }
 
-        this.logger.error(
-          { err: error, jobData: data },
-          QUEUE_ERRORS.JOB_CREATION_FAILED
-        );
+        this.logger.error({ err: error }, QUEUE_ERRORS.JOB_CREATION_FAILED);
         throw error;
       }
     });
@@ -262,7 +258,7 @@ class QueueProducerService {
   /**
    * Get queue metrics
    */
-  async getMetrics() {
+  async getMetrics(): Promise<QueueMetrics | null> {
     if (!this.queue) {
       return null;
     }
@@ -289,16 +285,12 @@ class QueueProducerService {
   /**
    * Get queue health with Redis latency
    */
-  async getHealth() {
+  async getHealth(): Promise<QueueHealthResult> {
     if (!this.queue) {
-      return {
-        healthy: false,
-        reason: "Queue not initialized",
-      };
+      return { healthy: false, reason: "Queue not initialized" };
     }
 
     try {
-      // Measure Redis latency
       const pingStart = Date.now();
       const client = await this.queue.client;
       await client.ping();
@@ -314,24 +306,20 @@ class QueueProducerService {
           latencyMs: redisLatencyMs,
         },
         metrics: queueMetrics,
-        circuitBreaker: this.enableCircuitBreaker
-          ? {
-            state: this.circuitBreaker.opened ? "open" : "closed",
-          }
+        circuitBreaker: this.enableCircuitBreaker && this.circuitBreaker
+          ? { state: this.circuitBreaker.opened ? "open" : "closed" }
           : null,
       };
     } catch (error) {
-      return {
-        healthy: false,
-        reason: error.message,
-      };
+      const err = error as Error;
+      return { healthy: false, reason: err.message };
     }
   }
 
   /**
    * Pause the queue
    */
-  async pause() {
+  async pause(): Promise<void> {
     if (this.queue) {
       await this.queue.pause();
       this.logger.info({ queueName: this.queueName }, QUEUE_MESSAGES.QUEUE_PAUSED);
@@ -341,7 +329,7 @@ class QueueProducerService {
   /**
    * Resume the queue
    */
-  async resume() {
+  async resume(): Promise<void> {
     if (this.queue) {
       await this.queue.resume();
       this.logger.info({ queueName: this.queueName }, QUEUE_MESSAGES.QUEUE_RESUMED);
@@ -351,7 +339,7 @@ class QueueProducerService {
   /**
    * Close the queue
    */
-  async close() {
+  async close(): Promise<void> {
     if (this.queue) {
       await this.queue.close();
       this.logger.info({ queueName: this.queueName }, QUEUE_MESSAGES.QUEUE_CLOSED);
@@ -361,7 +349,7 @@ class QueueProducerService {
   /**
    * Get the underlying queue instance
    */
-  getQueue() {
+  getQueue(): Queue | null {
     return this.queue;
   }
 }

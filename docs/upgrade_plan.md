@@ -5,8 +5,6 @@ This document outlines a strategic roadmap to elevate the current authentication
 ## 1. Architecture & Infrastructure
 
 ### Containerization & Orchestration
-- [ ] **Dockerize Applications**: Create optimized `Dockerfile`s for the API, Worker, and other services. Use multi-stage builds to minimize image size.
-- [ ] **Docker Compose for Dev**: Ensure `docker-compose.yml` is robust for local development, spinning up MongoDB, Redis, and all services with a single command.
 - [ ] **Kubernetes Readiness**: Refactor configuration (`@auth/config`) to support injection via K8s ConfigMaps and Secrets.
 
 ### Scalability
@@ -19,13 +17,6 @@ This document outlines a strategic roadmap to elevate the current authentication
 
 ## 2. Code Quality & Type Safety
 
-### TypeScript Migration (High Priority)
-- [ ] **Adopt TypeScript**: Migrating to TypeScript is the most impactful step for robustness.
-    - **Phase 1**: Setup `tsconfig.json`, install `@types/*`, and configure linting.
-    - **Phase 2**: Migrate shared packages (`@auth/utils`, `@auth/config`).
-    - **Phase 3**: Migrate core logic (`@auth/core`).
-    - **Phase 4**: Migrate API and Worker services.
-    - **Phase 5**: Enforce strict mode (`noImplicitAny`, `strictNullChecks`).
 
 ### Linting & Formatting
 - [ ] **Strict Linting**: Adopt a strict ESLint configuration (e.g., Airbnb or Google style).
@@ -34,7 +25,6 @@ This document outlines a strategic roadmap to elevate the current authentication
 ## 3. Testing & Observability
 
 ### Testing Strategy
-- [ ] **Unit Tests**: Increase coverage for utility functions and isolated business logic using `vitest`.
 - [ ] **Integration Tests**: Test API endpoints with a real (containerized) database to ensure correct data flow.
 - [ ] **End-to-End (E2E) Tests**: Implement critical user flows (Register -> Verify -> Login) using Playwright or Supertest.
 

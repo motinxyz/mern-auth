@@ -1,37 +1,42 @@
 /**
+ * Backoff options for job retries
+ */
+export interface BackoffOptions {
+    readonly type: "fixed" | "exponential";
+    readonly delay: number;
+}
+
+/**
  * Job options for queue operations
  */
 export interface JobOptions {
-    jobId?: string;
-    delay?: number;
-    attempts?: number;
-    backoff?: {
-        type: "fixed" | "exponential";
-        delay: number;
-    };
-    priority?: number;
-    removeOnComplete?: boolean | number;
-    removeOnFail?: boolean | number;
+    readonly jobId?: string;
+    readonly delay?: number;
+    readonly attempts?: number;
+    readonly backoff?: number | BackoffOptions;
+    readonly priority?: number;
+    readonly removeOnComplete?: boolean | number | { count: number };
+    readonly removeOnFail?: boolean | number | { count: number };
 }
 
 /**
  * Job result from queue
  */
 export interface QueueJob {
-    id: string;
-    name: string;
-    data: unknown;
-    opts: JobOptions;
+    readonly id?: string;
+    readonly name: string;
+    readonly data: unknown;
+    readonly opts: JobOptions;
 }
 
 /**
  * Queue health status
  */
 export interface QueueHealth {
-    healthy: boolean;
-    circuitBreaker?: {
-        state: string;
-        failures?: number;
+    readonly healthy: boolean;
+    readonly circuitBreaker?: {
+        readonly state: string;
+        readonly failures?: number;
     };
 }
 

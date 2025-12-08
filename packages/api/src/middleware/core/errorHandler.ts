@@ -63,8 +63,6 @@ function convertExternalError(err: Error): HttpError | null {
   return null; // Return null if the error is not a known external type.
 }
 
-// Fields that should not have their 'oldValue' exposed in error responses for security reasons.
-const SENSITIVE_FIELDS = ["password", "confirmPassword"]; // Define sensitive fields once
 
 /**
  * Express error handling middleware.
@@ -160,18 +158,6 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
         };
       })
       : [], // Return empty array if errors is not defined or not an array
-    data: (() => {
-      /* eslint-disable @typescript-eslint/strict-boolean-expressions */
-      if (!req.body) return null;
-      const safeData: Record<string, unknown> = {};
-      Object.keys(req.body).forEach((key) => {
-        if (!SENSITIVE_FIELDS.includes(key)) {
-          // eslint-disable-next-line security/detect-object-injection
-          safeData[key] = req.body[key];
-        }
-      });
-      return Object.keys(safeData).length > 0 ? safeData : null;
-    })(),
   };
 
   if (!res.headersSent) {

@@ -42,7 +42,7 @@ export const configureI18next = async () => {
         },
         fallbackLng: defaultLocale,
         preload: ["en"], // Preload english
-        ns: ["system", "auth", "validation", "errors"],
+        ns: ["system", "auth", "validation", "errors", "email"],
         defaultNS: defaultNamespace,
         detection: {
           order: ["querystring", "cookie", "header"],

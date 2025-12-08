@@ -16,25 +16,31 @@ const testEmailSchema = z.object({
   body: z.object({
     to: z.string().email("Invalid email address"),
     subject: z.string().min(1, "Subject is required").optional(),
-    text: z.string().optional(),
-    html: z.string().optional(),
   }),
 });
 
 /**
- * Test endpoint to send a simple plain text email
+ * Test endpoint to send a simple email using the test template
  * POST /test-email
+ *
+ * Uses the verification email template for testing purposes.
  */
 router.post("/test-email", validate(testEmailSchema), async (req, res) => {
   try {
-    const { to, subject, text: _text, html: _html } = req.body;
+    const { to, subject } = req.body as { to: string; subject?: string };
 
     testLogger.info({ to, subject }, "Sending test email");
 
     const emailService = getEmailService();
     const result = await emailService.sendEmail({
       to,
-      metadata: { isTest: true },
+      template: "verification",
+      data: {
+        name: "Test User",
+        verificationUrl: "https://example.com/verify/test-token",
+        expiresInHours: 24,
+        isTest: true,
+      },
     });
 
     testLogger.info(
@@ -48,9 +54,10 @@ router.post("/test-email", validate(testEmailSchema), async (req, res) => {
       emailLogId: result.emailLogId,
       message: "Test email sent successfully",
     });
-  } catch (error) {
-    testLogger.error({ error: (error as Error).message }, "Error sending test email");
-    res.status(500).json({ error: (error as Error).message });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    testLogger.error({ error: errorMessage }, "Error sending test email");
+    res.status(500).json({ error: errorMessage });
   }
 });
 

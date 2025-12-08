@@ -4,7 +4,7 @@ import {
   addSpanAttributes,
   hashSensitiveData,
 } from "@auth/utils";
-import type { ILogger, IJob, JobResult, JobData } from "@auth/contracts";
+import type { ILogger, IJob, JobResult, JobData, TraceContext } from "@auth/contracts";
 
 interface BaseConsumerOptions {
   logger: ILogger;
@@ -35,7 +35,7 @@ class BaseConsumer {
   /**
    * Create a child logger with job context
    */
-  protected createJobLogger(job: IJob, jobType: string): ILogger {
+  protected createJobLogger(job: IJob<JobData>, jobType: string): ILogger {
     return this.logger.child({
       module: this.name,
       jobId: job.id,
@@ -51,10 +51,21 @@ class BaseConsumer {
     spanName: string,
     processor: () => Promise<R>
   ): Promise<R> {
-    const jobData = job.data as { traceContext?: { traceId: string; spanId: string } };
+    const jobData = job.data as { traceContext?: TraceContext };
     const traceContext = jobData.traceContext;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const links = traceContext !== undefined ? [createSpanLink(traceContext as any)] : [];
+
+    // Create span links with proper type
+    const links: Array<{ context: TraceContext }> = [];
+    if (traceContext !== undefined && traceContext.traceId && traceContext.spanId) {
+      const link = createSpanLink({
+        traceId: traceContext.traceId,
+        spanId: traceContext.spanId,
+        traceFlags: traceContext.traceFlags,
+      });
+      if (link !== null) {
+        links.push(link);
+      }
+    }
 
     return withSpan(
       spanName,
@@ -69,8 +80,9 @@ class BaseConsumer {
         return processor();
       },
       {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        links: links as any[], tracerName: "auth-worker", component: "worker"
+        links,
+        tracerName: "auth-worker",
+        component: "worker",
       }
     );
   }

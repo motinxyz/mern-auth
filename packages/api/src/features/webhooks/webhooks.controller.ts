@@ -44,7 +44,10 @@ export class WebhooksController {
 
       const payload = req.body.toString();
 
-      if (!provider.verifyWebhookSignature(payload, req.headers)) {
+      // Cast headers to expected type (Express IncomingHttpHeaders -> WebhookHeaders)
+      const headers = req.headers as unknown as Readonly<Record<string, string | undefined>>;
+
+      if (!provider.verifyWebhookSignature(payload, headers)) {
         this.webhookLogger.error(`Invalid ${provider.name} signature`);
         return res.status(401).json({ error: "Invalid signature" });
       }
@@ -75,7 +78,13 @@ export class WebhooksController {
         userRepository,
         this.webhookLogger,
         t,
-        bounceData
+        {
+          email: bounceData.email,
+          messageId: bounceData.messageId,
+          bounceType: bounceData.bounceType ?? "soft",
+          bounceReason: bounceData.reason,
+          timestamp: bounceData.timestamp,
+        }
       );
 
       this.webhookLogger.info(
@@ -94,11 +103,8 @@ export class WebhooksController {
         const { getQueueServices: _getQueueServices } = await import("@auth/queues");
         // In a real implementation: reconstruct job and use emailProducer.
         // For now, allow the log to trigger alerts or manual recovery.
-        if (
-          result.emailLog !== undefined &&
-          result.emailLog !== null &&
-          result.emailLog.metadata !== undefined
-        ) {
+        const emailLog = result.emailLog as { metadata?: Record<string, unknown> } | undefined;
+        if (emailLog?.metadata !== undefined) {
           this.webhookLogger.warn("Auto-retry logic triggered.");
         }
       }

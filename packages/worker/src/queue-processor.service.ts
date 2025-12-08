@@ -1,4 +1,4 @@
-import { Worker, Queue, Job } from "bullmq";
+import { Worker, Queue, Job, type WorkerOptions, type ConnectionOptions } from "bullmq";
 import { WORKER_MESSAGES, WORKER_ERRORS } from "./constants/worker.messages.js";
 import { ConfigurationError } from "@auth/utils";
 import type {
@@ -20,11 +20,15 @@ import {
 
 /**
  * Queue processor options
+ * 
+ * BOUNDARY: This interface accepts `unknown` for connection because
+ * BullMQ's ConnectionOptions is a complex union type. The cast happens
+ * in WorkerService at the single boundary point.
  */
 interface QueueProcessorServiceOptions {
   queueName: string;
   connection: unknown;
-  processor: (job: IJob) => Promise<unknown>;
+  processor: (job: { id: string; name: string; data: unknown; attemptsMade: number; opts: Record<string, unknown> }) => Promise<unknown>;
   logger: ILogger;
   sentry?: ISentry;
   workerConfig?: WorkerConfig;
@@ -38,7 +42,7 @@ interface QueueProcessorServiceOptions {
 class QueueProcessorService implements IQueueProcessor {
   readonly queueName: string;
   private readonly connection: unknown;
-  private readonly processorFn: (job: IJob) => Promise<unknown>;
+  private readonly processorFn: (job: { id: string; name: string; data: unknown; attemptsMade: number; opts: Record<string, unknown> }) => Promise<unknown>;
   private readonly logger: ILogger;
   private readonly workerConfig: WorkerConfig;
   private readonly deadLetterQueueName: string | undefined;
@@ -180,17 +184,35 @@ class QueueProcessorService implements IQueueProcessor {
       }
     };
 
-    // Build worker configuration
-    const workerOptions: Record<string, unknown> = {
-      connection: this.connection,
-      concurrency: this.workerConfig.concurrency,
-      removeOnComplete: this.workerConfig.removeOnComplete,
-      removeOnFail: this.workerConfig.removeOnFail,
-      limiter: this.workerConfig.limiter,
-      enableReadyEvent: false,
-      enableKeyEvents: false,
-      lockDuration: this.workerConfig.lockDuration,
-      drainDelay: this.workerConfig.drainDelay,
+    // Build worker configuration with proper BullMQ types
+    // Use conditional spreads to satisfy exactOptionalPropertyTypes
+    // BOUNDARY CAST: This is the single controlled cast point where our
+    // IRedisConnection (passed as unknown) is cast to BullMQ's ConnectionOptions
+    const workerOptions: WorkerOptions = {
+      connection: this.connection as ConnectionOptions,
+      ...(this.workerConfig.concurrency !== undefined
+        ? { concurrency: this.workerConfig.concurrency }
+        : {}),
+      ...(this.workerConfig.removeOnComplete !== undefined
+        ? { removeOnComplete: this.workerConfig.removeOnComplete }
+        : {}),
+      ...(this.workerConfig.removeOnFail !== undefined
+        ? { removeOnFail: this.workerConfig.removeOnFail }
+        : {}),
+      ...(this.workerConfig.limiter !== undefined
+        ? { limiter: this.workerConfig.limiter }
+        : {}),
+      ...(this.workerConfig.lockDuration !== undefined
+        ? { lockDuration: this.workerConfig.lockDuration }
+        : {}),
+      ...(this.workerConfig.drainDelay !== undefined
+        ? { drainDelay: this.workerConfig.drainDelay }
+        : {}),
+      // Add stalledInterval only if not disabled
+      ...(this.workerConfig.disableStalledJobCheck !== true &&
+        this.workerConfig.stalledInterval !== undefined
+        ? { stalledInterval: this.workerConfig.stalledInterval }
+        : {}),
       // Retry configuration
       settings: {
         backoffStrategy: (attemptsMade: number): number => {
@@ -202,17 +224,11 @@ class QueueProcessorService implements IQueueProcessor {
       },
     };
 
-    // Only add stalledInterval if not disabled
-    if (this.workerConfig.disableStalledJobCheck !== true) {
-      workerOptions.stalledInterval = this.workerConfig.stalledInterval;
-    }
-
-    // Create worker with retry configuration
+    // Create worker with properly typed configuration
     this.worker = new Worker(
       this.queueName,
       wrappedProcessor,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      workerOptions as any
+      workerOptions
     );
 
     this.setupEventHandlers();
@@ -350,15 +366,15 @@ class QueueProcessorService implements IQueueProcessor {
    */
   async getHealth(): Promise<{
     healthy: boolean;
-    queueName?: string;
+    queueName: string;
     isRunning?: boolean;
     isPaused?: boolean;
     reason?: string;
-    metrics?: WorkerMetrics;
   }> {
     if (this.worker === null) {
       return {
         healthy: false,
+        queueName: this.queueName,
         reason: "Worker not initialized",
       };
     }
@@ -372,13 +388,13 @@ class QueueProcessorService implements IQueueProcessor {
         queueName: this.queueName,
         isRunning,
         isPaused,
-        metrics: this.getMetrics(),
       };
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         healthy: false,
-        reason: errorMessage,
+        queueName: this.queueName,
+        reason: `Health check failed: ${errorMessage}`,
       };
     }
   }

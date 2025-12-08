@@ -8,7 +8,7 @@ import type { VerificationDto } from "./verification.dto.js";
  * Single Responsibility: Handle email verification HTTP requests
  */
 export class VerificationController {
-  verificationService: VerificationService;
+  private readonly verificationService: VerificationService;
 
   constructor(verificationService: VerificationService) {
     this.verificationService = verificationService;

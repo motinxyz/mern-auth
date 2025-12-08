@@ -1,7 +1,8 @@
 /**
  * IRedisConnection - Interface for Redis connection
  * 
- * Compatible with IORedis API
+ * Compatible with IORedis API and ExtendedRedis from @auth/config.
+ * Designed to match ioredis method signatures for zero-cast compatibility.
  */
 export interface IRedisConnection {
     /**
@@ -16,8 +17,9 @@ export interface IRedisConnection {
 
     /**
      * Set a value with optional expiry
+     * Signature matches ioredis overloads
      */
-    set(key: string, value: string, expiryMode?: "EX" | "PX", time?: number): Promise<"OK">;
+    set(key: string, value: string | Buffer | number, ...args: unknown[]): Promise<"OK" | null>;
 
     /**
      * Delete one or more keys
@@ -40,9 +42,9 @@ export interface IRedisConnection {
     status: string;
 
     /**
-     * Disconnect
+     * Disconnect (synchronous in ioredis)
      */
-    disconnect(): Promise<void>;
+    disconnect(): void;
 
     /**
      * Quit gracefully
@@ -53,4 +55,14 @@ export interface IRedisConnection {
      * Subscribe to events
      */
     on(event: string, listener: (...args: unknown[]) => void): this;
+
+    /**
+     * Circuit breaker stats (from ExtendedRedis)
+     */
+    getCircuitBreakerStats?(): Record<string, unknown>;
+
+    /**
+     * Circuit breaker state (from ExtendedRedis)
+     */
+    getCircuitBreakerState?(): string;
 }

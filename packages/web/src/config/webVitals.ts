@@ -1,4 +1,4 @@
-import { onCLS, onLCP, onTTFB, onINP } from "web-vitals";
+import { onCLS, onLCP, onTTFB, onINP, type Metric } from "web-vitals";
 import * as Sentry from "@sentry/react";
 
 /**
@@ -6,7 +6,7 @@ import * as Sentry from "@sentry/react";
  * Good: green, Needs Improvement: yellow, Poor: red
  * Note: FID has been deprecated and replaced by INP in Core Web Vitals
  */
-const THRESHOLDS = {
+const THRESHOLDS: Record<string, { good: number; poor: number }> = {
   LCP: { good: 2500, poor: 4000 }, // Largest Contentful Paint
   CLS: { good: 0.1, poor: 0.25 }, // Cumulative Layout Shift
   TTFB: { good: 800, poor: 1800 }, // Time to First Byte
@@ -16,7 +16,7 @@ const THRESHOLDS = {
 /**
  * Get rating based on value and metric type
  */
-const getRating = (name, value) => {
+const getRating = (name: string, value: number) => {
   const threshold = THRESHOLDS[name];
   if (!threshold) return "unknown";
   if (value <= threshold.good) return "good";
@@ -27,7 +27,7 @@ const getRating = (name, value) => {
 /**
  * Report a web vital metric to Sentry
  */
-const reportToSentry = (metric) => {
+const reportToSentry = (metric: Metric) => {
   const { name, value, id } = metric;
   const rating = getRating(name, value);
 

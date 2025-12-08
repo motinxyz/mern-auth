@@ -9,8 +9,8 @@ import type { IEmailProvider, MailOptions, EmailSendResult } from "./IEmailProvi
 export interface EmailServiceOptions {
     config: IConfig;
     logger: ILogger;
-    emailLogRepository?: IEmailLogRepository;
-    providerService?: IProviderService;
+    emailLogRepository?: IEmailLogRepository | undefined;
+    providerService?: IProviderService | undefined;
 }
 
 /**
@@ -20,18 +20,44 @@ export interface SendEmailOptions {
     to: string;
     template: string;
     data: Record<string, unknown>;
-    locale?: string;
-    preferredProvider?: string;
+    locale?: string | undefined;
+    preferredProvider?: string | undefined;
+}
+
+/**
+ * Verification email options
+ */
+export interface VerificationEmailOptions {
+    preferredProvider?: string | undefined;
+}
+
+/**
+ * Email result type from EmailService (allows optional messageId and emailLogId)
+ */
+export interface EmailServiceResult {
+    readonly messageId?: string | undefined;
+    readonly provider: string;
+    readonly accepted?: readonly string[] | undefined;
+    readonly response?: number | string | undefined;
+    readonly emailLogId?: string | undefined;
 }
 
 /**
  * Circuit breaker health
  */
 export interface CircuitBreakerHealth {
-    state: "closed" | "open" | "half-open";
-    failures: number;
-    successes: number;
-    lastFailure?: Date;
+    initialized: boolean;
+    state: "closed" | "open" | "half-open" | "unknown";
+    inMemoryStats?: {
+        readonly totalFires: number;
+        readonly totalSuccesses: number;
+        readonly totalFailures: number;
+        readonly totalTimeouts: number;
+        readonly totalRejects: number;
+        readonly successRate: string;
+        readonly lastStateChange: string | null;
+    };
+    circuitBreakerStats?: Record<string, unknown>;
 }
 
 /**
@@ -49,7 +75,12 @@ export interface IProviderService {
  */
 export interface IEmailService {
     initialize(): Promise<void>;
-    sendEmail(options: SendEmailOptions): Promise<EmailSendResult>;
-    sendVerificationEmail(user: { id: string; email: string; name: string }, token: string, locale?: string, options?: { preferredProvider?: string }): Promise<EmailSendResult>;
+    sendEmail(options: SendEmailOptions): Promise<EmailServiceResult>;
+    sendVerificationEmail(
+        user: { id: string; email: string; name: string },
+        token: string,
+        locale?: string,
+        options?: VerificationEmailOptions
+    ): Promise<EmailServiceResult>;
     getCircuitBreakerHealth(): CircuitBreakerHealth;
 }

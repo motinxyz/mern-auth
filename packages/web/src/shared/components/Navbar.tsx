@@ -8,7 +8,7 @@ export function Navbar() {
   // TODO: Replace with actual auth state from context/store
   const isAuthenticated = !!localStorage.getItem("accessToken");
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path: string): boolean => location.pathname === path;
 
   const navLinks = isAuthenticated
     ? [

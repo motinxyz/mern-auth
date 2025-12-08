@@ -1,38 +1,40 @@
 import { Resend } from "resend";
 import crypto from "crypto";
 import type { ILogger } from "@auth/contracts";
+import type {
+  IEmailProvider,
+  MailOptions,
+  EmailResult,
+  ProviderHealth,
+  WebhookHeaders,
+  ParsedWebhookEvent,
+  ResendProviderOptions,
+} from "../types.js";
 
 /**
  * Resend Email Provider
- * @implements {import('@auth/contracts').IEmailProvider}
+ * Production-grade implementation of IEmailProvider using Resend API.
  */
-class ResendProvider {
-  name: string;
-  client: Resend | undefined;
-  webhookSecret: string;
-  logger: ILogger;
+class ResendProvider implements IEmailProvider {
+  readonly name: string = "resend-api";
+  private readonly client: Resend | null;
+  private readonly webhookSecret: string | undefined;
+  private readonly logger: ILogger;
 
-  constructor({ apiKey, webhookSecret, logger }: any) {
-    this.name = "resend-api";
-    if (apiKey) {
-      this.client = new Resend(apiKey);
-    }
+  constructor({ apiKey, webhookSecret, logger }: ResendProviderOptions) {
+    this.client = apiKey ? new Resend(apiKey) : null;
     this.webhookSecret = webhookSecret;
     this.logger = logger.child({ provider: this.name });
   }
 
-  async send(mailOptions) {
+  async send(mailOptions: MailOptions): Promise<EmailResult> {
     const { from, to, subject, html, text } = mailOptions;
 
-    // Resend expects 'from' to be "Name <email@domain.com>" or just "email@domain.com"
-    // Our config usually provides a clear default.
+    if (!this.client) {
+      throw new Error("Resend API key not configured");
+    }
 
-    // Convert to Resend format if needed (handled by SDK mostly)
     try {
-      if (!this.client) {
-        throw new Error("Resend API key not configured");
-      }
-
       const data = await this.client.emails.send({
         from,
         to,
@@ -48,7 +50,7 @@ class ResendProvider {
       return {
         messageId: data.data?.id,
         provider: this.name,
-        accepted: [to], // Resend batches, but usually we send single here
+        accepted: [to],
         response: "200 OK",
       };
     } catch (error) {
@@ -57,11 +59,15 @@ class ResendProvider {
     }
   }
 
-  verifyWebhookSignature(payload, headers, secret = null) {
-    const currentSecret = secret || this.webhookSecret;
+  verifyWebhookSignature(
+    payload: string,
+    headers: WebhookHeaders,
+    secret: string | null = null
+  ): boolean {
+    const currentSecret = secret ?? this.webhookSecret;
     if (!currentSecret) return true; // Dev mode
 
-    const signature = headers["svix-signature"] || headers["resend-signature"];
+    const signature = headers["svix-signature"] ?? headers["resend-signature"];
     const timestamp = headers["svix-timestamp"];
 
     if (!signature || !timestamp) return false;
@@ -74,7 +80,7 @@ class ResendProvider {
       });
 
       const v1Sig = signatures.find((s) => s.version === "v1");
-      if (!v1Sig) return false;
+      if (!v1Sig?.signature) return false;
 
       const signedContent = `${timestamp}.${payload}`;
       const hmac = crypto.createHmac("sha256", currentSecret);
@@ -84,37 +90,47 @@ class ResendProvider {
         Buffer.from(v1Sig.signature),
         Buffer.from(expectedSignature)
       );
-    } catch (err) {
+    } catch {
       return false;
     }
   }
 
-  parseWebhookEvent(event) {
+  parseWebhookEvent(event: unknown): ParsedWebhookEvent | null {
+    const e = event as {
+      type: string;
+      created_at: string;
+      data: {
+        to: string;
+        email_id: string;
+        bounce?: { message?: string };
+      };
+    };
+
     const base = {
-      timestamp: new Date(event.created_at),
-      email: event.data.to,
-      messageId: event.data.email_id,
+      timestamp: new Date(e.created_at),
+      email: e.data.to,
+      messageId: e.data.email_id,
       originalEvent: event,
     };
 
-    if (event.type === "email.bounced") {
+    if (e.type === "email.bounced") {
       return {
         ...base,
         type: "bounce",
         bounceType: "hard",
-        reason: event.data.bounce?.message || "Unknown",
+        reason: e.data.bounce?.message ?? "Unknown",
       };
     }
 
-    if (event.type === "email.complained") {
+    if (e.type === "email.complained") {
       return {
         ...base,
         type: "complaint",
-        reason: "Create spam report",
+        reason: "Spam complaint",
       };
     }
 
-    if (event.type === "email.delivered") {
+    if (e.type === "email.delivered") {
       return {
         ...base,
         type: "delivery",
@@ -124,9 +140,8 @@ class ResendProvider {
     return null;
   }
 
-  async checkHealth() {
-    // Resend doesn't have a dedicated ping API, assume healthy if client exists
-    return { healthy: !!this.client, name: this.name };
+  async checkHealth(): Promise<ProviderHealth> {
+    return { healthy: this.client !== null, name: this.name };
   }
 }
 

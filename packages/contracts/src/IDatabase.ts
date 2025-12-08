@@ -30,19 +30,22 @@ export interface IUser {
  */
 export interface IEmailLog {
     readonly _id: string;
+    readonly userId?: string | undefined;
+    readonly type?: string | undefined;
     readonly messageId: string;
     readonly to: string;
     readonly from: string;
     readonly subject: string;
-    readonly template?: string;
-    readonly provider?: string;
-    readonly status: "pending" | "sent" | "delivered" | "bounced" | "failed";
-    readonly sentAt?: Date;
-    readonly deliveredAt?: Date;
-    readonly bouncedAt?: Date;
-    readonly bounceType?: "soft" | "hard";
-    readonly bounceReason?: string;
-    readonly metadata?: Readonly<Record<string, unknown>>;
+    readonly template?: string | undefined;
+    readonly provider?: string | undefined;
+    readonly status: "queued" | "pending" | "sent" | "delivered" | "bounced" | "failed";
+    readonly sentAt?: Date | undefined;
+    readonly deliveredAt?: Date | undefined;
+    readonly bouncedAt?: Date | undefined;
+    readonly bounceType?: "soft" | "hard" | undefined;
+    readonly bounceReason?: string | undefined;
+    readonly error?: string | undefined;
+    readonly metadata?: Readonly<Record<string, unknown>> | undefined;
     readonly createdAt: Date;
     readonly updatedAt: Date;
 }
@@ -111,6 +114,7 @@ export interface IDatabaseService {
     readonly emailLogRepository: IEmailLogRepository;
     readonly auditLogRepository: IAuditLogRepository;
 
+    connect(): Promise<void>;
     ping(): Promise<boolean>;
     getConnectionState(): { readyState: number };
     disconnect(): Promise<void>;

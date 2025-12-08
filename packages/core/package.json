@@ -3,13 +3,22 @@
   "version": "1.0.0",
   "main": "src/index.js",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "default": "./src/index.js"
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
     },
-    "./constants/auth.constants": "./src/constants/auth.constants.js",
-    "./constants/token.constants": "./src/constants/token.constants.js"
+    "./constants/auth.constants": {
+      "types": "./src/constants/auth.constants.ts",
+      "import": "./src/constants/auth.constants.ts"
+    },
+    "./constants/token.constants": {
+      "types": "./src/constants/token.constants.ts",
+      "import": "./src/constants/token.constants.ts"
+    }
   },
   "scripts": {
     "test": "vitest run --coverage",

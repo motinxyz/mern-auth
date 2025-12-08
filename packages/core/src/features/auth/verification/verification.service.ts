@@ -18,10 +18,10 @@ import { VERIFICATION_MESSAGES } from "../../../constants/core.messages.js";
  * Single Responsibility: Handle email verification process
  */
 export class VerificationService {
-  User: Model<UserDocument>;
-  redis: ICacheService;
-  config: IConfig;
-  logger: ILogger;
+  private readonly User: Model<UserDocument>;
+  private readonly redis: ICacheService;
+  private readonly config: IConfig;
+  private readonly logger: ILogger;
 
   constructor({ userModel, redis, config, logger }: { userModel: Model<UserDocument>; redis: ICacheService; config: IConfig; logger: ILogger }) {
     this.User = userModel;

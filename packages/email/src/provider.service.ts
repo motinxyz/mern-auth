@@ -8,17 +8,29 @@ import type { ILogger } from "@auth/contracts";
 import { EMAIL_MESSAGES, EMAIL_ERRORS } from "./constants/email.messages.js";
 import ResendProvider from "./providers/resend.provider.js";
 import MailerSendProvider from "./providers/mailersend.provider.js";
+import type {
+  IProviderService,
+  IEmailProvider,
+  ProviderServiceOptions,
+  ProviderConfig,
+  MailOptions,
+  EmailResult,
+  SendOptions,
+  ProvidersHealthResult,
+  ProviderHealth,
+} from "./types.js";
 
 /**
  * Provider Service
- * Manages email providers (Resend, MailerSend) with failover support
+ * Manages email providers (Resend, MailerSend) with failover support.
+ * Implements IProviderService interface.
  */
-class ProviderService {
-  config: any;
-  logger: ILogger;
-  providers: any[];
+class ProviderService implements IProviderService {
+  private readonly config: ProviderConfig;
+  private readonly logger: ILogger;
+  private readonly providers: IEmailProvider[] = [];
 
-  constructor(options: any = {}) {
+  constructor(options: ProviderServiceOptions) {
     if (!options.config) {
       throw new ConfigurationError(
         EMAIL_ERRORS.MISSING_PROVIDER_CONFIG.replace("{config}", "config")
@@ -31,13 +43,12 @@ class ProviderService {
     }
     this.config = options.config;
     this.logger = options.logger.child({ module: "email-providers" });
-    this.providers = [];
   }
 
   /**
    * Initialize providers
    */
-  async initialize() {
+  async initialize(): Promise<void> {
     // Initialize Resend API if configured (PRIMARY)
     if (this.config.resendApiKey) {
       const resendProvider = new ResendProvider({
@@ -58,9 +69,7 @@ class ProviderService {
         logger: this.logger,
       });
       this.providers.push(mailersendProvider);
-      this.logger.info(
-        "MailerSend initialized"
-      );
+      this.logger.info("MailerSend initialized");
     }
 
     if (this.providers.length === 0) {
@@ -77,18 +86,18 @@ class ProviderService {
 
   /**
    * Send email with failover
-   * @param {object} mailOptions - Email options (to, from, subject, html, text)
-   * @param {object} options - Send options
-   * @param {string} options.preferredProvider - Name of provider to try first/only
    */
-  async sendWithFailover(mailOptions: any, options: any = {}) {
+  async sendWithFailover(
+    mailOptions: MailOptions,
+    options: SendOptions = {}
+  ): Promise<EmailResult> {
     return withSpan("ProviderService.sendWithFailover", async () => {
       addSpanAttributes({
-        "email.to_hash": mailOptions.to?.substring(0, 3) + "***",
-        "email.preferred_provider": options.preferredProvider || "none",
+        "email.to_hash": mailOptions.to.substring(0, 3) + "***",
+        "email.preferred_provider": options.preferredProvider ?? "none",
       });
 
-      const errors = [];
+      const errors: Array<{ provider: string; error: Error }> = [];
       let providersToTry = [...this.providers];
 
       // If preferred provider is specified, prioritize it
@@ -97,12 +106,9 @@ class ProviderService {
           (p) => p.name === options.preferredProvider
         );
         if (preferred) {
-          // Move preferred to front
           providersToTry = [
             preferred,
-            ...providersToTry.filter(
-              (p) => p.name !== options.preferredProvider
-            ),
+            ...providersToTry.filter((p) => p.name !== options.preferredProvider),
           ];
         } else {
           this.logger.warn(
@@ -114,7 +120,6 @@ class ProviderService {
 
       for (const provider of providersToTry) {
         try {
-          // Verify provider logic...
           this.logger.debug(
             { provider: provider.name, to: mailOptions.to },
             EMAIL_MESSAGES.PROVIDER_ATTEMPT.replace("{provider}", provider.name)
@@ -124,7 +129,7 @@ class ProviderService {
 
           addSpanAttributes({
             "email.provider": provider.name,
-            "email.message_id": result.messageId,
+            "email.message_id": result.messageId ?? "unknown",
           });
 
           this.logger.info(
@@ -134,13 +139,11 @@ class ProviderService {
 
           return result;
         } catch (error) {
-          errors.push({ provider: provider.name, error });
+          const err = error as Error;
+          errors.push({ provider: provider.name, error: err });
           this.logger.warn(
-            { provider: provider.name, error: error.message },
-            EMAIL_MESSAGES.PROVIDER_FAILOVER.replace(
-              "{provider}",
-              provider.name
-            )
+            { provider: provider.name, error: err.message },
+            EMAIL_MESSAGES.PROVIDER_FAILOVER.replace("{provider}", provider.name)
           );
         }
       }
@@ -159,38 +162,40 @@ class ProviderService {
   /**
    * Get provider health
    */
-  async getHealth() {
-    const health = {
-      healthy: true,
-      providers: [],
-    };
+  async getHealth(): Promise<ProvidersHealthResult> {
+    const providerResults: ProviderHealth[] = [];
+    let overallHealthy = true;
 
     for (const provider of this.providers) {
       try {
         const result = await provider.checkHealth();
-        health.providers.push({
+        providerResults.push({
           name: provider.name,
           healthy: result.healthy,
           error: result.error,
         });
-        if (!result.healthy) health.healthy = false;
+        if (!result.healthy) overallHealthy = false;
       } catch (error) {
-        health.healthy = false;
-        health.providers.push({
+        const err = error as Error;
+        overallHealthy = false;
+        providerResults.push({
           name: provider.name,
           healthy: false,
-          error: error.message,
+          error: err.message,
         });
       }
     }
 
-    return health;
+    return {
+      healthy: overallHealthy,
+      providers: providerResults,
+    };
   }
 
   /**
    * Get all providers
    */
-  getProviders() {
+  getProviders(): readonly IEmailProvider[] {
     return this.providers;
   }
 }

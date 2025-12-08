@@ -1,9 +1,10 @@
 /**
  * Data Transfer Object for email verification
  * Framework-agnostic - no Express dependencies
+ * Properties are readonly for immutability
  */
 export class VerificationDto {
-  token: string;
+  readonly token: string;
 
   constructor({ token }: { token: string }) {
     this.token = token;
@@ -11,12 +12,10 @@ export class VerificationDto {
 
   /**
    * Create DTO from Express request
-   * @param {object} query - Request query parameters
-   * @returns {VerificationDto}
    */
-  static fromRequest(query: Record<string, string>) {
+  static fromRequest(query: Record<string, string>): VerificationDto {
     return new VerificationDto({
-      token: query.token ?? "",
+      token: query["token"] ?? "",
     });
   }
 }

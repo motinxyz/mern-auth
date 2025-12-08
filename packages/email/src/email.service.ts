@@ -7,7 +7,7 @@ import {
   addSpanAttributes,
   hashSensitiveData,
 } from "@auth/utils";
-import type { ILogger } from "@auth/contracts";
+import type { ILogger, IEmailLogRepository } from "@auth/contracts";
 import { i18nInstance } from "@auth/config";
 import {
   emailSendTotal,
@@ -16,21 +16,46 @@ import {
 } from "@auth/config";
 import { EMAIL_MESSAGES, EMAIL_ERRORS } from "./constants/email.messages.js";
 import { compileTemplate, initializeTemplates } from "./template-engine.js";
+import {
+  DEFAULT_CIRCUIT_BREAKER_CONFIG,
+  type EmailServiceOptions,
+  type EmailServiceConfig,
+  type IProviderService,
+  type SendEmailParams,
+  type EmailUser,
+  type CircuitBreakerStats,
+  type CircuitBreakerHealth,
+  type EmailServiceHealth,
+  type ICircuitBreaker,
+  type MailOptions,
+  type EmailResult,
+  type SendOptions,
+  type ProvidersHealthResult,
+} from "./types.js";
 
 /**
  * Email Service
- * Production-grade email service with circuit breaker, provider failover, and delivery tracking
+ * Production-grade email service with circuit breaker, provider failover, and delivery tracking.
  */
 class EmailService {
-  config: any;
-  logger: ILogger;
-  emailLogRepository: any;
-  providerService: any;
-  circuitBreakerOptions: any;
-  emailBreaker: any;
-  circuitBreakerStats: any;
+  private readonly config: EmailServiceConfig;
+  private readonly logger: ILogger;
+  private readonly emailLogRepository: IEmailLogRepository;
+  private readonly providerService: IProviderService;
+  private readonly circuitBreakerOptions: {
+    readonly timeout: number;
+    readonly errorThresholdPercentage: number;
+    readonly resetTimeout: number;
+    readonly rollingCountTimeout: number;
+    readonly rollingCountBuckets: number;
+    readonly volumeThreshold: number;
+    readonly capacity: number;
+    readonly name: string;
+  };
+  private emailBreaker: ICircuitBreaker<EmailResult> | null = null;
+  private readonly circuitBreakerStats: CircuitBreakerStats;
 
-  constructor(options: any = {}) {
+  constructor(options: EmailServiceOptions) {
     if (!options.config) {
       throw new ConfigurationError(
         EMAIL_ERRORS.MISSING_CONFIG.replace("{config}", "config")
@@ -57,19 +82,18 @@ class EmailService {
     this.emailLogRepository = options.emailLogRepository;
     this.providerService = options.providerService;
 
-    // Circuit breaker configuration (externalized)
+    // Circuit breaker configuration (uses defaults with optional overrides)
     this.circuitBreakerOptions = {
-      timeout: options.circuitBreakerTimeout || 30000,
-      errorThresholdPercentage: options.circuitBreakerErrorThreshold || 50,
-      resetTimeout: options.circuitBreakerResetTimeout || 30000,
-      rollingCountTimeout: 10000,
-      rollingCountBuckets: 10,
-      volumeThreshold: options.circuitBreakerVolumeThreshold || 20,
-      capacity: options.circuitBreakerCapacity || 50,
+      timeout: options.circuitBreakerTimeout ?? DEFAULT_CIRCUIT_BREAKER_CONFIG.timeout,
+      errorThresholdPercentage: options.circuitBreakerErrorThreshold ?? DEFAULT_CIRCUIT_BREAKER_CONFIG.errorThresholdPercentage,
+      resetTimeout: options.circuitBreakerResetTimeout ?? DEFAULT_CIRCUIT_BREAKER_CONFIG.resetTimeout,
+      rollingCountTimeout: DEFAULT_CIRCUIT_BREAKER_CONFIG.rollingCountTimeout,
+      rollingCountBuckets: DEFAULT_CIRCUIT_BREAKER_CONFIG.rollingCountBuckets,
+      volumeThreshold: options.circuitBreakerVolumeThreshold ?? DEFAULT_CIRCUIT_BREAKER_CONFIG.volumeThreshold,
+      capacity: options.circuitBreakerCapacity ?? DEFAULT_CIRCUIT_BREAKER_CONFIG.capacity,
       name: "emailCircuitBreaker",
     };
 
-    this.emailBreaker = null;
     this.circuitBreakerStats = {
       totalFires: 0,
       totalSuccesses: 0,
@@ -84,17 +108,22 @@ class EmailService {
   /**
    * Initialize email service
    */
-  async initialize() {
-    // Initialize templates (pass logger)
+  async initialize(): Promise<void> {
+    // Initialize templates
     await initializeTemplates({ logger: this.logger });
 
     // Initialize providers
     await this.providerService.initialize();
 
     // Create circuit breaker using shared utility
-    this.emailBreaker = createCircuitBreaker(async (mailOptions) => {
-      return await this.providerService.sendWithFailover(mailOptions);
-    }, this.circuitBreakerOptions);
+    const breaker = createCircuitBreaker(
+      async (mailOptions: MailOptions, options?: SendOptions) => {
+        return await this.providerService.sendWithFailover(mailOptions, options);
+      },
+      this.circuitBreakerOptions
+    ) as unknown as ICircuitBreaker<EmailResult>;
+
+    this.emailBreaker = breaker;
 
     // Fallback when circuit is open
     this.emailBreaker.fallback(() => {
@@ -109,12 +138,13 @@ class EmailService {
   /**
    * Setup circuit breaker event handlers
    */
-  setupCircuitBreakerEvents() {
+  private setupCircuitBreakerEvents(): void {
+    if (!this.emailBreaker) return;
+
     this.emailBreaker.on("open", () => {
       this.circuitBreakerStats.circuitOpenTimestamp = Date.now();
       this.circuitBreakerStats.lastStateChange = new Date().toISOString();
 
-      // Emit metric
       emailCircuitBreakerState.add(1, { event: "open" });
 
       this.logger.warn(
@@ -124,14 +154,7 @@ class EmailService {
           stats: {
             totalFires: this.circuitBreakerStats.totalFires,
             totalFailures: this.circuitBreakerStats.totalFailures,
-            failureRate:
-              this.circuitBreakerStats.totalFires > 0
-                ? (
-                  (this.circuitBreakerStats.totalFailures /
-                    this.circuitBreakerStats.totalFires) *
-                  100
-                ).toFixed(2) + "%"
-                : "0%",
+            failureRate: this.calculateFailureRate(),
           },
         },
         EMAIL_MESSAGES.CB_OPEN
@@ -171,42 +194,37 @@ class EmailService {
           stats: {
             totalSuccesses: this.circuitBreakerStats.totalSuccesses,
             totalFailures: this.circuitBreakerStats.totalFailures,
-            successRate:
-              this.circuitBreakerStats.totalFires > 0
-                ? (
-                  (this.circuitBreakerStats.totalSuccesses /
-                    this.circuitBreakerStats.totalFires) *
-                  100
-                ).toFixed(2) + "%"
-                : "0%",
+            successRate: this.calculateSuccessRate(),
           },
         },
         EMAIL_MESSAGES.CB_CLOSED
       );
     });
 
-    this.emailBreaker.on("success", (result) => {
+    this.emailBreaker.on("success", (result: unknown) => {
       this.circuitBreakerStats.totalSuccesses++;
       this.circuitBreakerStats.totalFires++;
 
+      const emailResult = result as EmailResult | undefined;
       this.logger.debug(
         {
           event: "circuit_breaker_success",
-          messageId: result?.messageId,
+          messageId: emailResult?.messageId,
           totalSuccesses: this.circuitBreakerStats.totalSuccesses,
         },
         EMAIL_MESSAGES.CB_SUCCESS
       );
     });
 
-    this.emailBreaker.on("failure", (error) => {
+    this.emailBreaker.on("failure", (error: unknown) => {
       this.circuitBreakerStats.totalFailures++;
       this.circuitBreakerStats.totalFires++;
 
+      const err = error as Error;
       this.logger.error(
         {
           event: "circuit_breaker_failure",
-          error: error.message,
+          error: err.message,
           totalFailures: this.circuitBreakerStats.totalFailures,
         },
         EMAIL_MESSAGES.CB_FAILURE
@@ -219,7 +237,7 @@ class EmailService {
       this.logger.warn(
         {
           event: "circuit_breaker_timeout",
-          timeoutMs: 30000,
+          timeoutMs: this.circuitBreakerOptions.timeout,
           totalTimeouts: this.circuitBreakerStats.totalTimeouts,
         },
         EMAIL_MESSAGES.CB_TIMEOUT
@@ -239,56 +257,99 @@ class EmailService {
     });
   }
 
+  private calculateFailureRate(): string {
+    if (this.circuitBreakerStats.totalFires === 0) return "0%";
+    return (
+      (
+        (this.circuitBreakerStats.totalFailures /
+          this.circuitBreakerStats.totalFires) *
+        100
+      ).toFixed(2) + "%"
+    );
+  }
+
+  private calculateSuccessRate(): string {
+    if (this.circuitBreakerStats.totalFires === 0) return "0%";
+    return (
+      (
+        (this.circuitBreakerStats.totalSuccesses /
+          this.circuitBreakerStats.totalFires) *
+        100
+      ).toFixed(2) + "%"
+    );
+  }
+
   /**
    * Send email with delivery tracking
    */
-  async sendEmail({
-    to,
-    subject,
-    html,
-    text,
-    userId,
-    type = "notification",
-    metadata = {},
-    options = {} as any, // New options argument (e.g. preferredProvider)
-  }) {
+  async sendEmail(params: SendEmailParams): Promise<EmailResult & { emailLogId?: string | undefined }> {
+    const { to, subject, html, text, template, data, userId, type = "notification", metadata = {}, options = {} } = params;
+
     return withSpan(
       "email-service.send-email",
-      async (span) => {
-        // Add span attributes for observability
+      async () => {
         addSpanAttributes({
+          // ... existing attributes ...
           "email.type": type,
           "email.recipient_hash": hashSensitiveData(to),
-          "user.id": userId || "anonymous",
+          "user.id": userId ?? "anonymous",
           "email.options_present": Object.keys(options).length > 0,
+          "email.template": template ?? "none",
         });
 
-        const mailOptions = {
+        let finalHtml = html;
+        let finalSubject = subject;
+        let finalText = text;
+
+        // Compile template if provided
+        if (template && data) {
+          try {
+            const templateData = { ...data, ...(subject !== undefined ? { subject } : {}) };
+            finalHtml = await compileTemplate(template, templateData);
+
+            // Try to extract subject from data if not provided
+            if (!finalSubject && data["subject"] && typeof data["subject"] === "string") {
+              finalSubject = data["subject"] as string;
+            }
+          } catch (error) {
+            this.logger.error({ err: error, template }, EMAIL_ERRORS.TEMPLATE_COMPILE_FAILED);
+            throw error;
+          }
+        }
+
+        if (!finalHtml) {
+          throw new Error("Email must have HTML content or a valid template");
+        }
+        if (!finalSubject) {
+          throw new Error("Email must have a subject");
+        }
+
+        const mailOptions: MailOptions = {
           from: this.config.emailFrom,
           to,
-          subject,
-          html,
-          text,
+          subject: finalSubject,
+          html: finalHtml,
+          text: finalText ?? "",
         };
 
         // Create email log entry
-        let emailLog;
+        let emailLog: { _id: string } | undefined;
         try {
-          emailLog = await this.emailLogRepository.create({
-            userId,
+          const logData = {
+            ...(userId !== undefined ? { userId } : {}),
             type,
             to,
-            subject,
-            status: "queued",
+            subject: finalSubject,
+            status: "queued" as const,
             metadata: {
               ...metadata,
-              html,
-              text,
-              ...(options.preferredProvider
-                ? { preferredProvider: options.preferredProvider }
-                : {}),
+              ...(finalHtml !== undefined ? { html: finalHtml } : {}),
+              ...(finalText !== undefined ? { text: finalText } : {}),
+              ...(options.preferredProvider !== undefined ? { preferredProvider: options.preferredProvider } : {}),
             },
-          });
+          };
+
+          emailLog = await this.emailLogRepository.create(logData);
 
           this.logger.debug(
             {
@@ -311,35 +372,36 @@ class EmailService {
         const startTime = Date.now();
 
         try {
-          // Pass options to circuit breaker / provider service
+          if (!this.emailBreaker) {
+            throw new Error("Email service not initialized");
+          }
+
           const info = await this.emailBreaker.fire(mailOptions, options);
           const duration = Date.now() - startTime;
 
-          // Add delivery success attributes
           addSpanAttributes({
-            "email.provider": info.provider || "unknown",
+            "email.provider": info.provider,
             "email.status": "sent",
-            "email.message_id": info.messageId,
+            "email.message_id": info.messageId ?? "unknown",
             "email.duration_ms": duration,
           });
 
-          // Emit metrics
           emailSendTotal.add(1, {
             type,
-            provider: info.provider || "unknown",
+            provider: info.provider,
             status: "sent",
           });
           emailSendDuration.record(duration / 1000, {
             type,
-            provider: info.provider || "unknown",
-          }); // Convert to seconds
+            provider: info.provider,
+          });
 
           // Update log with success
           if (emailLog) {
             try {
               await this.emailLogRepository.updateStatus(emailLog._id, "sent", {
                 messageId: info.messageId,
-                provider: info.provider || "primary",
+                provider: info.provider,
                 metadata: { ...metadata, durationMs: duration },
               });
             } catch (updateError) {
@@ -364,15 +426,14 @@ class EmailService {
           return { ...info, emailLogId: emailLog?._id };
         } catch (error) {
           const duration = Date.now() - startTime;
+          const err = error as Error;
 
-          // Add failure attributes
           addSpanAttributes({
             "email.status": "failed",
-            "email.error": error.message,
+            "email.error": err.message,
             "email.duration_ms": duration,
           });
 
-          // Emit failure metrics
           emailSendTotal.add(1, {
             type,
             provider: "unknown",
@@ -381,15 +442,14 @@ class EmailService {
           emailSendDuration.record(duration / 1000, {
             type,
             provider: "unknown",
-          }); // Convert to seconds
+          });
 
           // Update log with failure
           if (emailLog) {
             try {
               await this.emailLogRepository.updateById(emailLog._id, {
                 status: "failed",
-                failedAt: new Date(),
-                error: error.message,
+                error: err.message,
                 metadata: { ...metadata, durationMs: duration },
               });
             } catch (updateError) {
@@ -403,13 +463,13 @@ class EmailService {
           this.logger.error(
             {
               err: error,
-              mailOptions: mailOptions,
+              mailOptions,
               durationMs: duration,
               emailLogId: emailLog?._id,
             },
             EMAIL_ERRORS.DISPATCH_FAILED
           );
-          throw new EmailDispatchError(EMAIL_ERRORS.DISPATCH_FAILED, error);
+          throw new EmailDispatchError(EMAIL_ERRORS.DISPATCH_FAILED, err);
         }
       },
       { tracerName: "email-service", component: "email" }
@@ -418,17 +478,16 @@ class EmailService {
 
   /**
    * Send verification email
-   * @param {object} user - User object containing email and name
-   * @param {string} token - Verification token
-   * @param {string} locale - User's locale
-   * @param {object} options - Extra options (e.g. preferredProvider)
-   * @returns {Promise<object>} - Result from sendEmail
    */
-  async sendVerificationEmail(user, token, locale = "en", options = {}) {
+  async sendVerificationEmail(
+    user: EmailUser,
+    token: string,
+    locale = "en",
+    options: SendOptions = {}
+  ): Promise<EmailResult & { emailLogId?: string | undefined }> {
     return withSpan(
       "email-service.send-verification",
-      async (span) => {
-        // Add span attributes
+      async () => {
         addSpanAttributes({
           "email.type": "verification",
           "user.id": user.id,
@@ -440,7 +499,6 @@ class EmailService {
           module: "email-verification",
         });
 
-        // Get translator for user's locale
         const t = await i18nInstance.getFixedT(locale);
 
         verificationLogger.debug(
@@ -451,7 +509,6 @@ class EmailService {
         const verificationUrl = `${this.config.clientUrl}/verify-email?token=${token}`;
         const expiryMinutes = this.config.verificationTokenExpiresIn / 60;
 
-        // Compile template with Handlebars
         const html = await compileTemplate("verification", {
           subject: t("email:verification.subject"),
           name: user.name,
@@ -488,7 +545,7 @@ class EmailService {
   /**
    * Get circuit breaker health
    */
-  getCircuitBreakerHealth() {
+  getCircuitBreakerHealth(): CircuitBreakerHealth {
     if (!this.emailBreaker) {
       return {
         initialized: false,
@@ -496,7 +553,6 @@ class EmailService {
       };
     }
 
-    const stats = this.emailBreaker.stats;
     const state = this.emailBreaker.opened
       ? "open"
       : this.emailBreaker.halfOpen
@@ -512,42 +568,24 @@ class EmailService {
         totalFailures: this.circuitBreakerStats.totalFailures,
         totalTimeouts: this.circuitBreakerStats.totalTimeouts,
         totalRejects: this.circuitBreakerStats.totalRejects,
-        successRate:
-          this.circuitBreakerStats.totalFires > 0
-            ? (
-              (this.circuitBreakerStats.totalSuccesses /
-                this.circuitBreakerStats.totalFires) *
-              100
-            ).toFixed(2) + "%"
-            : "0%",
+        successRate: this.calculateSuccessRate(),
         lastStateChange: this.circuitBreakerStats.lastStateChange,
       },
-      circuitBreakerStats: {
-        fires: stats.fires,
-        successes: stats.successes,
-        failures: stats.failures,
-        rejects: stats.rejects,
-        timeouts: stats.timeouts,
-        cacheHits: stats.cacheHits,
-        cacheMisses: stats.cacheMisses,
-        semaphoreRejections: stats.semaphoreRejections,
-        percentiles: stats.percentiles,
-        latencyMean: stats.latencyMean,
-      },
+      circuitBreakerStats: this.emailBreaker.stats,
     };
   }
 
   /**
    * Get provider health
    */
-  async getProviderHealth() {
+  async getProviderHealth(): Promise<ProvidersHealthResult> {
     return await this.providerService.getHealth();
   }
 
   /**
    * Get overall health
    */
-  async getHealth() {
+  async getHealth(): Promise<EmailServiceHealth> {
     const circuitHealth = this.getCircuitBreakerHealth();
     const providerHealth = await this.getProviderHealth();
 

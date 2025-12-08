@@ -1,62 +1,107 @@
 /**
  * IConfig - Interface for environment configuration
- * 
- * Mirrors the shape of the validated environment config
+ *
+ * Mirrors the shape of the validated environment config from @auth/config
+ * Uses `| undefined` on optional properties for exactOptionalPropertyTypes compatibility
  */
 export interface IConfig {
+    // Environment
+    readonly env: "development" | "production" | "test";
+    readonly isDevelopment: boolean;
+    readonly isProduction: boolean;
+    readonly isTest: boolean;
+
     // Server
-    nodeEnv: "development" | "production" | "test";
-    port: number;
-    apiVersion: string;
-    serviceName: string;
+    readonly port: number;
+    readonly hostname: string;
 
     // Database
-    mongoUri: string;
-    dbURI?: string;
-    dbName?: string;
-    dbMaxRetries?: number;
-    dbInitialRetryDelayMs?: number;
-    dbPoolSize?: number;
-    dbMinPoolSize?: number;
-    dbMaxIdleTimeMs?: number;
-    dbWaitQueueTimeoutMs?: number;
-    serverSelectionTimeoutMs?: number;
-    socketTimeoutMs?: number;
+    readonly dbURI: string;
+    readonly dbName: string;
+    readonly dbMaxRetries: number;
+    readonly dbInitialRetryDelayMs: number;
+    readonly dbPoolSize: number;
+    readonly dbMinPoolSize: number;
+    readonly dbMaxIdleTimeMs: number;
+    readonly dbWaitQueueTimeoutMs: number;
+    readonly serverSelectionTimeoutMs: number;
+    readonly socketTimeoutMs: number;
 
     // Redis
-    redisUrl: string;
-    redis: {
-        circuitBreakerTimeout: number;
-        prefixes: {
-            verifyEmailRateLimit: string;
-            verifyEmail: string;
+    readonly redisUrl: string;
+    readonly redis: {
+        readonly prefixes: {
+            readonly verifyEmail: string;
+            readonly verifyEmailRateLimit: string;
+        };
+        readonly circuitBreakerTimeout: number;
+    };
+
+    // Email
+    readonly emailFrom: string | undefined;
+    readonly resendApiKey: string | undefined;
+    readonly resendWebhookSecret: string | undefined;
+    readonly mailersendApiKey: string | undefined;
+    readonly mailersendWebhookSecret: string | undefined;
+    readonly mailersendEmailFrom: string | undefined;
+    readonly verificationTokenExpiresIn: number;
+
+    // Security
+    readonly bcryptSaltRounds: number;
+
+    // Logging
+    readonly logLevel: string;
+
+    // URLs
+    readonly clientUrl: string;
+
+    // CORS
+    readonly cors: {
+        readonly allowedOrigins: readonly string[];
+        readonly credentials: boolean;
+    };
+
+    // Observability
+    readonly sentryDsn: string | undefined;
+    readonly sentryDevEnabled: boolean;
+    readonly observability: {
+        readonly enabled: boolean;
+        readonly serviceName: string;
+        readonly serviceVersion: string;
+        readonly otelEnabled: boolean;
+        readonly metricsEnabled: boolean;
+        readonly tracingEnabled: boolean;
+        readonly grafana: {
+            readonly loki: {
+                readonly url: string | undefined;
+                readonly user: string | undefined;
+                readonly apiKey: string | undefined;
+                readonly bearerToken: string | undefined;
+            };
+            readonly tempo: {
+                readonly url: string | undefined;
+                readonly user: string | undefined;
+                readonly apiKey: string | undefined;
+            };
+            readonly prometheus: {
+                readonly url: string | undefined;
+                readonly user: string | undefined;
+                readonly apiKey: string | undefined;
+            };
         };
     };
 
-    // JWT
-    jwtSecret: string;
-    jwtExpiresIn: string;
-    jwtRefreshExpiresIn: string;
-    verificationTokenExpiresIn: number;
+    // Worker
+    readonly worker: {
+        readonly concurrency: number;
+        readonly maxRetries: number;
+        readonly backoffDelay: number;
+        readonly stalledInterval: number;
+        readonly disableStalledJobCheck: boolean;
+    };
 
-    // Email Providers
-    resendApiKey?: string;
-    resendWebhookSecret?: string;
-    mailersendApiKey?: string;
-    mailersendWebhookSecret?: string;
-    fromEmail: string;
-
-    // URLs
-    frontendUrl: string;
-
-    // Feature Flags
-    enableEmailVerification: boolean;
-
-    // Observability
-    sentryDsn?: string;
-    tempoOtlpUrl?: string;
-    tempoAuthHeader?: string;
-
-    // CORS
-    corsOrigins: string[];
+    // System
+    readonly shutdownTimeoutMs: number;
+    readonly redisMaxRetries: number;
+    readonly redisRetryDelayMs: number;
 }

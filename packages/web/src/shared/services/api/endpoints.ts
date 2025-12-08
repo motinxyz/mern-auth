@@ -1,24 +1,18 @@
-import { env } from "../../../config/env";
-import { AUTH_ROUTES, USER_ROUTES } from "@auth/utils";
-
-// API Configuration
-const API_BASE_URL = env.API_URL;
-
 export const API_ENDPOINTS = {
-  // Auth endpoints
-  REGISTER: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.REGISTER}`,
-  LOGIN: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.LOGIN}`,
-  LOGOUT: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.LOGOUT}`,
-  VERIFY_EMAIL: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.VERIFY_EMAIL}`,
-  RESEND_VERIFICATION: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.RESEND_VERIFICATION}`,
-  FORGOT_PASSWORD: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.FORGOT_PASSWORD}`,
-  RESET_PASSWORD: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.RESET_PASSWORD}`,
-  REFRESH_TOKEN: `${AUTH_ROUTES.BASE}${AUTH_ROUTES.REFRESH_TOKEN}`,
-
-  // User endpoints
-  ME: `${USER_ROUTES.BASE}${USER_ROUTES.ME}`,
-  UPDATE_PROFILE: `${USER_ROUTES.BASE}${USER_ROUTES.PROFILE}`,
-  CHANGE_PASSWORD: `${USER_ROUTES.BASE}${USER_ROUTES.CHANGE_PASSWORD}`,
-};
-
-export { API_BASE_URL };
+  AUTH: {
+    LOGIN: "/auth/login",
+    REGISTER: "/auth/register",
+    LOGOUT: "/auth/logout",
+    REFRESH: "/auth/refresh",
+    ME: "/auth/me",
+    VERIFY_EMAIL: "/auth/verify-email",
+    RESEND_VERIFICATION: "/auth/resend-verification",
+    FORGOT_PASSWORD: "/auth/forgot-password",
+    RESET_PASSWORD: "/auth/reset-password",
+  },
+  PROFILE: {
+    GET: "/profile",
+    UPDATE: "/profile",
+  },
+  HEALTH: "/health",
+} as const;

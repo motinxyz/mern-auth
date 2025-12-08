@@ -1,36 +1,41 @@
+import { z } from "zod";
+import { registerUserSchema, loginUserSchema } from "@auth/utils";
 import apiClient from "../../../shared/services/api/client";
 import { API_ENDPOINTS } from "../../../shared/services/api/endpoints";
+import { storage } from "../../../shared/services/storage.service";
+
+// Inferred types from shared schemas
+export type RegisterData = z.infer<typeof registerUserSchema>;
+export type LoginData = z.infer<typeof loginUserSchema>;
+
+export interface AuthResponse {
+  accessToken?: string;
+  refreshToken?: string;
+  user?: unknown;
+  [key: string]: unknown;
+}
 
 export const authService = {
   /**
    * Register a new user
-   * @param {Object} userData - User registration data
-   * @param {string} userData.name - User's full name
-   * @param {string} userData.email - User's email address
-   * @param {string} userData.password - User's password
-   * @returns {Promise<Object>} Registered user data
    */
-  async register(userData) {
-    const response = await apiClient.post(API_ENDPOINTS.REGISTER, userData);
+  async register(userData: RegisterData): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, userData);
     return response.data;
   },
 
   /**
    * Login user
-   * @param {Object} credentials - Login credentials
-   * @param {string} credentials.email - User's email
-   * @param {string} credentials.password - User's password
-   * @returns {Promise<Object>} User data and tokens
    */
-  async login(credentials) {
-    const response = await apiClient.post(API_ENDPOINTS.LOGIN, credentials);
+  async login(credentials: LoginData): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
 
     // Store tokens
     if (response.data.accessToken) {
-      localStorage.setItem("accessToken", response.data.accessToken);
+      storage.setItem("accessToken", response.data.accessToken);
     }
     if (response.data.refreshToken) {
-      localStorage.setItem("refreshToken", response.data.refreshToken);
+      storage.setItem("refreshToken", response.data.refreshToken);
     }
 
     return response.data;
@@ -38,25 +43,22 @@ export const authService = {
 
   /**
    * Logout user
-   * @returns {Promise<void>}
    */
-  async logout() {
+  async logout(): Promise<void> {
     try {
-      await apiClient.post(API_ENDPOINTS.LOGOUT);
+      await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
     } finally {
       // Clear tokens regardless of API response
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      storage.removeItem("accessToken");
+      storage.removeItem("refreshToken");
     }
   },
 
   /**
    * Verify email with token
-   * @param {string} token - Verification token from email
-   * @returns {Promise<Object>} Verification result
    */
-  async verifyEmail(token) {
-    const response = await apiClient.post(API_ENDPOINTS.VERIFY_EMAIL, {
+  async verifyEmail(token: string): Promise<unknown> {
+    const response = await apiClient.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, {
       token,
     });
     return response.data;
@@ -64,11 +66,9 @@ export const authService = {
 
   /**
    * Resend verification email
-   * @param {string} email - User's email address
-   * @returns {Promise<Object>} Resend result
    */
-  async resendVerification(email) {
-    const response = await apiClient.post(API_ENDPOINTS.RESEND_VERIFICATION, {
+  async resendVerification(email: string): Promise<unknown> {
+    const response = await apiClient.post(API_ENDPOINTS.AUTH.RESEND_VERIFICATION, {
       email,
     });
     return response.data;
@@ -76,11 +76,9 @@ export const authService = {
 
   /**
    * Request password reset
-   * @param {string} email - User's email address
-   * @returns {Promise<Object>} Reset request result
    */
-  async forgotPassword(email) {
-    const response = await apiClient.post(API_ENDPOINTS.FORGOT_PASSWORD, {
+  async forgotPassword(email: string): Promise<unknown> {
+    const response = await apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, {
       email,
     });
     return response.data;
@@ -88,38 +86,31 @@ export const authService = {
 
   /**
    * Reset password with token
-   * @param {Object} data - Reset data
-   * @param {string} data.token - Reset token from email
-   * @param {string} data.password - New password
-   * @returns {Promise<Object>} Reset result
    */
-  async resetPassword(data) {
-    const response = await apiClient.post(API_ENDPOINTS.RESET_PASSWORD, data);
+  async resetPassword(data: { token: string; password: string }): Promise<unknown> {
+    const response = await apiClient.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, data);
     return response.data;
   },
 
   /**
    * Get current user profile
-   * @returns {Promise<Object>} User profile data
    */
-  async getProfile() {
-    const response = await apiClient.get(API_ENDPOINTS.ME);
+  async getProfile(): Promise<unknown> {
+    const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
     return response.data;
   },
 
   /**
    * Check if user is authenticated
-   * @returns {boolean} True if user has access token
    */
-  isAuthenticated() {
-    return !!localStorage.getItem("accessToken");
+  isAuthenticated(): boolean {
+    return !!storage.getItem("accessToken");
   },
 
   /**
    * Get access token
-   * @returns {string|null} Access token or null
    */
-  getAccessToken() {
-    return localStorage.getItem("accessToken");
+  getAccessToken(): string | null {
+    return storage.getItem("accessToken");
   },
 };

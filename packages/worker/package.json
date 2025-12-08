@@ -2,6 +2,9 @@
   "name": "@auth/worker",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "main": "dist/worker.service.js",
   "bin": {
     "worker": "./dist/index.js"

@@ -1,10 +1,11 @@
 import axios from "axios";
-import { API_BASE_URL } from "./endpoints";
+import { env } from "../../../config/env";
 import { getSentryTraceHeaders } from "../../../config/sentry";
+import { storage } from "../../services/storage.service";
 
 // Create axios instance with default config
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: env.API_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -15,7 +16,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // Add auth token
-    const token = localStorage.getItem("accessToken");
+    const token = storage.getItem("accessToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -46,16 +47,16 @@ apiClient.interceptors.response.use(
 
       try {
         // Try to refresh the token
-        const refreshToken = localStorage.getItem("refreshToken");
+        const refreshToken = storage.getItem("refreshToken");
         if (refreshToken) {
           const response = await axios.post(
-            `${API_BASE_URL}/auth/refresh-token`,
+            `${env.API_URL}/auth/refresh-token`,
             { refreshToken },
             { withCredentials: true }
           );
 
           const { accessToken } = response.data.data;
-          localStorage.setItem("accessToken", accessToken);
+          storage.setItem("accessToken", accessToken);
 
           // Retry the original request with new token
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -63,8 +64,8 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshError) {
         // Refresh failed, logout user
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        storage.removeItem("accessToken");
+        storage.removeItem("refreshToken");
         window.location.href = "/login";
         return Promise.reject(refreshError);
       }

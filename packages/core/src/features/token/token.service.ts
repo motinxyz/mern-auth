@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
-import { TokenCreationError } from "@auth/utils";
-import type { ILogger, IConfig, ICacheService } from "@auth/contracts";
-import { HASHING_ALGORITHM } from "@auth/core/constants/token.constants";
+import { TokenCreationError, NotFoundError } from "@auth/utils";
+import type { ILogger, IConfig, ICacheService, ITokenService, TokenPayload } from "@auth/contracts";
+import { HASHING_ALGORITHM } from "../../constants/token.constants.js";
 import { TOKEN_MESSAGES } from "../../constants/core.messages.js";
 
 interface UserIdentity {
@@ -14,13 +14,11 @@ interface UserIdentity {
  *
  * Handles all token-related operations for the authentication system.
  * Follows production-grade patterns with dependency injection.
- *
- * @implements {import('@auth/contracts').ITokenService}
  */
-export class TokenService {
-  redis: ICacheService;
-  config: IConfig;
-  logger: ILogger;
+export class TokenService implements ITokenService {
+  private readonly redis: ICacheService;
+  private readonly config: IConfig;
+  private readonly logger: ILogger;
 
   constructor({ redis, config, logger }: { redis: ICacheService; config: IConfig; logger: ILogger }) {
     this.redis = redis;
@@ -30,12 +28,8 @@ export class TokenService {
 
   /**
    * Create a verification token for email verification
-   *
-   * @param {Object} user - User object containing _id and email
-   * @returns {Promise<string>} - The verification token (unhashed)
-   * @throws {TokenCreationError} - If token creation fails
    */
-  async createVerificationToken(user: UserIdentity) {
+  async createVerificationToken(user: UserIdentity): Promise<string> {
     try {
       // Generate a secure, random token
       const verificationToken = crypto.randomBytes(32).toString("hex");
@@ -52,6 +46,7 @@ export class TokenService {
       const userDataToStore = JSON.stringify({
         userId: user._id.toString(),
         email: user.email,
+        type: "verification",
       });
 
       this.logger.info(
@@ -80,31 +75,44 @@ export class TokenService {
       return verificationToken;
     } catch (error) {
       this.logger.error({ err: error }, TOKEN_MESSAGES.TOKEN_CREATION_FAILED);
-
-      // Wrap the original error in our custom error class for better context
       throw new TokenCreationError("Token creation failed", error as Error);
     }
   }
 
   /**
-   * Verify and consume a token
+   * Verify a token and return its payload
    */
-  async verifyToken(_token: string): Promise<{ userId: string; type: string }> {
-    throw new Error("Method not implemented.");
+  async verifyToken(token: string): Promise<TokenPayload> {
+    const hashedToken = crypto
+      .createHash(HASHING_ALGORITHM)
+      .update(token)
+      .digest("hex");
+
+    const verifyKey = `${this.config.redis.prefixes.verifyEmail}${hashedToken}`;
+    const tokenData = await this.redis.get(verifyKey);
+
+    if (!tokenData) {
+      throw new NotFoundError("auth:verify.invalidToken");
+    }
+
+    const parsed = JSON.parse(tokenData) as { userId: string; type?: string };
+    return {
+      userId: parsed.userId,
+      type: parsed.type ?? "verification",
+    };
   }
 
   /**
-   * Delete a token
+   * Delete a token from Redis
    */
-  async deleteToken(_token: string): Promise<void> {
-    throw new Error("Method not implemented.");
-  }
+  async deleteToken(token: string): Promise<void> {
+    const hashedToken = crypto
+      .createHash(HASHING_ALGORITHM)
+      .update(token)
+      .digest("hex");
 
-  /**
-   * Future methods can be added here:
-   * - createPasswordResetToken(user)
-   * - createRefreshToken(user)
-   * - validateToken(token, type)
-   * - revokeToken(token)
-   */
+    const verifyKey = `${this.config.redis.prefixes.verifyEmail}${hashedToken}`;
+    await this.redis.del(verifyKey);
+    this.logger.debug({ key: verifyKey }, "Token deleted");
+  }
 }

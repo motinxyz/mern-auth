@@ -18,8 +18,7 @@ function findMonorepoRoot(startDir: string) {
     }
     dir = path.dirname(dir);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EnvironmentError expects ZodIssue[], safe cast for internal error
-  throw new EnvironmentError([{ message: "Could not find monorepo root." }] as any);
+  throw new EnvironmentError("Could not find monorepo root.", ["pnpm-workspace.yaml"]);
 }
 
 const root = findMonorepoRoot(__dirname);
@@ -189,18 +188,15 @@ const envConfigPath = path.resolve(
   `packages/config/src/config/${envVars.NODE_ENV}.js`
 );
 
-let envConfig = {};
+let envConfig: { default?: Record<string, unknown> } = {};
 try {
   envConfig = await import(envConfigPath);
-} catch (_error) {
-  // Environment-specific config is optional, warn but continue
-  console.warn(
-    `No environment-specific configuration found for ${envVars.NODE_ENV}.`
-  );
+} catch {
+  // Environment-specific config is optional, silently continue
 }
 
 const finalConfig = {
-  env: envVars.NODE_ENV,
+  env: envVars.NODE_ENV as "development" | "production" | "test",
   isDevelopment: envVars.NODE_ENV === "development",
   isProduction: envVars.NODE_ENV === "production",
   isTest: envVars.NODE_ENV === "test",
@@ -292,8 +288,7 @@ const finalConfig = {
       },
     },
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic import returns unknown module shape
-  ...(envConfig as any).default,
+  ...(envConfig as { default?: Record<string, unknown> }).default,
 };
 
 Object.freeze(finalConfig);

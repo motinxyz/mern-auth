@@ -104,8 +104,8 @@ export function initializeTracing() {
     // Initialize OpenTelemetry SDK
     sdk = new NodeSDK({
       resource: resource,
-      traceExporter: traceExporter,
-      metricReader: metricReader,
+      ...(traceExporter && { traceExporter }),
+      ...(metricReader && { metricReader }),
       // Configure auto-instrumentations
       instrumentations: [
         getNodeAutoInstrumentations({

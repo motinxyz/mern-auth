@@ -18,16 +18,16 @@ export const initSentry = () => {
     dsn: env.SENTRY_DSN,
     environment: env.isProduction ? "production" : "development",
 
+    // Propagate traces to these origins (your API)
+    tracePropagationTargets: [
+      "localhost",
+      /^https:\/\/.*\.onrender\.com/,
+      env.API_URL,
+    ],
+
     integrations: [
       // Browser Tracing for performance monitoring
-      Sentry.browserTracingIntegration({
-        // Propagate traces to these origins (your API)
-        tracePropagationTargets: [
-          "localhost",
-          /^https:\/\/.*\.onrender\.com/,
-          env.API_URL,
-        ],
-      }),
+      Sentry.browserTracingIntegration(),
       // Session Replay for debugging user sessions
       Sentry.replayIntegration({
         maskAllText: false,

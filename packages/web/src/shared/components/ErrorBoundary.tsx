@@ -1,12 +1,17 @@
-import React from "react";
+import { type ReactNode } from "react";
 import * as Sentry from "@sentry/react";
 import { useTranslation } from "react-i18next";
+
+interface ErrorFallbackProps {
+  error: Error;
+  resetErrorBoundary: () => void;
+}
 
 /**
  * Error Fallback Component
  * Displayed when the ErrorBoundary catches an error
  */
-function ErrorFallback({ error, resetErrorBoundary }) {
+function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
   const { t } = useTranslation();
 
   return (
@@ -57,15 +62,19 @@ function ErrorFallback({ error, resetErrorBoundary }) {
   );
 }
 
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
 /**
  * Global Error Boundary
  * Wraps the application to catch unhandled errors and report them to Sentry
  */
-export const ErrorBoundary = ({ children }) => {
+export const ErrorBoundary = ({ children }: ErrorBoundaryProps) => {
   return (
     <Sentry.ErrorBoundary
       fallback={({ error, resetError }) => (
-        <ErrorFallback error={error} resetErrorBoundary={resetError} />
+        <ErrorFallback error={error as Error} resetErrorBoundary={resetError} />
       )}
       beforeCapture={(scope) => {
         scope.setTag("location", "ErrorBoundary");

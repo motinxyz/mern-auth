@@ -1,4 +1,4 @@
-
+import * as Sentry from "@sentry/node";
 import {
   normalizeEmail,
   ConflictError,
@@ -32,6 +32,13 @@ import {
 
 import { RegistrationDto } from "./registration.dto.js";
 
+// Define Mongoose error shape
+interface MongoError extends Error {
+  code?: number;
+  keyPattern?: Record<string, unknown>;
+  name: string;
+}
+
 /**
  * RegistrationService
  *
@@ -39,23 +46,13 @@ import { RegistrationDto } from "./registration.dto.js";
  * Dependencies injected via constructor for testability.
  */
 export class RegistrationService {
-  /**
-   * @param {Object} deps - Dependencies
-   * @param {import("mongoose").Model} deps.userModel - Mongoose User model
-   * @param {import("@auth/contracts").ICacheService} deps.redis - Cache service (Redis)
-   * @param {Object} deps.config - Application configuration
-   * @param {import("@auth/contracts").IQueueProducer} deps.emailProducer - Email queue producer
-   * @param {import("@auth/contracts").ITokenService} deps.tokenService - Token service
-   * @param {Object} deps.sentry - Sentry error tracking
-   * @param {Object} deps.logger - Pino logger
-   */
-  User: Model<UserDocument>;
-  redis: ICacheService;
-  config: IConfig;
-  emailProducer: IQueueProducer;
-  tokenService: ITokenService;
-  sentry: unknown;
-  logger: ILogger;
+  private readonly User: Model<UserDocument>;
+  private readonly redis: ICacheService;
+  private readonly config: IConfig;
+  private readonly emailProducer: IQueueProducer;
+  private readonly tokenService: ITokenService;
+  private readonly sentry: typeof Sentry | undefined;
+  private readonly logger: ILogger;
 
   constructor({
     userModel,
@@ -71,7 +68,7 @@ export class RegistrationService {
     config: IConfig;
     emailProducer: IQueueProducer;
     tokenService: ITokenService;
-    sentry: unknown;
+    sentry?: typeof Sentry;
     logger: ILogger;
   }) {
     this.User = userModel;
@@ -169,12 +166,9 @@ export class RegistrationService {
                   }
                 );
               } catch (error) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const dbError = error as any;
+                const dbError = error as MongoError;
 
                 // DEFENSE IN DEPTH: Handle Mongoose validation errors
-                // This should NEVER happen if Zod validation is working correctly.
-                // If it does, it indicates a bug in the Zod schema or data flow.
                 if (dbError.name === "ValidationError") {
                   this.logger.error(
                     {
@@ -186,8 +180,8 @@ export class RegistrationService {
                   );
 
                   // Alert via Sentry if available
-                  if (this.sentry !== undefined && this.sentry !== null) {
-                    (this.sentry as { captureException: (err: unknown, ctx: unknown) => void }).captureException(dbError, {
+                  if (this.sentry) {
+                    this.sentry.captureException(dbError, {
                       tags: {
                         alert: "defense_in_depth_triggered",
                         layer: "database",
@@ -203,15 +197,13 @@ export class RegistrationService {
                     });
                   }
 
-                  // Return a generic error to the user to avoid exposing internal details
-                  // while alerting the team via logs/monitoring
                   throw new HttpError(
                     HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
                     "auth:errors.registrationFailed"
                   );
                 }
 
-                if (dbError.code === 11000) {
+                if (dbError.code === 11000 && dbError.keyPattern) {
                   this.logger.warn(
                     { dbError, email, normalizedEmail },
                     REGISTRATION_MESSAGES.DUPLICATE_KEY_DETECTED

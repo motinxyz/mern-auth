@@ -2,7 +2,7 @@
 
 /**
  * Worker CLI
- * Example: How to start workers with different processors
+ * Starts workers with registered processors
  */
 import {
   config,
@@ -11,11 +11,11 @@ import {
   redisConnection,
   QUEUE_NAMES,
 } from "@auth/config";
-import { EmailService } from "@auth/email";
+import { EmailService, ProviderService, type EmailServiceConfig } from "@auth/email";
 import DatabaseService from "@auth/database";
+import type { IRedisConnection } from "@auth/contracts";
 import WorkerService from "./worker.service.js";
 import { createEmailJobConsumer } from "./consumers/email.consumer.js";
-// import type { IJob } from "@auth/contracts";
 
 const logger = getLogger();
 
@@ -27,40 +27,59 @@ async function main(): Promise<void> {
     // Create database service
     const databaseService = new DatabaseService({ config, logger });
 
+    // Create email service config (subset of full config)
+    const emailConfig: EmailServiceConfig = {
+      emailFrom: config.emailFrom ?? "noreply@example.com",
+      clientUrl: config.clientUrl,
+      verificationTokenExpiresIn: config.verificationTokenExpiresIn,
+    };
+
+    // Create provider service for email
+    const providerService = new ProviderService({
+      config: {
+        resendApiKey: config.resendApiKey,
+        resendWebhookSecret: config.resendWebhookSecret,
+        mailersendApiKey: config.mailersendApiKey,
+        mailersendWebhookSecret: config.mailersendWebhookSecret,
+        mailersendEmailFrom: config.mailersendEmailFrom,
+      },
+      logger,
+    });
+
+    // EmailLogRepository returns IEmailLog POJOs via contract-compliant mapping
+    const emailLogRepository = databaseService.emailLogRepository;
+
     // Create email service with DI
     const emailService = new EmailService({
-      config,
+      config: emailConfig,
       logger,
-      emailLogRepository: databaseService.emailLogs,
+      emailLogRepository,
+      providerService,
     });
 
     // Create worker service with DI
-    // Note: Using type assertion as implementations may not exactly match interfaces
+    // DatabaseService implements IDatabaseService - no cast needed
+    // redisConnection implements IRedisConnection - typed via contract
     const workerService = new WorkerService({
       logger,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      redisConnection: redisConnection as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      databaseService: databaseService as any,
+      redisConnection: redisConnection as IRedisConnection,
+      databaseService,
       initServices: [
-        // Initialize email service
         async () => { await emailService.initialize(); },
       ],
     });
 
-    // Create email consumer using factory pattern (with DI)
-    // Type assertion needed as EmailService implementation differs from contract
+    // Create email consumer using factory pattern
     const emailJobConsumer = createEmailJobConsumer({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      emailService: emailService as any,
+      emailService,
       logger,
     });
 
     // Register email processor with retry strategy
+    // Type T is inferred as generic argument matching emailJobConsumer
     workerService.registerProcessor({
       queueName: QUEUE_NAMES.EMAIL,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      processor: emailJobConsumer as any,
+      processor: emailJobConsumer,
       workerConfig: {
         concurrency: config.worker.concurrency,
         attempts: config.worker.maxRetries,

@@ -10,7 +10,7 @@ import {
   WORKER_ERRORS,
 } from "../constants/worker.messages.js";
 import BaseConsumer from "./base.consumer.js";
-import type { ILogger, IJob, JobResult, IEmailService } from "@auth/contracts";
+import type { ILogger, IJob, JobResult, IEmailService, JobData } from "@auth/contracts";
 
 /**
  * Email consumer options
@@ -23,7 +23,7 @@ interface EmailConsumerOptions {
 /**
  * Email job data structure
  */
-interface EmailJobData {
+interface EmailJobData extends JobData {
   type: string;
   data: {
     user?: { id: string; email: string; name: string };
@@ -62,10 +62,9 @@ class EmailConsumer extends BaseConsumer {
       ? `email-consumer.${type.replace(/_/g, "-").toLowerCase()}`
       : "email-consumer.process-job";
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return this.withJobSpan(job as any, spanName, async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const jobLogger = this.createJobLogger(job as any, type);
+    // Pass job directly - EmailJobData extends JobData
+    return this.withJobSpan(job, spanName, async () => {
+      const jobLogger = this.createJobLogger(job, type);
       jobLogger.info(WORKER_MESSAGES.EMAIL_JOB_STARTED);
 
       try {
@@ -119,7 +118,7 @@ class EmailConsumer extends BaseConsumer {
         WORKER_MESSAGES.EMAIL_SENDING_VERIFICATION
       );
 
-      // CRITICAL FIX: Use sendVerificationEmail instead of sendEmail
+      // Use sendVerificationEmail
       await this.emailService.sendVerificationEmail(
         data.user,
         data.token,

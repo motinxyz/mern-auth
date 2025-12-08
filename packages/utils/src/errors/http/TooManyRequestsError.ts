@@ -20,7 +20,7 @@ export class TooManyRequestsError extends HttpError {
   /** Seconds until the client can retry */
   public readonly retryAfter: number;
 
-  constructor(retryAfterSeconds = 60, message = "system:errors.tooManyRequests") {
+  constructor(retryAfterSeconds = 60, message = "system:process.errors.tooManyRequests") {
     super(
       HTTP_STATUS_CODES.TOO_MANY_REQUESTS,
       message,

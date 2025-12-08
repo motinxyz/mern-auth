@@ -8,12 +8,8 @@ interface FeatureFlagService {
   isEnabled: (flagName: string, userId: string | null) => Promise<boolean>;
 }
 
-interface AuthenticatedRequest extends Request {
-  user?: { id: string };
-}
-
 export const featureFlagMiddleware = (featureFlagService: FeatureFlagService, flagName: string) => {
-  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user?.id ?? null;
       const isEnabled = await featureFlagService.isEnabled(flagName, userId);

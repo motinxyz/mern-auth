@@ -1,27 +1,36 @@
 import mongoose from "mongoose";
 import { ConfigurationError } from "@auth/utils";
-import type { ILogger, IConfig } from "@auth/contracts";
+import type {
+  ILogger,
+  IConfig,
+  IDatabaseService,
+  IUserRepository,
+  IEmailLogRepository,
+  IAuditLogRepository,
+} from "@auth/contracts";
 import DatabaseConnectionManager from "./connection-manager.js";
 import UserRepository from "./repositories/user.repository.js";
 import EmailLogRepository from "./repositories/email-log.repository.js";
 import AuditLogRepository from "./repositories/audit-log.repository.js";
 import User from "./models/user.model.js";
 import EmailLog from "./models/email-log.model.js";
-import type { EmailLogModel } from "./models/email-log.model.js";
 import AuditLog from "./models/audit-log.model.js";
 import type { AuditLogDocument } from "./models/audit-log.model.js";
 import { DB_ERRORS } from "./constants/database.messages.js";
 import type { UserDocument } from "./models/user.model.js";
+import type { EmailLogDocument } from "./models/email-log.model.js";
 
 /**
  * Database Service
- * Production-grade database layer with DI
+ * 
+ * Production-grade database layer implementing IDatabaseService contract.
+ * Returns contract-compliant POJOs via repository mappers.
  */
-class DatabaseService {
-  public connectionManager: DatabaseConnectionManager;
-  public userRepository: UserRepository;
-  public emailLogRepository: EmailLogRepository;
-  public auditLogRepository: AuditLogRepository;
+class DatabaseService implements IDatabaseService {
+  private readonly connectionManager: DatabaseConnectionManager;
+  private readonly _userRepository: UserRepository;
+  private readonly _emailLogRepository: EmailLogRepository;
+  private readonly _auditLogRepository: AuditLogRepository;
 
   constructor(options: {
     config: IConfig;
@@ -36,66 +45,94 @@ class DatabaseService {
 
     this.connectionManager = new DatabaseConnectionManager(options);
 
-    // Initialize repositories
-    this.userRepository = new UserRepository(User as unknown as mongoose.Model<UserDocument>);
-    this.emailLogRepository = new EmailLogRepository(EmailLog as unknown as EmailLogModel);
-    this.auditLogRepository = new AuditLogRepository(AuditLog as unknown as mongoose.Model<AuditLogDocument>, options.logger);
+    // Initialize repositories with models
+    this._userRepository = new UserRepository(
+      User as mongoose.Model<UserDocument>
+    );
+    this._emailLogRepository = new EmailLogRepository(
+      EmailLog as mongoose.Model<EmailLogDocument>
+    );
+    this._auditLogRepository = new AuditLogRepository(
+      AuditLog as mongoose.Model<AuditLogDocument>,
+      options.logger
+    );
+  }
+
+  /**
+   * IDatabaseService contract: userRepository getter
+   */
+  get userRepository(): IUserRepository {
+    return this._userRepository;
+  }
+
+  /**
+   * IDatabaseService contract: emailLogRepository getter
+   */
+  get emailLogRepository(): IEmailLogRepository {
+    return this._emailLogRepository;
+  }
+
+  /**
+   * IDatabaseService contract: auditLogRepository getter
+   */
+  get auditLogRepository(): IAuditLogRepository {
+    return this._auditLogRepository;
+  }
+
+  /**
+   * Legacy getter for compatibility
+   */
+  get users(): UserRepository {
+    return this._userRepository;
+  }
+
+  /**
+   * Legacy getter for compatibility
+   */
+  get emailLogs(): EmailLogRepository {
+    return this._emailLogRepository;
+  }
+
+  /**
+   * Legacy getter for compatibility
+   */
+  get auditLogs(): AuditLogRepository {
+    return this._auditLogRepository;
   }
 
   /**
    * Connect to database
    */
-  async connect() {
-    return this.connectionManager.connect();
+  async connect(): Promise<void> {
+    await this.connectionManager.connect();
   }
 
   /**
    * Disconnect from database
    */
-  async disconnect() {
-    return this.connectionManager.disconnect();
+  async disconnect(): Promise<void> {
+    await this.connectionManager.disconnect();
   }
 
   /**
-   * Get connection state
+   * Get connection state (IDatabaseService contract)
    */
-  getConnectionState() {
+  getConnectionState(): { readyState: number } {
     return this.connectionManager.getConnectionState();
   }
 
   /**
    * Health check
    */
-  async healthCheck() {
+  async healthCheck(): Promise<{ healthy: boolean; latencyMs?: number; reason?: string }> {
     return this.connectionManager.healthCheck();
   }
 
   /**
-   * Simple ping check
+   * Simple ping check (IDatabaseService contract)
    */
-  async ping() {
+  async ping(): Promise<boolean> {
     return this.connectionManager.ping();
-  }
-
-  /**
-   * Get user repository
-   */
-  get users() {
-    return this.userRepository;
-  }
-
-  /**
-   * Get email log repository
-   */
-  get emailLogs() {
-    return this.emailLogRepository;
-  }
-
-  /**
-   * Get audit log repository
-   */
-  get auditLogs() {
-    return this.auditLogRepository;
   }
 }
 

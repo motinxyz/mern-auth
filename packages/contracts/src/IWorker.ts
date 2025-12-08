@@ -29,6 +29,16 @@ export interface JobData {
 }
 
 /**
+ * Trace context for distributed tracing
+ * Matches OpenTelemetry SpanContext structure
+ */
+export interface TraceContext {
+    readonly traceId: string;
+    readonly spanId: string;
+    readonly traceFlags: number;
+}
+
+/**
  * Job interface for consumers
  */
 export interface IJob<T = JobData> {
@@ -86,6 +96,7 @@ export interface ProcessorConfig {
  */
 export interface WorkerServiceOptions {
     logger: ILogger;
+    /** Redis connection - must implement IRedisConnection (ioredis compatible) */
     redisConnection: IRedisConnection;
     sentry?: ISentry;
     sentryDsn?: string;
@@ -112,9 +123,10 @@ export interface QueueProcessorOptions {
 /**
  * Processor registration config
  */
-export interface ProcessorRegistrationConfig {
+export interface ProcessorRegistrationConfig<T = unknown> {
     queueName: string;
-    processor: (job: IJob) => Promise<unknown>;
+    /** Job processor function - accepts generic job handler */
+    processor: (job: IJob<T>) => Promise<unknown>;
     workerConfig?: WorkerConfig;
     deadLetterQueueName?: string;
 }
@@ -129,6 +141,7 @@ export interface WorkerHealth {
         queueName: string;
         isRunning?: boolean;
         isPaused?: boolean;
+        reason?: string;
     }>;
     database: { healthy: boolean } | null;
 }
@@ -152,7 +165,7 @@ export interface WorkerMetrics {
  * Worker service interface
  */
 export interface IWorkerService {
-    registerProcessor(config: ProcessorRegistrationConfig): IQueueProcessor;
+    registerProcessor<T = unknown>(config: ProcessorRegistrationConfig<T>): IQueueProcessor;
     start(): Promise<void>;
     stop(timeoutMs?: number): Promise<void>;
     getHealth(): Promise<WorkerHealth>;
@@ -166,13 +179,14 @@ export interface IWorkerService {
  * Queue processor interface
  */
 export interface IQueueProcessor {
+    readonly queueName: string;
     initialize(): Promise<void>;
     close(): Promise<void>;
     pause(): Promise<void>;
     resume(): Promise<void>;
     getHealth(): Promise<{
         healthy: boolean;
-        queueName?: string;
+        queueName: string;
         isRunning?: boolean;
         isPaused?: boolean;
         reason?: string;

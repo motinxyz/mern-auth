@@ -8,7 +8,7 @@ import { RegistrationDto } from "./registration.dto.js";
  * Single Responsibility: Handle registration HTTP requests
  */
 export class RegistrationController {
-  registrationService: RegistrationService;
+  private readonly registrationService: RegistrationService;
 
   constructor(registrationService: RegistrationService) {
     this.registrationService = registrationService;

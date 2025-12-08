@@ -3,9 +3,9 @@ import { initReactI18next } from "react-i18next";
 
 // Import locale files from @auth/config
 // We'll import them directly as JSON modules
-import authEn from "../../../config/src/locales/en/auth.json";
-import validationEn from "../../../config/src/locales/en/validation.json";
-import systemEn from "../../../config/src/locales/en/system.json";
+import authEn from "@auth/config/locales/en/auth.json";
+import validationEn from "@auth/config/locales/en/validation.json";
+import systemEn from "@auth/config/locales/en/system.json";
 
 const resources = {
   en: {

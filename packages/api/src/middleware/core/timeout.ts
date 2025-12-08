@@ -1,15 +1,9 @@
 import timeout from "connect-timeout";
 import { getLogger } from "@auth/config";
 import type { Request, Response, NextFunction } from "express";
-
-interface TimeoutRequest extends Request {
-  timedout?: boolean;
-  user?: { id: string };
-}
-
-const logger = getLogger();
 import { HTTP_STATUS_CODES } from "@auth/utils";
 
+const logger = getLogger();
 const timeoutLogger = logger.child({ module: "request-timeout" });
 
 /**
@@ -27,10 +21,13 @@ export const createTimeoutMiddleware = (duration = 30000) => {
     timeout(duration),
 
     // Check if request timed out before proceeding
-    (req: TimeoutRequest, _res: Response, next: NextFunction) => {
-      if (req.timedout !== true) {
-        next();
+    (req: Request, _res: Response, next: NextFunction) => {
+      // timedout property added via global augmentation
+      if (req.timedout === true) {
+        // Halt execution, timeout middleware will handle response
+        return;
       }
+      next();
     },
   ];
 };
@@ -41,14 +38,15 @@ export const createTimeoutMiddleware = (duration = 30000) => {
  * Must be placed AFTER all routes but BEFORE the global error handler.
  * Catches timed-out requests and sends appropriate error response.
  */
-export const timeoutErrorHandler = (req: TimeoutRequest, res: Response, next: NextFunction) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const timeoutErrorHandler = (req: Request, res: Response, next: NextFunction) => {
   if (req.timedout === true) {
     timeoutLogger.warn(
       {
-        requestId: req.id,
+        requestId: req.id, // req.id might be added by pino-http or standard express
         method: req.method,
         url: req.url,
-        userId: req.user?.id,
+        userId: req.user?.id ?? req.user?._id,
       },
       "Request timed out"
     );

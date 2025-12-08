@@ -65,7 +65,7 @@ export class AuthAdapter {
    * @returns {string}
    */
   getLocale(req: Request): string {
-    const localeRequest = req as Request & { locale?: string };
-    return localeRequest.locale ?? req.headers["accept-language"]?.split(",")[0] ?? "en";
+    return req.locale ?? req.headers["accept-language"]?.split(",")[0] ?? "en";
   }
 }
+

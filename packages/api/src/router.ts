@@ -3,15 +3,21 @@ import { authRoutes } from "./features/auth/index.js";
 import { healthRoutes } from "./features/health/index.js";
 import testEmailRoutes from "./features/test-email/test-email.routes.js";
 import { authLimiter } from "./middleware/index.js";
+import { config } from "@auth/config";
 
 const router: IRouter = Router();
 
-const apiVersion = "v1";
-// API Version 1 Routes - Apply stricter auth rate limiter
-router.use(`/${apiVersion}/auth`, authLimiter, authRoutes);
+const API_VERSION = "v1";
 
-// Utility Routes (Specific paths)
+// API Version 1 Routes - Apply stricter auth rate limiter
+router.use(`/${API_VERSION}/auth`, authLimiter, authRoutes);
+
+// Utility Routes
 router.use("/health", healthRoutes);
-router.use("/test-email", testEmailRoutes);
+
+// Test routes - only available in non-production environments
+if (config.isTest || config.env === "development") {
+    router.use("/test-email", testEmailRoutes);
+}
 
 export default router;

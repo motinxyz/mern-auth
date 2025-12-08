@@ -3,44 +3,54 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { EMAIL_MESSAGES, EMAIL_ERRORS } from "./constants/email.messages.js";
+import type { TemplateInitOptions } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Cache for compiled templates
-const templateCache = new Map();
+const templateCache = new Map<string, { template: HandlebarsTemplateDelegate; layout: HandlebarsTemplateDelegate }>();
+
+// Module-level resolved templates directory
+let resolvedTemplatesDir: string | null = null;
+
+/**
+ * Possible template directories (production and development paths)
+ */
+const TEMPLATE_DIRS = [
+  path.join(__dirname, "templates/handlebars"),
+  path.join(__dirname, "../src/templates/handlebars"),
+  path.join(process.cwd(), "packages/email/src/templates/handlebars"),
+] as const;
+
+/**
+ * Resolve the templates directory
+ */
+async function resolveTemplatesDir(): Promise<string> {
+  if (resolvedTemplatesDir) return resolvedTemplatesDir;
+
+  for (const dir of TEMPLATE_DIRS) {
+    try {
+      await fs.access(dir);
+      resolvedTemplatesDir = dir;
+      return dir;
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error(`Could not locate templates directory. Checked: ${TEMPLATE_DIRS.join(", ")}`);
+}
 
 /**
  * Initialize template engine
- * Preloads all partials and templates
- * @param {object} options - Options
- * @param {object} options.logger - Logger instance (required)
+ * Preloads all partials and registers helpers
  */
-export async function initializeTemplates(options: any = {}) {
+export async function initializeTemplates(options: TemplateInitOptions = {}): Promise<void> {
   const { logger } = options;
 
   try {
-    // --- Path Resolution ---
-    const possibleTemplateDirs = [
-      path.join(__dirname, "templates/handlebars"), // Production (dist/templates/handlebars)
-      path.join(__dirname, "../src/templates/handlebars"), // Dev (src/templates/handlebars)
-      path.join(process.cwd(), "packages/email/src/templates/handlebars"), // Fallback
-    ];
-
-    let templatesDir = "";
-    for (const dir of possibleTemplateDirs) {
-      try {
-        await fs.access(dir);
-        templatesDir = dir;
-        break;
-      } catch {
-        continue;
-      }
-    }
-
-    if (!templatesDir) {
-      throw new Error(`Could not locate templates directory. Checked: ${possibleTemplateDirs.join(", ")}`);
-    }
+    const templatesDir = await resolveTemplatesDir();
 
     // Register partials
     const partialsDir = path.join(templatesDir, "partials");
@@ -71,8 +81,11 @@ export async function initializeTemplates(options: any = {}) {
   }
 }
 
-function registerHelpers() {
-  Handlebars.registerHelper("formatDate", (date) => {
+/**
+ * Register Handlebars helpers
+ */
+function registerHelpers(): void {
+  Handlebars.registerHelper("formatDate", (date: string | Date) => {
     return new Date(date).toLocaleDateString();
   });
 
@@ -82,52 +95,34 @@ function registerHelpers() {
 }
 
 /**
- * Compile and render an email template
- * @param {string} templateName - Name of the template (without .hbs extension)
- * @param {object} data - Data to pass to the template
- * @returns {Promise<string>} - Compiled HTML
+ * Template data for rendering
  */
-export async function compileTemplate(templateName, data) {
+interface TemplateData {
+  readonly subject?: string;
+  readonly name?: string;
+  readonly verificationUrl?: string;
+  readonly expiryMinutes?: number;
+  readonly [key: string]: unknown;
+}
+
+/**
+ * Compile and render an email template
+ */
+export async function compileTemplate(
+  templateName: string,
+  data: TemplateData
+): Promise<string> {
   const cacheKey = templateName;
 
   // Check cache first
-  if (templateCache.has(cacheKey)) {
-    const { template, layout } = templateCache.get(cacheKey);
-    const body = template(data);
-    return layout({ ...data, body, year: new Date().getFullYear() });
+  const cached = templateCache.get(cacheKey);
+  if (cached) {
+    const body = cached.template(data);
+    return cached.layout({ ...data, body, year: new Date().getFullYear() });
   }
 
-  // Load and compile templates
-  // Resolve templates dir again (should functionize this, but for now duplicate logic is fine or use a module-level var if init was called)
-  // Re-deriving for statelessness of this pure function if init wasn't called (though init IS required for partials)
-  // Better: use the same resolution logic.
-
-  const possibleTemplateDirs = [
-    path.join(__dirname, "templates/handlebars"),
-    path.join(__dirname, "../src/templates/handlebars"),
-    path.join(process.cwd(), "packages/email/src/templates/handlebars"),
-  ];
-
-  let templatesDir = possibleTemplateDirs[0];
-  for (const dir of possibleTemplateDirs) {
-    try {
-      // Synchronous check is okay here or just let readFile fail and catch it? 
-      // fs.access requires await. Let's just try/catch the primary paths or assume init was called?
-      // Actually, let's just use the first one that works or default to the relative one if we want to be simple.
-      // But we are in an async function.
-    } catch { }
-  }
-
-  // To keep it simple and avoid massive refactor, we will try the resolved path if we found one during init, 
-  // but init might not store it globally. Let's do the loop.
-
-  for (const dir of possibleTemplateDirs) {
-    try {
-      await fs.access(dir);
-      templatesDir = dir;
-      break;
-    } catch { }
-  }
+  // Resolve templates directory
+  const templatesDir = await resolveTemplatesDir();
 
   const templatePath = path.join(templatesDir, `emails/${templateName}.hbs`);
   const layoutPath = path.join(templatesDir, "layouts/base.hbs");
@@ -147,11 +142,12 @@ export async function compileTemplate(templateName, data) {
     const body = template(data);
     return layout({ ...data, body, year: new Date().getFullYear() });
   } catch (error) {
+    const err = error as Error;
     throw new Error(
       EMAIL_ERRORS.TEMPLATE_COMPILE_FAILED.replace(
         "{template}",
         templateName
-      ).replace("{error}", error.message)
+      ).replace("{error}", err.message)
     );
   }
 }
@@ -159,6 +155,7 @@ export async function compileTemplate(templateName, data) {
 /**
  * Clear template cache (useful for development)
  */
-export function clearTemplateCache() {
+export function clearTemplateCache(): void {
   templateCache.clear();
+  resolvedTemplatesDir = null;
 }

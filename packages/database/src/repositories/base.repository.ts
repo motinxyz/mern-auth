@@ -1,30 +1,32 @@
 import { ConfigurationError, withSpan } from "@auth/utils";
 import { DB_ERRORS } from "../constants/database.messages.js";
 import mongoose from "mongoose";
+import type { FindOptions } from "@auth/contracts";
 
-// Local definition for SortOrder as it seems missing in Mongoose 9 exports
+/** Sort order for queries */
 type SortOrder = 1 | -1 | "asc" | "desc" | "ascending" | "descending";
 
 /**
  * Base Repository
+ *
  * Implements generic CRUD operations with observability and error handling.
- * All concrete repositories should extend this class.
+ * Returns contract-compliant POJOs using .lean() and mapDocument().
+ *
+ * @template TDoc - Mongoose Document type
+ * @template TEntity - Contract entity type (POJO)
  */
-class BaseRepository<T extends mongoose.Document> {
-  protected model: mongoose.Model<T>;
-  protected name: string;
+abstract class BaseRepository<TDoc extends mongoose.Document, TEntity> {
+  protected readonly model: mongoose.Model<TDoc>;
+  protected readonly name: string;
 
   /**
-   * @param {import("mongoose").Model} model - Mongoose model
-   * @param {string} name - Repository name for logging/tracing
+   * @param model - Mongoose model instance
+   * @param name - Repository name for logging/tracing
    */
-  constructor(model: mongoose.Model<T>, name: string) {
+  constructor(model: mongoose.Model<TDoc>, name: string) {
     if (model === undefined || model === null) {
       throw new ConfigurationError(
-        DB_ERRORS.MISSING_MODEL.replace(
-          "{repository}",
-          name || "BaseRepository"
-        )
+        DB_ERRORS.MISSING_MODEL.replace("{repository}", name || "BaseRepository")
       );
     }
     this.model = model;
@@ -32,64 +34,91 @@ class BaseRepository<T extends mongoose.Document> {
   }
 
   /**
-   * Create a new document
-   * @param {object} data - Document data
-   * @returns {Promise<T>}
+   * Map a lean document to contract entity.
+   * Must be implemented by concrete repositories.
    */
-  async create(data: Partial<T>): Promise<T> {
+  protected abstract mapDocument(doc: unknown): TEntity | null;
+
+  /**
+   * Map multiple documents
+   */
+  protected mapDocuments(docs: unknown[]): TEntity[] {
+    return docs
+      .map(d => this.mapDocument(d))
+      .filter((d): d is TEntity => d !== null);
+  }
+
+  /**
+   * Create a new document
+   * @param data - Document data
+   */
+  async create(data: Partial<TEntity>): Promise<TEntity> {
     return withSpan(`${this.name}.create`, async () => {
-      // Mongoose.create can return an array or object. We assume object here.
-      // If array is passed, the caller should likely use a different method or we should update types.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (await this.model.create(data as any)) as unknown as T;
+      const doc = new this.model(data);
+      const saved = await doc.save();
+      // Convert saved document to lean object and map
+      const lean = saved.toObject();
+      const mapped = this.mapDocument(lean);
+      if (!mapped) {
+        throw new Error("Failed to map created document");
+      }
+      return mapped;
     });
   }
 
   /**
    * Find document by ID
-   * @param {string} id - Document ID
-   * @returns {Promise<import("mongoose").Document|null>}
+   * @param id - Document ID
    */
-  async findById(id: string) {
+  async findById(id: string): Promise<TEntity | null> {
     return withSpan(`${this.name}.findById`, async () => {
-      return this.model.findById(id);
+      const doc = await this.model.findById(id).lean().exec();
+      return this.mapDocument(doc);
     });
   }
 
   /**
    * Find one document matching filter
-   * @param {object} filter - Query filter
-   * @returns {Promise<import("mongoose").Document|null>}
+   * @param filter - Query filter
    */
-  async findOne(filter: Record<string, unknown>) {
+  async findOne(filter: Record<string, unknown>): Promise<TEntity | null> {
     return withSpan(`${this.name}.findOne`, async () => {
-      return this.model.findOne(filter);
+      const doc = await this.model.findOne(filter).lean().exec();
+      return this.mapDocument(doc);
     });
   }
 
   /**
    * Find multiple documents matching filter
-   * @param {object} filter - Query filter
-   * @param {object} [options] - Query options (limit, skip, sort)
-   * @returns {Promise<import("mongoose").Document[]>}
+   * @param filter - Query filter
+   * @param options - Query options (limit, skip, sort)
    */
-  async find(filter: Record<string, unknown>, options: { sort?: Record<string, SortOrder>; skip?: number; limit?: number } = {}) {
+  async find(
+    filter: Record<string, unknown>,
+    options: FindOptions = {}
+  ): Promise<TEntity[]> {
     return withSpan(`${this.name}.find`, async () => {
-      const query = this.model.find(filter);
+      let query = this.model.find(filter);
 
-      if (options.sort) query.sort(options.sort);
-      if (options.skip !== undefined) query.skip(options.skip);
-      if (options.limit !== undefined) query.limit(options.limit);
+      if (options.sort !== undefined) {
+        query = query.sort(options.sort as Record<string, mongoose.SortOrder>);
+      }
+      if (options.skip !== undefined) {
+        query = query.skip(options.skip);
+      }
+      if (options.limit !== undefined) {
+        query = query.limit(options.limit);
+      }
 
-      return query.exec();
+      const docs = await query.lean().exec();
+      return this.mapDocuments(docs);
     });
   }
 
   /**
-   * Find multiple documents matching filter with pagination
-   * @param {Record<string, unknown>} query - Query filter
-   * @param {object} [options] - Pagination and sort options
-   * @returns {Promise<{ items: T[]; total: number; page: number; limit: number; totalPages: number; }>}
+   * Find multiple documents with pagination
+   * @param query - Query filter
+   * @param options - Pagination and sort options
    */
   async findWithPagination(
     query: Record<string, unknown>,
@@ -99,7 +128,7 @@ class BaseRepository<T extends mongoose.Document> {
       sort?: Record<string, SortOrder>;
     } = {}
   ): Promise<{
-    items: T[];
+    items: TEntity[];
     pagination: {
       total: number;
       page: number;
@@ -110,18 +139,19 @@ class BaseRepository<T extends mongoose.Document> {
     const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
     const skip = (page - 1) * limit;
 
-    const [items, total] = await Promise.all([
+    const [docs, total] = await Promise.all([
       this.model
         .find(query)
-        .sort(sort as unknown as { [key: string]: mongoose.SortOrder }) // Cast to satisfy mongoose type checker if strictly required
+        .sort(sort as Record<string, mongoose.SortOrder>)
         .skip(skip)
         .limit(limit)
+        .lean()
         .exec(),
       this.model.countDocuments(query).exec(),
     ]);
 
     return {
-      items,
+      items: this.mapDocuments(docs),
       pagination: {
         total,
         page,
@@ -133,34 +163,62 @@ class BaseRepository<T extends mongoose.Document> {
 
   /**
    * Update document by ID
-   * @param {string} id - Document ID
-   * @param {object} updates - Update data
-   * @param {object} [options] - Mongoose update options
-   * @returns {Promise<import("mongoose").Document|null>}
+   * @param id - Document ID
+   * @param updates - Update data
    */
-  async update(id: string, updates: Record<string, unknown>, options = { new: true }) {
+  async update(id: string, updates: Record<string, unknown>): Promise<TEntity | null> {
     return withSpan(`${this.name}.update`, async () => {
-      return this.model.findByIdAndUpdate(id, updates, options);
+      const doc = await this.model
+        .findByIdAndUpdate(id, updates, { new: true })
+        .lean()
+        .exec();
+      return this.mapDocument(doc);
+    });
+  }
+
+  /**
+   * Update document by ID (IRepository contract method)
+   * @param id - Document ID
+   * @param data - Partial update data
+   */
+  async updateById(id: string, data: Partial<TEntity>): Promise<TEntity | null> {
+    return withSpan(`${this.name}.updateById`, async () => {
+      const doc = await this.model
+        .findByIdAndUpdate(id, data as mongoose.UpdateQuery<TDoc>, { new: true })
+        .lean()
+        .exec();
+      return this.mapDocument(doc);
     });
   }
 
   /**
    * Delete document by ID
-   * @param {string} id - Document ID
-   * @returns {Promise<import("mongoose").Document|null>}
+   * @param id - Document ID
    */
-  async delete(id: string) {
+  async delete(id: string): Promise<TEntity | null> {
     return withSpan(`${this.name}.delete`, async () => {
-      return this.model.findByIdAndDelete(id);
+      const doc = await this.model.findByIdAndDelete(id).lean().exec();
+      return this.mapDocument(doc);
+    });
+  }
+
+  /**
+   * Delete document by ID (IRepository contract method)
+   * @param id - Document ID
+   * @returns boolean indicating if document was deleted
+   */
+  async deleteById(id: string): Promise<boolean> {
+    return withSpan(`${this.name}.deleteById`, async () => {
+      const result = await this.model.findByIdAndDelete(id).lean().exec();
+      return result !== null;
     });
   }
 
   /**
    * Count documents matching filter
-   * @param {object} filter - Query filter
-   * @returns {Promise<number>}
+   * @param filter - Query filter
    */
-  async count(filter: Record<string, unknown> = {}) {
+  async count(filter: Record<string, unknown> = {}): Promise<number> {
     return withSpan(`${this.name}.count`, async () => {
       return this.model.countDocuments(filter);
     });

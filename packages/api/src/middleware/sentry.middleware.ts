@@ -13,16 +13,12 @@ import {
   startSentryTransaction,
 } from "./core/sentry.js";
 import type { Request, Response, NextFunction } from "express";
-import type { TokenUser } from "@auth/contracts";
-
-interface AuthenticatedRequest extends Request {
-  user?: TokenUser;
-}
+// import type { TokenUser } from "@auth/contracts"; // Unused
 
 /**
  * Middleware to set Sentry user context for authenticated requests
  */
-export const sentryUserMiddleware = (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+export const sentryUserMiddleware = (req: Request, _res: Response, next: NextFunction) => {
   // Set user context if authenticated
   if (req.user !== undefined) {
     setSentryUser(req.user);

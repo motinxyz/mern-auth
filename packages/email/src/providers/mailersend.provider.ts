@@ -1,53 +1,57 @@
 import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
 import crypto from "crypto";
 import type { ILogger } from "@auth/contracts";
+import type {
+  IEmailProvider,
+  MailOptions,
+  EmailResult,
+  ProviderHealth,
+  WebhookHeaders,
+  ParsedWebhookEvent,
+  MailerSendProviderOptions,
+} from "../types.js";
 
 /**
  * MailerSend Email Provider
- * @implements {import('@auth/contracts').IEmailProvider}
+ * Production-grade implementation of IEmailProvider using MailerSend API.
  */
-class MailerSendProvider {
-  name: string;
-  client: MailerSend | undefined;
-  webhookSecret: string;
-  fromEmail: string;
-  logger: ILogger;
+class MailerSendProvider implements IEmailProvider {
+  readonly name: string = "mailersend-api";
+  private readonly client: MailerSend | null;
+  private readonly webhookSecret: string | undefined;
+  private readonly fromEmail: string | undefined;
+  private readonly logger: ILogger;
 
-  constructor({ apiKey, webhookSecret, fromEmail, logger }: any) {
-    this.name = "mailersend-api";
-    if (apiKey) {
-      this.client = new MailerSend({ apiKey });
-    }
+  constructor({ apiKey, webhookSecret, fromEmail, logger }: MailerSendProviderOptions) {
+    this.client = apiKey ? new MailerSend({ apiKey }) : null;
     this.webhookSecret = webhookSecret;
     this.fromEmail = fromEmail;
     this.logger = logger.child({ provider: this.name });
   }
 
-  async send(mailOptions) {
+  async send(mailOptions: MailOptions): Promise<EmailResult> {
     const { from, to, subject, html, text } = mailOptions;
 
+    if (!this.client) {
+      throw new Error("MailerSend API key not configured");
+    }
+
     // Use configured "from" address for MailerSend if provided (domain alignment)
-    // Use configured "from" address for MailerSend if provided (domain alignment)
-    const rawFrom = this.fromEmail || from;
+    const rawFrom = this.fromEmail ?? from;
 
     let fromEmail = rawFrom;
     let fromName = "Auth System";
 
     if (rawFrom.includes("<")) {
-      const match = rawFrom.match(/(.*)<(.*)>/);
-      if (match) {
-        fromName = match[1].trim();
+      const match = rawFrom.match(/(.*)< *(.*)>/);
+      if (match?.[1] && match[2]) {
+        fromName = match[1].trim().replace(/^"|"$/g, "");
         fromEmail = match[2].trim();
-
-        // Remove surrounding quotes if present in name
-        fromName = fromName.replace(/^"|"$/g, "");
       }
     }
 
     const sender = new Sender(fromEmail, fromName);
-
-    // Support multiple recipients? Currently array or string. Assume single string for now or array.
-    const recipients = [new Recipient(to, to)]; // MailerSend requires Recipient objects
+    const recipients = [new Recipient(to, to)];
 
     const emailParams = new EmailParams()
       .setFrom(sender)
@@ -57,31 +61,28 @@ class MailerSendProvider {
       .setText(text);
 
     try {
-      if (!this.client) {
-        throw new Error("MailerSend API key not configured");
-      }
-
       const response = await this.client.email.send(emailParams);
-      // Response { statusCode, body }
 
       return {
-        messageId: response.headers?.["x-message-id"], // MailerSend returns ID in header often
+        messageId: response.headers?.["x-message-id"] as string | undefined,
         provider: this.name,
         accepted: [to],
-        response: response.statusCode,
+        response: response.statusCode ?? 200,
       };
     } catch (error) {
-      this.logger.error(
-        { err: error, body: error.body },
-        "MailerSend send failed"
-      );
+      const err = error as Error & { body?: unknown };
+      this.logger.error({ err, body: err.body }, "MailerSend send failed");
       throw error;
     }
   }
 
-  verifyWebhookSignature(payload, headers, secret = null) {
-    const currentSecret = secret || this.webhookSecret;
-    if (!currentSecret) return true;
+  verifyWebhookSignature(
+    payload: string,
+    headers: WebhookHeaders,
+    secret: string | null = null
+  ): boolean {
+    const currentSecret = secret ?? this.webhookSecret;
+    if (!currentSecret) return true; // Dev mode
 
     const signature = headers["mailersend-signature"];
     if (!signature) return false;
@@ -94,41 +95,53 @@ class MailerSendProvider {
         Buffer.from(signature),
         Buffer.from(expectedSignature)
       );
-    } catch (err) {
+    } catch {
       return false;
     }
   }
 
-  parseWebhookEvent(event) {
+  parseWebhookEvent(event: unknown): ParsedWebhookEvent | null {
+    const e = event as {
+      type: string;
+      created_at: string;
+      data: {
+        recipient?: { email?: string };
+        email?: { id?: string };
+        reason?: string;
+      };
+    };
+
+    const email = e.data?.recipient?.email;
+    const messageId = e.data?.email?.id;
+
+    if (!email || !messageId) return null;
+
     const base = {
-      timestamp: new Date(event.created_at),
-      email: event.data?.recipient?.email,
-      messageId: event.data?.email?.id,
+      timestamp: new Date(e.created_at),
+      email,
+      messageId,
       originalEvent: event,
     };
 
-    // Guard against missing data
-    if (!base.email || !base.messageId) return null;
-
-    if (event.type === "activity.soft_bounced") {
+    if (e.type === "activity.soft_bounced") {
       return {
         ...base,
         type: "bounce",
         bounceType: "soft",
-        reason: event.data.reason || "Soft bounce",
+        reason: e.data.reason ?? "Soft bounce",
       };
     }
 
-    if (event.type === "activity.hard_bounced") {
+    if (e.type === "activity.hard_bounced") {
       return {
         ...base,
         type: "bounce",
         bounceType: "hard",
-        reason: event.data.reason || "Hard bounce",
+        reason: e.data.reason ?? "Hard bounce",
       };
     }
 
-    if (event.type === "activity.spam_complaint") {
+    if (e.type === "activity.spam_complaint") {
       return {
         ...base,
         type: "complaint",
@@ -136,11 +149,11 @@ class MailerSendProvider {
       };
     }
 
-    return null; // Ignore other events for now
+    return null;
   }
 
-  async checkHealth() {
-    return { healthy: !!this.client, name: this.name };
+  async checkHealth(): Promise<ProviderHealth> {
+    return { healthy: this.client !== null, name: this.name };
   }
 }
 

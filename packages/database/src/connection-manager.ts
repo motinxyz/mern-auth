@@ -81,8 +81,7 @@ class DatabaseConnectionManager {
           DB_MESSAGES.ATTEMPTING_CONNECTION
         );
 
-        // Fallback for missing dbURI if mongoUri is present (backwards compatibility)
-        const uri = this.config.dbURI ?? this.config.mongoUri;
+        const uri = this.config.dbURI;
 
         if (!uri) {
           throw new ConfigurationError("Missing Database Connection String");

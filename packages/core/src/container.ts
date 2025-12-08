@@ -5,6 +5,9 @@ import { getQueueServices } from "@auth/queues";
 
 const logger = getLogger();
 
+// Import adapters
+import { RedisCacheAdapter } from "./adapters/redis.adapter.js";
+
 // Import services
 import { RegistrationService } from "./features/auth/registration/registration.service.js";
 import { VerificationService } from "./features/auth/verification/verification.service.js";
@@ -21,18 +24,19 @@ import { VerificationController } from "./features/auth/verification/verificatio
  * Avoids proxy-related issues with method resolution.
  */
 
+// Initialize adapters
+const redisAdapter = new RedisCacheAdapter(redisConnection);
+
 // Instantiate services with explicit dependencies
 const tokenService = new TokenService({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  redis: redisConnection as any,
+  redis: redisAdapter,
   config,
   logger,
 });
 
 const registrationService = new RegistrationService({
   userModel: User,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  redis: redisConnection as any,
+  redis: redisAdapter,
   config,
   emailProducer: getQueueServices().emailProducerService,
   tokenService,
@@ -42,8 +46,7 @@ const registrationService = new RegistrationService({
 
 const verificationService = new VerificationService({
   userModel: User,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  redis: redisConnection as any,
+  redis: redisAdapter,
   config,
   logger,
 });

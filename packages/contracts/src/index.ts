@@ -63,6 +63,7 @@ export type {
     IJob,
     JobData,
     JobResult,
+    TraceContext,
     ConsumerOptions,
     ProcessorConfig,
     ISentry,

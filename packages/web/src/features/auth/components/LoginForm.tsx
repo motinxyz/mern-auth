@@ -2,87 +2,97 @@ import { useActionState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { authService } from "../services/auth.service";
-import { registerUserSchema, VALIDATION_RULES } from "@auth/utils";
+import { loginUserSchema } from "@auth/utils";
+import {
+  LockIcon,
+  AlertCircleIcon,
+  SpinnerIcon,
+  ArrowRightIcon,
+} from "../../../shared/components/icons";
 
-export default function RegisterForm() {
+interface FormState {
+  success: boolean;
+  errors: Record<string, string>;
+}
+
+interface ValidationError {
+  path: (string | number | symbol)[];
+  message: string;
+}
+
+interface ApiError {
+  errors?: Array<{ field?: string; message: string }>;
+  message?: string;
+}
+
+export default function LoginForm() {
   const navigate = useNavigate();
   const [isPending, startTransition] = useTransition();
-  const { t } = useTranslation();
+  const { t } = useTranslation(["auth", "validation"]);
 
   // Helper to translate error messages
-  const translateError = (message) => {
-    // If message contains ':', it's a translation key
-    if (message && message.includes(":")) {
-      return t(message);
-    }
-    return message;
+  const translateError = (message: string): string => {
+    // If message is a key (e.g., validation:email.required), translate it
+    // Otherwise return as is, or try to find a translation
+    return t(message);
   };
 
   // Form action handler following React 19 patterns
-  async function registerAction(prevState, formData) {
-    const name = formData.get("name");
-    const email = formData.get("email");
-    const password = formData.get("password");
+  async function loginAction(
+    _prevState: FormState,
+    formData: FormData
+  ): Promise<FormState> {
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
     // Client-side validation using shared schema
-    const validation = registerUserSchema.safeParse({ name, email, password });
+    const validation = loginUserSchema.safeParse({ email, password });
 
     if (!validation.success) {
-      const fieldErrors = {};
-      validation.error.errors.forEach((err) => {
-        const field = err.path[0];
+      const fieldErrors: Record<string, string> = {};
+      validation.error.issues.forEach((err: ValidationError) => {
+        const field = err.path[0] as string;
         if (field) {
           fieldErrors[field] = translateError(err.message);
         }
       });
-      return {
-        success: false,
-        errors: fieldErrors,
-        defaultValues: { name, email },
-      };
+      return { success: false, errors: fieldErrors };
     }
 
     try {
-      await authService.register({ name, email, password });
+      await authService.login({ email, password });
 
       // Use startTransition for navigation
       startTransition(() => {
-        navigate("/login");
+        navigate("/dashboard");
       });
 
       return { success: true, errors: {} };
-    } catch (error) {
-      if (error.errors && Array.isArray(error.errors)) {
-        const fieldErrors = {};
-        error.errors.forEach((err) => {
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+
+      if (apiError.errors && Array.isArray(apiError.errors)) {
+        const fieldErrors: Record<string, string> = {};
+        apiError.errors.forEach((err) => {
           if (err.field) {
             fieldErrors[err.field] = translateError(err.message);
           }
         });
-        return {
-          success: false,
-          errors: fieldErrors,
-          defaultValues: { name, email },
-        };
+        return { success: false, errors: fieldErrors };
       }
 
       return {
         success: false,
         errors: {
-          general: translateError(error.message) || "Registration failed",
+          general: translateError(apiError.message || "auth:login.failed"),
         },
-        defaultValues: { name, email },
       };
     }
   }
 
-  const [state, formAction, pending] = useActionState(registerAction, {
+  const [state, formAction, pending] = useActionState(loginAction, {
     success: false,
     errors: {},
-    defaultValues: {
-      name: "",
-      email: "",
-    },
   });
 
   const isLoading = pending || isPending;
@@ -101,26 +111,13 @@ export default function RegisterForm() {
           {/* Header */}
           <div className="text-center mb-10">
             <div className="mx-auto size-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-900/10 mb-6 group transition-transform duration-500 hover:scale-105 hover:rotate-3">
-              <svg
-                className="size-6 text-white transition-transform duration-500 group-hover:-rotate-3"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                />
-              </svg>
+              <LockIcon className="size-6 text-white transition-transform duration-500 group-hover:-rotate-3" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-              Create an account
+              {t("auth:login.title", "Welcome back")}
             </h2>
             <p className="mt-2 text-sm text-slate-500">
-              Enter your details to get started
+              {t("auth:login.subtitle", "Please enter your details to sign in")}
             </p>
           </div>
 
@@ -132,57 +129,19 @@ export default function RegisterForm() {
                 className="rounded-2xl bg-red-50/50 p-4 border border-red-100 text-red-600 text-sm flex items-center gap-3"
                 role="alert"
               >
-                <svg
-                  className="size-5 shrink-0"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <AlertCircleIcon className="size-5 shrink-0" />
                 <span className="font-medium">{state.errors.general}</span>
               </div>
             )}
 
             <div className="space-y-5">
-              {/* Name Field */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="name"
-                  className="block text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
-                >
-                  Full Name
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  defaultValue={state.defaultValues?.name}
-                  disabled={isLoading}
-                  className="block w-full rounded-xl border-0 bg-slate-50/50 px-4 py-3.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 focus:bg-white sm:text-sm sm:leading-6 transition-all duration-200"
-                  placeholder="John Doe"
-                  aria-invalid={state.errors.name ? "true" : "false"}
-                />
-                {state.errors.name && (
-                  <p className="text-sm text-red-500 font-medium ml-1">
-                    {state.errors.name}
-                  </p>
-                )}
-              </div>
-
               {/* Email Field */}
               <div className="space-y-1.5">
                 <label
                   htmlFor="email"
                   className="block text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
                 >
-                  Email
+                  {t("auth:fields.email", "Email")}
                 </label>
                 <input
                   id="email"
@@ -190,10 +149,9 @@ export default function RegisterForm() {
                   type="email"
                   autoComplete="email"
                   required
-                  defaultValue={state.defaultValues?.email}
                   disabled={isLoading}
                   className="block w-full rounded-xl border-0 bg-slate-50/50 px-4 py-3.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 focus:bg-white sm:text-sm sm:leading-6 transition-all duration-200"
-                  placeholder="you@example.com"
+                  placeholder={t("auth:placeholders.email", "Enter your email")}
                   aria-invalid={state.errors.email ? "true" : "false"}
                 />
                 {state.errors.email && (
@@ -209,13 +167,13 @@ export default function RegisterForm() {
                   htmlFor="password"
                   className="block text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
                 >
-                  Password
+                  {t("auth:fields.password", "Password")}
                 </label>
                 <input
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="new-password"
+                  autoComplete="current-password"
                   required
                   disabled={isLoading}
                   className="block w-full rounded-xl border-0 bg-slate-50/50 px-4 py-3.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 focus:bg-white sm:text-sm sm:leading-6 transition-all duration-200"
@@ -227,12 +185,30 @@ export default function RegisterForm() {
                     {state.errors.password}
                   </p>
                 )}
-                <p className="text-xs text-slate-500 ml-1">
-                  Must be at least {VALIDATION_RULES.PASSWORD.MIN_LENGTH}{" "}
-                  characters with uppercase, lowercase, number, and special
-                  character
-                </p>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="size-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer"
+                />
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-slate-600 cursor-pointer select-none"
+                >
+                  {t("auth:login.rememberMe", "Remember me")}
+                </label>
+              </div>
+              <a
+                href="/forgot-password"
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
+              >
+                {t("auth:login.forgotPassword", "Forgot password?")}
+              </a>
             </div>
 
             <button
@@ -242,56 +218,25 @@ export default function RegisterForm() {
             >
               {isLoading ? (
                 <>
-                  <svg
-                    className="animate-spin size-5 text-white/50"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  <span>Creating account...</span>
+                  <SpinnerIcon className="animate-spin size-5 text-white/50" />
+                  <span>{t("auth:login.signingIn", "Signing in...")}</span>
                 </>
               ) : (
                 <>
-                  <span>Create account</span>
-                  <svg
-                    className="size-4 text-white/50 group-hover:translate-x-0.5 transition-transform duration-200"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="2.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                    />
-                  </svg>
+                  <span>{t("auth:login.submit", "Sign in")}</span>
+                  <ArrowRightIcon className="size-4 text-white/50 group-hover:translate-x-0.5 transition-transform duration-200" />
                 </>
               )}
             </button>
 
             <div className="text-center pt-2">
               <p className="text-sm text-slate-500">
-                Already have an account?{" "}
+                {t("auth:login.noAccount", "Don't have an account?")}{" "}
                 <a
-                  href="/login"
+                  href="/register"
                   className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
                 >
-                  Sign in
+                  {t("auth:login.createAccount", "Create an account")}
                 </a>
               </p>
             </div>

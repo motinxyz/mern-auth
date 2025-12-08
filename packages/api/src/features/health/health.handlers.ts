@@ -6,9 +6,9 @@
  * - /readyz   - Readiness probe (are dependencies ready to serve traffic?)
  */
 
-import { HTTP_STATUS_CODES } from "@auth/utils";
-import { redisConnection, getLogger } from "@auth/config";
-import { getDatabaseService, getQueueServices } from "@auth/app-bootstrap";
+import { HTTP_STATUS_CODES, withSpan, addSpanAttributes } from "@auth/utils";
+import { getLogger, redisConnection } from "@auth/config";
+import { checkBootstrapHealth } from "@auth/app-bootstrap";
 import type { Request, Response } from "express";
 
 const logger = getLogger().child({ module: "health" });
@@ -26,53 +26,11 @@ async function checkRedis() {
       latencyMs: Date.now() - start,
     };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     logger.warn({ err: error }, "Redis health check failed");
     return {
       healthy: false,
-      error: (error as Error).message,
-    };
-  }
-}
-
-/**
- * Check Database health
- * @returns {Promise<{healthy: boolean, latencyMs?: number, error?: string}>}
- */
-async function checkDatabase() {
-  const start = Date.now();
-  try {
-    const dbService = getDatabaseService();
-    await dbService.ping();
-    return {
-      healthy: true,
-      latencyMs: Date.now() - start,
-    };
-  } catch (error) {
-    logger.warn({ err: error }, "Database health check failed");
-    return {
-      healthy: false,
-      error: (error as Error).message,
-    };
-  }
-}
-
-/**
- * Check Queue health
- * @returns {Promise<{healthy: boolean, circuitState?: string, error?: string}>}
- */
-async function checkQueue() {
-  try {
-    const queueServices = getQueueServices();
-    const health = await queueServices.emailQueueProducer.getHealth();
-    return {
-      healthy: health.healthy,
-      circuitState: health.circuitBreaker?.state ?? "N/A",
-    };
-  } catch (error) {
-    logger.warn({ err: error }, "Queue health check failed");
-    return {
-      healthy: false,
-      error: (error as Error).message,
+      error: message,
     };
   }
 }
@@ -90,33 +48,42 @@ export function livenessHandler(_req: Request, res: Response) {
  * Used by load balancers to determine if traffic should be routed to this instance.
  */
 export async function readinessHandler(_req: Request, res: Response) {
-  const startTime = Date.now();
+  await withSpan("api.health.readiness", async () => {
+    const startTime = Date.now();
 
-  // Check all dependencies in parallel
-  const [redisHealth, dbHealth, queueHealth] = await Promise.all([
-    checkRedis(),
-    checkDatabase(),
-    checkQueue(),
-  ]);
+    // Check all dependencies in parallel
+    // Uses centralized bootstrap health check for DB and Email
+    const [redisHealth, bootstrapHealth] = await Promise.all([
+      checkRedis(),
+      checkBootstrapHealth(),
+    ]);
 
-  const isReady =
-    (redisHealth.healthy && dbHealth.healthy && queueHealth.healthy) === true;
+    const isReady =
+      redisHealth.healthy && bootstrapHealth.healthy;
 
-  const response = {
-    status: isReady ? "READY" : "NOT_READY",
-    timestamp: new Date().toISOString(),
-    totalCheckMs: Date.now() - startTime,
-    checks: {
-      redis: redisHealth,
-      database: dbHealth,
-      queue: queueHealth,
-    },
-  };
+    const response = {
+      status: isReady ? "READY" : "NOT_READY",
+      timestamp: new Date().toISOString(),
+      totalCheckMs: Date.now() - startTime,
+      checks: {
+        redis: redisHealth,
+        database: bootstrapHealth.database,
+        email: bootstrapHealth.email,
+        queues: bootstrapHealth.queues,
+      },
+    };
 
-  // Log if not ready (for debugging)
-  if (isReady === false) {
-    logger.warn(response, "Readiness check failed");
-  }
+    addSpanAttributes({
+      "health.status": response.status,
+      "health.ready": isReady,
+      "health.latency_ms": response.totalCheckMs,
+    });
 
-  res.status(isReady === true ? HTTP_STATUS_CODES.OK : 503).json(response);
+    // Log if not ready (for debugging)
+    if (!isReady) {
+      logger.warn(response, "Readiness check failed");
+    }
+
+    res.status(isReady ? HTTP_STATUS_CODES.OK : 503).json(response);
+  });
 }

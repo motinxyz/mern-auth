@@ -1,8 +1,19 @@
 import { Redis } from "ioredis";
 import { ConfigurationError } from "@auth/utils";
-import type { ILogger, IConfig } from "@auth/contracts";
+import type { ILogger } from "@auth/contracts";
 import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
 import { createRedisCircuitBreaker } from "./redis-circuit-breaker.js";
+
+/**
+ * AppConfig - Local config interface matching env.ts output
+ */
+interface AppConfig {
+  readonly redisUrl: string;
+  readonly env: string;
+  readonly redis: {
+    readonly circuitBreakerTimeout: number;
+  };
+}
 
 /**
  * RedisService - Manages Redis connection lifecycle with circuit breaker
@@ -17,16 +28,12 @@ export interface ExtendedRedis extends Redis {
 }
 
 export class RedisService {
-  config: IConfig;
-  logger: ILogger;
-  sentry: unknown;
-  connection: ExtendedRedis | null;
+  private readonly config: AppConfig;
+  private readonly logger: ILogger;
+  private readonly sentry: unknown;
+  private connection: ExtendedRedis | null;
 
-  constructor({ config, logger, sentry = null }: { config: IConfig; logger: ILogger; sentry?: unknown }) {
-    // strict-boolean-expressions: These checks are technically always true if types are correct,
-    // but useful for runtime safety if JS is used. We can keep them but might need suppression or explicit check.
-    // If strict-boolean says condition is always true, we can remove them if we trust the caller.
-    // However, for robustness, we keep them.
+  constructor({ config, logger, sentry }: { config: AppConfig; logger: ILogger; sentry?: unknown }) {
     if (config === undefined || config === null) {
       throw new ConfigurationError(CONFIG_ERRORS.MISSING_CONFIG);
     }
@@ -36,7 +43,7 @@ export class RedisService {
 
     this.config = config;
     this.logger = logger;
-    this.sentry = sentry;
+    this.sentry = sentry ?? null;
     this.connection = null;
   }
 
@@ -59,7 +66,7 @@ export class RedisService {
         enableReadyCheck: false,
         // Only use lazy connect in production/development, not in tests
         // Tests need immediate connection for queue initialization
-        lazyConnect: this.config.nodeEnv !== "test",
+        lazyConnect: this.config.env !== "test",
         connectTimeout: 20000, // 20s timeout for initial connection (Upstash wake-up)
         // Exponential backoff for retries (Upstash needs longer delays)
         retryStrategy: (times) => {

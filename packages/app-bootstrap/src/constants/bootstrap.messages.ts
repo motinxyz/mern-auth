@@ -5,10 +5,6 @@
  * These are infrastructure messages and should be in plain English for grep-ability.
  */
 
-// ============================================================================
-// SERVICE INITIALIZATION MESSAGES
-// ============================================================================
-
 export const BOOTSTRAP_MESSAGES = {
   // Success/Info
   ALL_SERVICES_STARTED: "All services started successfully",
@@ -26,11 +22,11 @@ export const BOOTSTRAP_MESSAGES = {
   REDIS_CONNECTION_FAILED: "Redis connection failed after retries",
   SERVICE_START_ERROR: "Service failed to start",
   FAILED_TO_START_SERVICES: "Failed to start critical services",
-};
+} as const;
 
 export const BOOTSTRAP_ERRORS = {
   CRITICAL_SERVICE_FAILURE: "Critical service initialization failed",
   SHUTDOWN_HANDLER_FAILED: "Shutdown handler failed",
   DATABASE_UNAVAILABLE: "Database unavailable",
   REDIS_UNAVAILABLE: "Redis unavailable",
-};
+} as const;
