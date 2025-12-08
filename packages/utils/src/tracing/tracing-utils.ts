@@ -17,18 +17,18 @@ import {
  * Options for withSpan function
  */
 export interface WithSpanOptions extends SpanOptions {
-  tracerName?: string;
-  component?: string;
-  attributes?: Record<string, AttributeValue>;
+  readonly tracerName?: string;
+  readonly component?: string;
+  readonly attributes?: Readonly<Record<string, AttributeValue>>;
 }
 
 /**
  * Trace context for propagation
  */
 export interface TraceContext {
-  traceId: string;
-  spanId: string;
-  traceFlags: number;
+  readonly traceId: string;
+  readonly spanId: string;
+  readonly traceFlags: number;
 }
 
 /**

@@ -1,46 +1,102 @@
 /**
- * IRepository - Generic repository interface
+ * @auth/contracts - Repository Interface
+ *
+ * Generic repository pattern interface for data access abstraction.
+ * All entity-specific repositories should extend this base interface.
+ */
+
+// =============================================================================
+// Query Options
+// =============================================================================
+
+/**
+ * Sort direction for queries.
+ * Matches MongoDB's SortOrder to ensure compatibility.
+ */
+export type SortDirection = 1 | -1 | "asc" | "desc" | "ascending" | "descending";
+
+/**
+ * Options for find operations.
+ */
+export interface FindOptions {
+    /** Maximum number of documents to return */
+    readonly limit?: number | undefined;
+    /** Number of documents to skip (for pagination) */
+    readonly skip?: number | undefined;
+    /** Sort specification: numeric (1/-1) or string ('asc'/'desc') */
+    readonly sort?: Readonly<Record<string, SortDirection>> | undefined;
+    /** Field projection: string or object specifying fields to include/exclude */
+    readonly select?: string | Readonly<Record<string, 1 | 0>> | undefined;
+}
+
+// =============================================================================
+// Generic Repository Interface
+// =============================================================================
+
+/**
+ * Generic repository interface for CRUD operations.
+ *
+ * Provides a consistent abstraction over data storage implementations.
+ * Entity-specific repositories should extend this with custom queries.
+ *
+ * @template T - The entity type this repository manages
+ *
+ * @example
+ * ```typescript
+ * interface IUserRepository extends IRepository<IUser> {
+ *   findByEmail(email: string): Promise<IUser | null>;
+ * }
+ * ```
  */
 export interface IRepository<T> {
     /**
-     * Find a document by ID
+     * Find a document by its unique identifier.
+     * @param id - Document ID
+     * @returns Document if found, null otherwise
      */
     findById(id: string): Promise<T | null>;
 
     /**
-     * Find one document matching filter
+     * Find a single document matching the filter.
+     * @param filter - Query filter
+     * @returns First matching document or null
      */
-    findOne(filter: Record<string, unknown>): Promise<T | null>;
+    findOne(filter: Readonly<Record<string, unknown>>): Promise<T | null>;
 
     /**
-     * Find multiple documents
+     * Find multiple documents matching the filter.
+     * @param filter - Query filter
+     * @param options - Query options (limit, sort, etc.)
+     * @returns Array of matching documents
      */
-    find(filter: Record<string, unknown>, options?: FindOptions): Promise<T[]>;
+    find(filter: Readonly<Record<string, unknown>>, options?: FindOptions): Promise<readonly T[]>;
 
     /**
-     * Create a new document
+     * Create a new document.
+     * @param data - Document data (partial, IDs will be generated)
+     * @returns Created document with generated fields
      */
-    create(data: Partial<T>): Promise<T>;
+    create(data: Readonly<Partial<T>>): Promise<T>;
 
     /**
-     * Update a document by ID
+     * Update a document by ID.
+     * @param id - Document ID
+     * @param data - Fields to update
+     * @returns Updated document or null if not found
      */
-    updateById(id: string, data: Partial<T>): Promise<T | null>;
+    updateById(id: string, data: Readonly<Partial<T>>): Promise<T | null>;
 
     /**
-     * Delete a document by ID
+     * Delete a document by ID.
+     * @param id - Document ID
+     * @returns true if deleted, false if not found
      */
     deleteById(id: string): Promise<boolean>;
 
     /**
-     * Count documents matching filter
+     * Count documents matching the filter.
+     * @param filter - Optional query filter
+     * @returns Number of matching documents
      */
-    count(filter?: Record<string, unknown>): Promise<number>;
-}
-
-export interface FindOptions {
-    limit?: number;
-    skip?: number;
-    sort?: Record<string, 1 | -1>;
-    select?: string | Record<string, 1 | 0>;
+    count(filter?: Readonly<Record<string, unknown>>): Promise<number>;
 }

@@ -19,4 +19,22 @@ export default defineConfig({
       "@auth/config/locales": path.resolve(__dirname, "../config/src/locales"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split React and React DOM into separate chunk
+          "vendor-react": ["react", "react-dom"],
+          // Split React Router
+          "vendor-router": ["react-router-dom"],
+          // Split Sentry (large)
+          "vendor-sentry": ["@sentry/react"],
+          // Split i18n
+          "vendor-i18n": ["i18next", "react-i18next"],
+          // Split other utilities
+          "vendor-utils": ["axios", "zod"],
+        },
+      },
+    },
+  },
 });

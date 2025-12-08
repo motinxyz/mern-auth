@@ -80,27 +80,6 @@ class DatabaseService implements IDatabaseService {
   }
 
   /**
-   * Legacy getter for compatibility
-   */
-  get users(): UserRepository {
-    return this._userRepository;
-  }
-
-  /**
-   * Legacy getter for compatibility
-   */
-  get emailLogs(): EmailLogRepository {
-    return this._emailLogRepository;
-  }
-
-  /**
-   * Legacy getter for compatibility
-   */
-  get auditLogs(): AuditLogRepository {
-    return this._auditLogRepository;
-  }
-
-  /**
    * Connect to database
    */
   async connect(): Promise<void> {
