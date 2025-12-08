@@ -27,7 +27,7 @@ const TEMPLATE_DIRS = [
  * Resolve the templates directory
  */
 async function resolveTemplatesDir(): Promise<string> {
-  if (resolvedTemplatesDir) return resolvedTemplatesDir;
+  if (resolvedTemplatesDir !== null && resolvedTemplatesDir !== undefined) return resolvedTemplatesDir;
 
   for (const dir of TEMPLATE_DIRS) {
     try {
@@ -54,11 +54,13 @@ export async function initializeTemplates(options: TemplateInitOptions = {}): Pr
 
     // Register partials
     const partialsDir = path.join(templatesDir, "partials");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const partialFiles = await fs.readdir(partialsDir);
 
     for (const file of partialFiles) {
       if (path.extname(file) === ".hbs") {
         const partialName = path.basename(file, ".hbs");
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
         const partialContent = await fs.readFile(
           path.join(partialsDir, file),
           "utf8"
@@ -129,7 +131,9 @@ export async function compileTemplate(
 
   try {
     const [templateSource, layoutSource] = await Promise.all([
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
       fs.readFile(templatePath, "utf8"),
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
       fs.readFile(layoutPath, "utf8"),
     ]);
 

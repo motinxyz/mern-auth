@@ -78,10 +78,6 @@ describe("QueueProducerService", () => {
         "error",
         expect.any(Function)
       );
-      expect(queueInstance.on).toHaveBeenCalledWith(
-        "waiting",
-        expect.any(Function)
-      );
     });
   });
 

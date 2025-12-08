@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "turbo dev",
-    "dev:api": "pnpm --filter @auth/api dev",
+    "dev:api": "turbo dev --filter @auth/api",
     "dev:worker": "pnpm --filter @auth/worker dev",
     "dev:web": "pnpm --filter @auth/web dev",
     "test": "pnpm --filter @auth/api test && pnpm --filter @auth/core test && pnpm --filter @auth/email test && pnpm --filter @auth/queues test && pnpm --filter @auth/utils test && pnpm --filter @auth/worker test",

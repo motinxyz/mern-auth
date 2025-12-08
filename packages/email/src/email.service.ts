@@ -56,22 +56,22 @@ class EmailService {
   private readonly circuitBreakerStats: CircuitBreakerStats;
 
   constructor(options: EmailServiceOptions) {
-    if (!options.config) {
+    if (options.config === undefined) {
       throw new ConfigurationError(
         EMAIL_ERRORS.MISSING_CONFIG.replace("{config}", "config")
       );
     }
-    if (!options.logger) {
+    if (options.logger === undefined) {
       throw new ConfigurationError(
         EMAIL_ERRORS.MISSING_CONFIG.replace("{config}", "logger")
       );
     }
-    if (!options.emailLogRepository) {
+    if (options.emailLogRepository === undefined) {
       throw new ConfigurationError(
         EMAIL_ERRORS.MISSING_CONFIG.replace("{config}", "emailLogRepository")
       );
     }
-    if (!options.providerService) {
+    if (options.providerService === undefined) {
       throw new ConfigurationError(
         EMAIL_ERRORS.MISSING_CONFIG.replace("{config}", "providerService")
       );
@@ -162,7 +162,7 @@ class EmailService {
     });
 
     this.emailBreaker.on("halfOpen", () => {
-      const openDuration = this.circuitBreakerStats.circuitOpenTimestamp
+      const openDuration = this.circuitBreakerStats.circuitOpenTimestamp !== null
         ? (Date.now() - this.circuitBreakerStats.circuitOpenTimestamp) / 1000
         : 0;
 
@@ -179,7 +179,7 @@ class EmailService {
     });
 
     this.emailBreaker.on("close", () => {
-      const totalOpenDuration = this.circuitBreakerStats.circuitOpenTimestamp
+      const totalOpenDuration = this.circuitBreakerStats.circuitOpenTimestamp !== null
         ? (Date.now() - this.circuitBreakerStats.circuitOpenTimestamp) / 1000
         : 0;
 
@@ -299,17 +299,17 @@ class EmailService {
 
         let finalHtml = html;
         let finalSubject = subject;
-        let finalText = text;
+        const finalText = text;
 
         // Compile template if provided
-        if (template && data) {
+        if (template !== undefined && data !== undefined) {
           try {
             const templateData = { ...data, ...(subject !== undefined ? { subject } : {}) };
             finalHtml = await compileTemplate(template, templateData);
 
             // Try to extract subject from data if not provided
-            if (!finalSubject && data["subject"] && typeof data["subject"] === "string") {
-              finalSubject = data["subject"] as string;
+            if ((finalSubject === undefined || finalSubject === "") && data !== undefined && typeof (data as Record<string, unknown>)["subject"] === "string") {
+              finalSubject = (data as Record<string, unknown>)["subject"] as string;
             }
           } catch (error) {
             this.logger.error({ err: error, template }, EMAIL_ERRORS.TEMPLATE_COMPILE_FAILED);
@@ -317,13 +317,18 @@ class EmailService {
           }
         }
 
-        if (!finalHtml) {
+        if (finalHtml === undefined || finalHtml === "") {
           throw new Error("Email must have HTML content or a valid template");
         }
-        if (!finalSubject) {
+        if (finalSubject === undefined || finalSubject === "") {
           throw new Error("Email must have a subject");
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const defaultSubject = (this.config as any).email?.defaults?.subject as string | undefined;
+        if ((finalSubject === undefined || finalSubject === "") && defaultSubject !== undefined && defaultSubject !== "") {
+          finalSubject = defaultSubject;
+        }
         const mailOptions: MailOptions = {
           from: this.config.emailFrom,
           to,

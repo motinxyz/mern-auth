@@ -11,11 +11,20 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/worker.service.d.ts",
       "import": "./dist/worker.service.js",
       "default": "./dist/worker.service.js"
     },
-    "./worker.service": "./dist/worker.service.js",
-    "./consumers/email": "./dist/consumers/email.consumer.js"
+    "./worker.service": {
+      "types": "./dist/worker.service.d.ts",
+      "import": "./dist/worker.service.js",
+      "default": "./dist/worker.service.js"
+    },
+    "./consumers/email": {
+      "types": "./dist/consumers/email.consumer.d.ts",
+      "import": "./dist/consumers/email.consumer.js",
+      "default": "./dist/consumers/email.consumer.js"
+    }
   },
   "type": "module",
   "scripts": {

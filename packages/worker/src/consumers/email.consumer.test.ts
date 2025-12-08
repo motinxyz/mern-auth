@@ -13,7 +13,7 @@ vi.mock("@auth/config", () => ({
   })),
   t: vi.fn((key) => key),
   i18nInstance: {
-     
+
     getFixedT: vi.fn().mockResolvedValue((key: any) => key),
   },
   config: {},
@@ -23,11 +23,11 @@ vi.mock("@auth/config", () => ({
 }));
 
 describe("Email Consumer", () => {
-   
+
   let mockEmailService: any;
-   
+
   let mockLogger: any;
-   
+
   let emailJobConsumer: any;
 
   beforeEach(() => {
@@ -51,7 +51,7 @@ describe("Email Consumer", () => {
   });
 
   it("should throw error if emailService is not provided", () => {
-     
+
     expect(() => createEmailJobConsumer({ logger: mockLogger } as any)).toThrow(
       "EmailService is required"
     );
@@ -77,14 +77,12 @@ describe("Email Consumer", () => {
       message: "Email sent successfully",
     });
 
-    expect(mockEmailService.sendEmail).toHaveBeenCalledWith(expect.objectContaining({
-      to: job.data.data.user.email,
-      template: "verification",
-      data: expect.objectContaining({
-        user: job.data.data.user,
-        token: job.data.data.token,
-      })
-    }));
+    expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
+      job.data.data.user,
+      job.data.data.token,
+      "en",
+      expect.any(Object)
+    );
   });
 
   it("should throw error for unknown job type", async () => {
@@ -111,7 +109,7 @@ describe("Email Consumer", () => {
       },
     };
 
-    mockEmailService.sendEmail.mockRejectedValue(
+    mockEmailService.sendVerificationEmail.mockRejectedValue(
       new Error("Send failed")
     );
 

@@ -59,7 +59,7 @@ abstract class BaseRepository<TDoc extends mongoose.Document, TEntity> {
       // Convert saved document to lean object and map
       const lean = saved.toObject();
       const mapped = this.mapDocument(lean);
-      if (!mapped) {
+      if (mapped === null) {
         throw new Error("Failed to map created document");
       }
       return mapped;

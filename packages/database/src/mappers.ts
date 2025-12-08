@@ -18,7 +18,7 @@ function toStringId(id: unknown): string {
  * Map a lean user document to IUser
  */
 export function mapUserDocument(doc: unknown): IUser | null {
-    if (!doc) return null;
+    if (doc === null || doc === undefined) return null;
     const d = doc as Record<string, unknown>;
 
     const user: IUser = {
@@ -52,7 +52,7 @@ export function mapUserDocuments(docs: unknown[]): IUser[] {
  * Map a lean email log document to IEmailLog
  */
 export function mapEmailLogDocument(doc: unknown): IEmailLog | null {
-    if (!doc) return null;
+    if (doc === null || doc === undefined) return null;
     const d = doc as Record<string, unknown>;
 
     const emailLog: IEmailLog = {
@@ -92,7 +92,7 @@ export function mapEmailLogDocuments(docs: unknown[]): IEmailLog[] {
  * Map a lean audit log document to IAuditLog
  */
 export function mapAuditLogDocument(doc: unknown): IAuditLog | null {
-    if (!doc) return null;
+    if (doc === null || doc === undefined) return null;
     const d = doc as Record<string, unknown>;
 
     const auditLog: IAuditLog = {

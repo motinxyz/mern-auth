@@ -38,7 +38,6 @@ export const createTimeoutMiddleware = (duration = 30000) => {
  * Must be placed AFTER all routes but BEFORE the global error handler.
  * Catches timed-out requests and sends appropriate error response.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const timeoutErrorHandler = (req: Request, res: Response, next: NextFunction) => {
   if (req.timedout === true) {
     timeoutLogger.warn(

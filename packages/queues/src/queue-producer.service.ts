@@ -96,13 +96,13 @@ class QueueProducerService {
   private circuitBreaker: ICircuitBreaker<Job> | null = null;
 
   constructor(options: QueueProducerOptions) {
-    if (!options.queueName) {
+    if (options.queueName === undefined || options.queueName === "") {
       throw new ConfigurationError(QUEUE_ERRORS.MISSING_CONFIG.replace("{config}", "queueName"));
     }
-    if (!options.connection) {
+    if (options.connection === undefined) {
       throw new ConfigurationError(QUEUE_ERRORS.MISSING_CONFIG.replace("{config}", "connection"));
     }
-    if (!options.logger) {
+    if (options.logger === undefined) {
       throw new ConfigurationError(QUEUE_ERRORS.MISSING_CONFIG.replace("{config}", "logger"));
     }
 
@@ -151,7 +151,10 @@ class QueueProducerService {
       if (this.enableCircuitBreaker) {
         this.circuitBreaker = createCircuitBreaker(
           async (jobName: string, data: unknown, jobOptions: JobsOptions): Promise<Job> => {
-            return this.queue!.add(jobName, data, jobOptions);
+            if (!this.queue) {
+              throw new QueueError(this.queueName, QUEUE_ERRORS.QUEUE_NOT_INITIALIZED);
+            }
+            return this.queue.add(jobName, data, jobOptions);
           },
           {
             name: `${this.queueName}-CircuitBreaker`,
@@ -194,7 +197,7 @@ class QueueProducerService {
       });
 
       if (!this.queue) {
-        throw new QueueError(QUEUE_ERRORS.QUEUE_NOT_INITIALIZED);
+        throw new QueueError(this.queueName, QUEUE_ERRORS.QUEUE_NOT_INITIALIZED);
       }
 
       // Validate job data if schema provided
@@ -231,7 +234,7 @@ class QueueProducerService {
           status: "success",
         });
 
-        if (job.id) {
+        if (job.id !== undefined) {
           addSpanAttributes({ "job.id": job.id });
         }
 

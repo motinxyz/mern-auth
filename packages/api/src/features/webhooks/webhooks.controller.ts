@@ -61,7 +61,6 @@ export class WebhooksController {
         "Received webhook"
       );
 
-      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- Safety check for runtime
       if (!bounceData) {
         return res
           .status(200)

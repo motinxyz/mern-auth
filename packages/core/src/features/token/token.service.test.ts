@@ -109,6 +109,7 @@ describe("Token Service", () => {
       expect(JSON.parse(storedValue)).toEqual({
         userId: user.id,
         email: user.email,
+        type: "verification",
       });
 
       const ttl = await mockRedis.ttl(

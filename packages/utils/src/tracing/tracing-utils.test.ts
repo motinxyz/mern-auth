@@ -113,7 +113,8 @@ describe("Tracing Utilities", () => {
 
     describe("recordError", () => {
         it("should record exception and set error status on span", () => {
-            const mockSpan = trace.getActiveSpan()!;
+            const mockSpan = trace.getActiveSpan();
+            if (!mockSpan) throw new Error("No active span");
             const error = new Error("Test error message");
 
             recordError(mockSpan, error);
@@ -128,7 +129,8 @@ describe("Tracing Utilities", () => {
         });
 
         it("should record error stack if available", () => {
-            const mockSpan = trace.getActiveSpan()!;
+            const mockSpan = trace.getActiveSpan();
+            if (!mockSpan) throw new Error("No active span");
             const error = new Error("Test error");
             error.stack = "Error: Test error\n    at test.ts:1:1";
 
@@ -138,7 +140,8 @@ describe("Tracing Utilities", () => {
         });
 
         it("should record HTTP status code for API errors", () => {
-            const mockSpan = trace.getActiveSpan()!;
+            const mockSpan = trace.getActiveSpan();
+            if (!mockSpan) throw new Error("No active span");
             const apiError = Object.assign(new Error("Not found"), { statusCode: 404 });
 
             recordError(mockSpan, apiError);
@@ -147,7 +150,8 @@ describe("Tracing Utilities", () => {
         });
 
         it("should add additional attributes", () => {
-            const mockSpan = trace.getActiveSpan()!;
+            const mockSpan = trace.getActiveSpan();
+            if (!mockSpan) throw new Error("No active span");
             const error = new Error("Test error");
 
             recordError(mockSpan, error, { "request.id": "req-123", "user.id": "user-456" });

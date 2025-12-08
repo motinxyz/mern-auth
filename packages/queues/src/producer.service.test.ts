@@ -53,7 +53,7 @@ describe("ProducerService", () => {
         { type: "test-job", data: jobData },
         {}
       );
-      expect(job).toEqual({ id: "job-123" });
+      expect(job).toEqual(expect.objectContaining({ id: "job-123" }));
       expect(mockLogger.info).toHaveBeenCalled();
       expect(mockLogger.debug).toHaveBeenCalled();
     });

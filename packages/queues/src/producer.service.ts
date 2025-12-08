@@ -24,10 +24,10 @@ class ProducerService {
   private readonly logger: ILogger;
 
   constructor(options: ProducerServiceOptions) {
-    if (!options.queueService) {
+    if (options.queueService === undefined) {
       throw new ConfigurationError(QUEUE_ERRORS.PRODUCER_MISSING_QUEUE);
     }
-    if (!options.logger) {
+    if (options.logger === undefined) {
       throw new ConfigurationError(QUEUE_ERRORS.PRODUCER_MISSING_LOGGER);
     }
 
@@ -72,7 +72,7 @@ class ProducerService {
           bullMqOptions
         );
 
-        if (job.id) {
+        if (job.id !== undefined) {
           addSpanAttributes({ "job.id": job.id });
         }
         this.logger.debug({ jobId: job.id, jobType }, QUEUE_MESSAGES.JOB_ADDED);

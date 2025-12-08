@@ -479,6 +479,9 @@ importers:
       '@auth/utils':
         specifier: workspace:*
         version: link:../utils
+      '@opentelemetry/api':
+        specifier: ^1.9.0
+        version: 1.9.0
       bullmq:
         specifier: ^5.65.1
         version: 5.65.1

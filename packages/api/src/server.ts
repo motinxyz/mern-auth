@@ -40,6 +40,7 @@ const Sentry = initSentry();
 const databaseService = getDatabaseService();
 const emailService = getEmailService();
 
+// eslint-disable-next-line prefer-const
 let workerService: WorkerService | undefined;
 
 // Start the application by bootstrapping all services and starting the server.
@@ -75,7 +76,7 @@ workerService = await startWorker({
 });
 
 // Log health and metrics periodically (only in production)
-if (config.env === "production" && workerService) {
+if (config.env === "production" && workerService !== undefined) {
   const service = workerService;
   // Log worker health every 5 minutes
   setInterval(

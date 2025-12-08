@@ -31,7 +31,7 @@ export async function handleBounce(
   // Handle hard bounces (permanent failures)
   if (bounceType === "hard") {
     const wasSentViaResend =
-      emailLog.provider === "resend-api" || !emailLog.provider;
+      emailLog.provider === "resend-api" || emailLog.provider === undefined || emailLog.provider === null || emailLog.provider === "";
 
     if (wasSentViaResend) {
       bounceLogger.info(

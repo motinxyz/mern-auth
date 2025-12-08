@@ -22,7 +22,7 @@ class ResendProvider implements IEmailProvider {
   private readonly logger: ILogger;
 
   constructor({ apiKey, webhookSecret, logger }: ResendProviderOptions) {
-    this.client = apiKey ? new Resend(apiKey) : null;
+    this.client = (apiKey !== undefined && apiKey !== "") ? new Resend(apiKey) : null;
     this.webhookSecret = webhookSecret;
     this.logger = logger.child({ provider: this.name });
   }
@@ -65,12 +65,12 @@ class ResendProvider implements IEmailProvider {
     secret: string | null = null
   ): boolean {
     const currentSecret = secret ?? this.webhookSecret;
-    if (!currentSecret) return true; // Dev mode
+    if (currentSecret === undefined || currentSecret === "") return true; // Dev mode
 
     const signature = headers["svix-signature"] ?? headers["resend-signature"];
     const timestamp = headers["svix-timestamp"];
 
-    if (!signature || !timestamp) return false;
+    if ((signature === undefined || signature === "") || (timestamp === undefined || timestamp === "")) return false;
 
     try {
       // Parse Svix signature format: "v1,base64signature"
@@ -80,7 +80,7 @@ class ResendProvider implements IEmailProvider {
       });
 
       const v1Sig = signatures.find((s) => s.version === "v1");
-      if (!v1Sig?.signature) return false;
+      if ((v1Sig?.signature === undefined) || v1Sig.signature === "") return false;
 
       const signedContent = `${timestamp}.${payload}`;
       const hmac = crypto.createHmac("sha256", currentSecret);

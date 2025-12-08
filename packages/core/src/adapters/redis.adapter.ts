@@ -20,10 +20,10 @@ export class RedisCacheAdapter implements ICacheService {
         expiryMode?: "EX" | "PX",
         ttl?: number
     ): Promise<string> {
-        if (expiryMode === "EX" && ttl) {
+        if (expiryMode === "EX" && ttl !== undefined) {
             return this.redis.set(key, value, "EX", ttl);
         }
-        if (expiryMode === "PX" && ttl) {
+        if (expiryMode === "PX" && ttl !== undefined) {
             return this.redis.set(key, value, "PX", ttl);
         }
         return this.redis.set(key, value);

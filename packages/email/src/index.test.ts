@@ -1,9 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import CircuitBreaker from "opossum";
 import { EmailService } from "./index.js";
-import { EmailDispatchError } from "@auth/utils";
+import { EmailDispatchError, createCircuitBreaker } from "@auth/utils";
 
 // Mock external dependencies
+vi.mock("@auth/utils", async () => {
+  const actual = await vi.importActual<any>("@auth/utils");
+  return {
+    ...actual,
+    addSpanAttributes: vi.fn(),
+    withSpan: vi.fn((...args) => {
+      const fn = args.find((arg) => typeof arg === "function");
+      if (fn) return fn();
+      return Promise.resolve();
+    }),
+    createCircuitBreaker: vi.fn(),
+  };
+});
+
 vi.mock("opossum", () => {
   return {
     default: vi.fn(),
@@ -87,9 +100,8 @@ describe("Email Service", () => {
       opened: false,
       halfOpen: false,
     };
-    CircuitBreaker.mockImplementation(function () {
-      return mockCircuitBreakerInstance;
-    });
+
+    (createCircuitBreaker as any).mockReturnValue(mockCircuitBreakerInstance);
 
     // Initialize service (with providerService injected)
     emailService = new EmailService({
@@ -110,7 +122,7 @@ describe("Email Service", () => {
   describe("Initialization", () => {
     it("should initialize provider service and circuit breaker", () => {
       expect(mockProviderService.initialize).toHaveBeenCalled();
-      expect(CircuitBreaker).toHaveBeenCalled();
+      expect(createCircuitBreaker).toHaveBeenCalled();
     });
   });
 
@@ -161,7 +173,10 @@ describe("Email Service", () => {
 
     it("should handle send failure", async () => {
       const error = new Error("Send failed");
-      mockBreakerFire.mockRejectedValue(error);
+      mockBreakerFire.mockImplementation(async () => {
+        // console.log("Mock fire called!");
+        throw error;
+      });
 
       await expect(emailService.sendEmail(mailOptions)).rejects.toThrow(
         EmailDispatchError

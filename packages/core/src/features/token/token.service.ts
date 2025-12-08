@@ -91,7 +91,7 @@ export class TokenService implements ITokenService {
     const verifyKey = `${this.config.redis.prefixes.verifyEmail}${hashedToken}`;
     const tokenData = await this.redis.get(verifyKey);
 
-    if (!tokenData) {
+    if (tokenData === null || tokenData === undefined) {
       throw new NotFoundError("auth:verify.invalidToken");
     }
 

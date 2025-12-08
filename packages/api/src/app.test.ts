@@ -40,8 +40,12 @@ vi.mock("mongoose", async (importActual: any) => {
   };
 });
 
-vi.mock("@auth/queues/producers", () => ({
-  addEmailJob: vi.fn(),
+vi.mock("@auth/queues", () => ({
+  getQueueServices: vi.fn(() => ({
+    emailProducerService: {
+      addJob: vi.fn().mockResolvedValue({ id: "mock-job-id" }), // Mock addJob which is likely used
+    },
+  })),
 }));
 
 vi.mock("./middleware/core/loggerMiddleware.js", () => ({

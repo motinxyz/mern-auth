@@ -23,7 +23,7 @@ class MailerSendProvider implements IEmailProvider {
   private readonly logger: ILogger;
 
   constructor({ apiKey, webhookSecret, fromEmail, logger }: MailerSendProviderOptions) {
-    this.client = apiKey ? new MailerSend({ apiKey }) : null;
+    this.client = (apiKey !== undefined && apiKey !== "") ? new MailerSend({ apiKey }) : null;
     this.webhookSecret = webhookSecret;
     this.fromEmail = fromEmail;
     this.logger = logger.child({ provider: this.name });
@@ -44,7 +44,7 @@ class MailerSendProvider implements IEmailProvider {
 
     if (rawFrom.includes("<")) {
       const match = rawFrom.match(/(.*)< *(.*)>/);
-      if (match?.[1] && match[2]) {
+      if (match !== null && match[1] !== undefined && match[2] !== undefined) {
         fromName = match[1].trim().replace(/^"|"$/g, "");
         fromEmail = match[2].trim();
       }
@@ -82,10 +82,10 @@ class MailerSendProvider implements IEmailProvider {
     secret: string | null = null
   ): boolean {
     const currentSecret = secret ?? this.webhookSecret;
-    if (!currentSecret) return true; // Dev mode
+    if (currentSecret === undefined || currentSecret === "") return true; // Dev mode
 
     const signature = headers["mailersend-signature"];
-    if (!signature) return false;
+    if (signature === undefined || signature === "") return false;
 
     try {
       const hmac = crypto.createHmac("sha256", currentSecret);
@@ -114,7 +114,7 @@ class MailerSendProvider implements IEmailProvider {
     const email = e.data?.recipient?.email;
     const messageId = e.data?.email?.id;
 
-    if (!email || !messageId) return null;
+    if ((email === undefined || email === "") || (messageId === undefined || messageId === "")) return null;
 
     const base = {
       timestamp: new Date(e.created_at),

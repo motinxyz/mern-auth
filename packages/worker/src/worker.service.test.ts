@@ -3,7 +3,7 @@ import WorkerService from "./worker.service.js";
 
 // Mock QueueProcessorService
 vi.mock("./queue-processor.service.js", () => {
-   
+
   const MockProcessor = vi.fn(function (this: any) {
     this.queueName = "test-queue";
   });
@@ -17,6 +17,7 @@ vi.mock("./queue-processor.service.js", () => {
   });
   MockProcessor.prototype.getMetrics = vi.fn().mockReturnValue({
     processed: 10,
+    active: 0,
   });
 
   return {
@@ -25,15 +26,15 @@ vi.mock("./queue-processor.service.js", () => {
 });
 
 describe("WorkerService", () => {
-   
+
   let service: any;
-   
+
   let mockLogger: any;
-   
+
   let mockT: any;
-   
+
   let mockRedisConnection: any;
-   
+
   let mockDatabaseService: any;
 
   beforeEach(() => {
@@ -43,9 +44,10 @@ describe("WorkerService", () => {
       info: vi.fn(),
       error: vi.fn(),
       fatal: vi.fn(),
+      debug: vi.fn(),
     };
 
-     
+
     mockT = vi.fn((key: any) => key);
 
     mockRedisConnection = {
@@ -69,7 +71,7 @@ describe("WorkerService", () => {
 
   describe("Initialization", () => {
     it("should require mandatory options", () => {
-       
+
       expect(() => new WorkerService({} as any)).toThrow();
     });
 
@@ -103,14 +105,14 @@ describe("WorkerService", () => {
       expect(service.getProcessors()[0].initialize).toHaveBeenCalled();
       expect(mockLogger.info).toHaveBeenCalledWith(
         expect.anything(),
-        expect.stringContaining("Worker service ready")
+        expect.stringContaining("Worker started")
       );
     });
 
     it("should handle startup failure", async () => {
       mockDatabaseService.connect.mockRejectedValue(new Error("DB fail"));
       await expect(service.start()).rejects.toThrow("DB fail");
-      expect(mockLogger.fatal).toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalled();
     });
 
     it("should stop service and dependencies", async () => {
@@ -152,7 +154,7 @@ describe("WorkerService", () => {
       expect(metrics).toHaveLength(1);
       expect(metrics[0]).toEqual({
         queueName: "test-queue",
-        metrics: { processed: 10 },
+        metrics: { processed: 10, active: 0 },
       });
     });
   });

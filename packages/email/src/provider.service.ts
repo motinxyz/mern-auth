@@ -31,12 +31,12 @@ class ProviderService implements IProviderService {
   private readonly providers: IEmailProvider[] = [];
 
   constructor(options: ProviderServiceOptions) {
-    if (!options.config) {
+    if (options.config === undefined) {
       throw new ConfigurationError(
         EMAIL_ERRORS.MISSING_PROVIDER_CONFIG.replace("{config}", "config")
       );
     }
-    if (!options.logger) {
+    if (options.logger === undefined) {
       throw new ConfigurationError(
         EMAIL_ERRORS.MISSING_PROVIDER_CONFIG.replace("{config}", "logger")
       );
@@ -50,7 +50,7 @@ class ProviderService implements IProviderService {
    */
   async initialize(): Promise<void> {
     // Initialize Resend API if configured (PRIMARY)
-    if (this.config.resendApiKey) {
+    if (this.config.resendApiKey !== undefined && this.config.resendApiKey !== "") {
       const resendProvider = new ResendProvider({
         apiKey: this.config.resendApiKey,
         webhookSecret: this.config.resendWebhookSecret,
@@ -61,7 +61,7 @@ class ProviderService implements IProviderService {
     }
 
     // Initialize MailerSend if configured (BACKUP)
-    if (this.config.mailersendApiKey) {
+    if (this.config.mailersendApiKey !== undefined && this.config.mailersendApiKey !== "") {
       const mailersendProvider = new MailerSendProvider({
         apiKey: this.config.mailersendApiKey,
         webhookSecret: this.config.mailersendWebhookSecret,
@@ -101,7 +101,7 @@ class ProviderService implements IProviderService {
       let providersToTry = [...this.providers];
 
       // If preferred provider is specified, prioritize it
-      if (options.preferredProvider) {
+      if (options.preferredProvider !== undefined && options.preferredProvider !== "") {
         const preferred = providersToTry.find(
           (p) => p.name === options.preferredProvider
         );

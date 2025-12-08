@@ -24,10 +24,10 @@ export class HttpError extends BaseError {
     public readonly errors: readonly ValidationErrorDetail[];
 
     /** Always false for error responses */
-    public readonly success: false = false;
+    public readonly success = false;
 
     /** Always null for error responses */
-    public readonly data: null = null;
+    public readonly data = null;
 
     constructor(
         statusCode: number,
