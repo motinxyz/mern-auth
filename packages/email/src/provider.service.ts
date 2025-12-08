@@ -69,7 +69,7 @@ class ProviderService implements IProviderService {
         logger: this.logger,
       });
       this.providers.push(mailersendProvider);
-      this.logger.info("MailerSend initialized");
+      this.logger.info(EMAIL_MESSAGES.MAILERSEND_INITIALIZED);
     }
 
     if (this.providers.length === 0) {

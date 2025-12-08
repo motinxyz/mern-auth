@@ -10,7 +10,7 @@ dist/
 
 # Logs
 packages/api/logs/
-*.log
+**.log
 
 # Environment
 .env
