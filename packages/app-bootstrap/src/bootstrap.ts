@@ -206,77 +206,74 @@ export async function bootstrapApplication(
   app: Application,
   onShutdown?: () => Promise<void>
 ): Promise<Server> {
-  return withSpan("bootstrap.application", async () => {
-    const { databaseService } = await initializeCommonServices();
+  // Initialize services with tracing - span ends after init completes
+  const { databaseService } = await initializeCommonServices();
 
-    const server = app.listen(config.port, "0.0.0.0", () => {
-      logger.info(
-        { module: "bootstrap", port: config.port },
-        BOOTSTRAP_MESSAGES.SERVER_START_SUCCESS
-      );
-      addSpanAttributes({
-        "server.port": config.port,
-        "server.host": "0.0.0.0",
-      });
-    });
-
-    const gracefulShutdown = async (signal: string): Promise<void> => {
-      await withSpan("bootstrap.shutdown", async () => {
-        addSpanAttributes({ "shutdown.signal": signal });
-
-        logger.info(
-          { signal },
-          `${BOOTSTRAP_MESSAGES.SHUTDOWN_SIGNAL_RECEIVED}: ${signal}`
-        );
-
-        // Create a timeout promise for forced exit
-        const shutdownTimeout = new Promise<never>((_, reject) => {
-          setTimeout(() => {
-            reject(new Error(BOOTSTRAP_MESSAGES.SHUTDOWN_TIMEOUT_EXCEEDED));
-          }, config.shutdownTimeoutMs);
-        });
-
-        // Create ordered shutdown promise
-        const shutdownPromise = new Promise<void>((resolve) => {
-          server.close(() => {
-            logger.info({ module: "bootstrap" }, BOOTSTRAP_MESSAGES.SERVER_CLOSED);
-
-            // Execute shutdown in order
-            void (async (): Promise<void> => {
-              if (onShutdown !== undefined) {
-                try {
-                  await onShutdown();
-                } catch (error: unknown) {
-                  logger.error(
-                    { err: error },
-                    BOOTSTRAP_MESSAGES.CUSTOM_SHUTDOWN_ERROR
-                  );
-                }
-              }
-
-              await databaseService.disconnect();
-              resolve();
-            })();
-          });
-        });
-
-        try {
-          // Race between shutdown and timeout
-          await Promise.race([shutdownPromise, shutdownTimeout]);
-          addSpanAttributes({ "shutdown.success": true });
-          process.exit(0);
-        } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : String(error);
-          logger.fatal({ err: error }, message);
-          addSpanAttributes({ "shutdown.success": false, "shutdown.error": message });
-          process.exit(1);
-        }
-      });
-    };
-
-    process.on("SIGTERM", () => { void gracefulShutdown("SIGTERM"); });
-    process.on("SIGINT", () => { void gracefulShutdown("SIGINT"); });
-
-    return server;
+  // Server lifecycle is NOT wrapped in a span to avoid capturing all HTTP requests
+  const server = app.listen(config.port, "0.0.0.0", () => {
+    logger.info(
+      { module: "bootstrap", port: config.port },
+      BOOTSTRAP_MESSAGES.SERVER_START_SUCCESS
+    );
   });
+
+  const gracefulShutdown = async (signal: string): Promise<void> => {
+    await withSpan("bootstrap.shutdown", async () => {
+      addSpanAttributes({ "shutdown.signal": signal });
+
+      logger.info(
+        { signal },
+        `${BOOTSTRAP_MESSAGES.SHUTDOWN_SIGNAL_RECEIVED}: ${signal}`
+      );
+
+      // Create a timeout promise for forced exit
+      const shutdownTimeout = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(BOOTSTRAP_MESSAGES.SHUTDOWN_TIMEOUT_EXCEEDED));
+        }, config.shutdownTimeoutMs);
+      });
+
+      // Create ordered shutdown promise
+      const shutdownPromise = new Promise<void>((resolve) => {
+        server.close(() => {
+          logger.info({ module: "bootstrap" }, BOOTSTRAP_MESSAGES.SERVER_CLOSED);
+
+          // Execute shutdown in order
+          void (async (): Promise<void> => {
+            if (onShutdown !== undefined) {
+              try {
+                await onShutdown();
+              } catch (error: unknown) {
+                logger.error(
+                  { err: error },
+                  BOOTSTRAP_MESSAGES.CUSTOM_SHUTDOWN_ERROR
+                );
+              }
+            }
+
+            await databaseService.disconnect();
+            resolve();
+          })();
+        });
+      });
+
+      try {
+        // Race between shutdown and timeout
+        await Promise.race([shutdownPromise, shutdownTimeout]);
+        addSpanAttributes({ "shutdown.success": true });
+        process.exit(0);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.fatal({ err: error }, message);
+        addSpanAttributes({ "shutdown.success": false, "shutdown.error": message });
+        process.exit(1);
+      }
+    });
+  };
+
+  process.on("SIGTERM", () => { void gracefulShutdown("SIGTERM"); });
+  process.on("SIGINT", () => { void gracefulShutdown("SIGINT"); });
+
+  return server;
 }
+
