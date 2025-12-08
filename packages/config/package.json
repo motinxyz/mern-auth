@@ -13,7 +13,7 @@
       "import": "./dist/observability/index.js"
     },
     "./locales/*": {
-      "import": "./src/locales/*"
+      "import": "./dist/locales/*"
     }
   },
   "type": "module",
