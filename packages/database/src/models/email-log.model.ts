@@ -39,19 +39,16 @@ const emailLogSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      index: true,
     },
     type: {
       type: String,
       enum: ["verification", "passwordReset", "welcome", "notification"],
       required: true,
-      index: true,
     },
     to: {
       type: String,
       required: true,
       lowercase: true,
-      index: true,
     },
     subject: {
       type: String,
@@ -66,7 +63,6 @@ const emailLogSchema = new mongoose.Schema(
       type: String,
       enum: ["queued", "sent", "delivered", "bounced", "failed"],
       default: "queued",
-      index: true,
     },
     provider: {
       type: String,
@@ -90,13 +86,13 @@ const emailLogSchema = new mongoose.Schema(
 );
 
 // Compound indexes for common queries
-emailLogSchema.index({ createdAt: -1 });
-emailLogSchema.index({ userId: 1, type: 1 });
+// Support: findByStatus(status).sort(-createdAt) -> Used by getRecentFailures
 emailLogSchema.index({ status: 1, createdAt: -1 });
-emailLogSchema.index({ to: 1, createdAt: -1 });
+
+// Support: findByUser(userId).sort(-createdAt) -> Main dashboard history view
+emailLogSchema.index({ userId: 1, createdAt: -1 });
 
 // TTL index - automatically delete logs older than 30 days
-// This prevents unbounded database growth while keeping recent logs for debugging
 emailLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 }); // 30 days
 
 // Static methods

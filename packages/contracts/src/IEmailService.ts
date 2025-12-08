@@ -7,7 +7,7 @@
 
 import type { ILogger } from "./ILogger.js";
 import type { IConfig } from "./IConfig.js";
-import type { IEmailLogRepository } from "./IDatabase.js";
+import type { IEmailLogRepository } from "./repositories/email-log.repository.js";
 import type { IEmailProvider, MailOptions, EmailSendResult } from "./IEmailProvider.js";
 import type { CircuitBreakerState, EmailTemplate } from "./common.js";
 

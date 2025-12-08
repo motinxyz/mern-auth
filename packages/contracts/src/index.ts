@@ -47,20 +47,18 @@ export type { ICacheService } from "./ICacheService.js";
 
 export type { IRepository, FindOptions, SortDirection } from "./IRepository.js";
 
-export type {
-    // Entities
-    IUser,
-    IEmailLog,
-    IAuditLog,
-    // Repositories
-    IUserRepository,
-    IEmailLogRepository,
-    IAuditLogRepository,
-    // Services
-    IDatabaseService,
-    // Pagination
-    PaginationResult,
-} from "./IDatabase.js";
+// Entities (domain models)
+export type { IUser } from "./entities/user.js";
+export type { IEmailLog } from "./entities/email-log.js";
+export type { IAuditLog } from "./entities/audit-log.js";
+
+// Repositories (data access)
+export type { IUserRepository, PaginationResult } from "./repositories/user.repository.js";
+export type { IEmailLogRepository } from "./repositories/email-log.repository.js";
+export type { IAuditLogRepository } from "./repositories/audit-log.repository.js";
+
+// Services (orchestration)
+export type { IDatabaseService } from "./services/database.service.js";
 
 // =============================================================================
 // Email Services

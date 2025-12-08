@@ -7,7 +7,7 @@
 
 import type { ILogger } from "./ILogger.js";
 import type { IRedisConnection } from "./IRedisConnection.js";
-import type { IDatabaseService } from "./IDatabase.js";
+import type { IDatabaseService } from "./services/database.service.js";
 import type { IHealthResult } from "./common.js";
 
 // =============================================================================
