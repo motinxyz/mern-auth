@@ -13,6 +13,13 @@ const httpModuleLogger = logger.child({ module: "http" });
 
 export const httpLogger = (pinoHttp as any)({
   logger: httpModuleLogger,
+  // Skip logging for health check endpoints (noisy in production)
+  autoLogging: {
+    ignore: (req: any) => {
+      const url = req.url || req.originalUrl || "";
+      return url.startsWith("/healthz") || url.startsWith("/readyz");
+    },
+  },
   // Generate a unique ID for every request.
   // This ID will be automatically included in every log line for this request.
   genReqId: (req: any, res: any) => {

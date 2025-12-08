@@ -133,7 +133,7 @@ export function initializeTracing() {
             ignoreIncomingRequestHook: (req: IncomingMessage) => {
               // Don't trace health checks and metrics endpoints
               const url = req.url || "";
-              return url.includes("/health") || url.includes("/metrics");
+              return url.startsWith("/healthz") || url.startsWith("/readyz") || url.includes("/metrics");
             },
             // Hook for incoming requests (server-side)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
