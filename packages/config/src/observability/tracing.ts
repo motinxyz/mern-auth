@@ -19,6 +19,12 @@ import {
   PeriodicExportingMetricReader,
 } from "@opentelemetry/sdk-metrics";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
+import {
+  BatchSpanProcessor,
+  type SpanProcessor,
+  type ReadableSpan,
+} from "@opentelemetry/sdk-trace-base";
+import type { Context } from "@opentelemetry/api";
 import { createModuleLogger } from "../logging/startup-logger.js";
 
 // Use require for CommonJS modules to avoid ESM interop issues
@@ -34,6 +40,41 @@ import type { Span } from "@opentelemetry/api";
 // import type { Request } from "express"; // Unused
 
 const log = createModuleLogger("tracing");
+
+/**
+ * Custom SpanProcessor that filters out unwanted spans before export.
+ * Wraps another processor (e.g., BatchSpanProcessor) and only forwards spans
+ * that pass the filter.
+ */
+class FilteringSpanProcessor implements SpanProcessor {
+  private readonly processor: SpanProcessor;
+  private readonly shouldExclude: (span: ReadableSpan) => boolean;
+
+  constructor(processor: SpanProcessor, shouldExclude: (span: ReadableSpan) => boolean) {
+    this.processor = processor;
+    this.shouldExclude = shouldExclude;
+  }
+
+  onStart(span: Span, context: Context): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.processor.onStart(span as any, context);
+  }
+
+  onEnd(span: ReadableSpan): void {
+    // Only forward spans that pass the filter
+    if (!this.shouldExclude(span)) {
+      this.processor.onEnd(span);
+    }
+  }
+
+  shutdown(): Promise<void> {
+    return this.processor.shutdown();
+  }
+
+  forceFlush(): Promise<void> {
+    return this.processor.forceFlush();
+  }
+}
 
 let sdk: NodeSDK | null = null;
 
@@ -101,10 +142,29 @@ export function initializeTracing() {
       })
       : undefined;
 
+    // Configure span processor with healthz filter
+    const createSpanProcessor = (): SpanProcessor | undefined => {
+      if (!traceExporter) return undefined;
+
+      const batchProcessor = new BatchSpanProcessor(traceExporter, {
+        maxQueueSize: 2048,
+        maxExportBatchSize: 512,
+      });
+
+      // Wrap with filtering processor to exclude health check spans
+      return new FilteringSpanProcessor(batchProcessor, (span: ReadableSpan) => {
+        const name = span.name || "";
+        // Exclude healthz, readyz, and metrics endpoints
+        return name.includes("/healthz") || name.includes("/readyz") || name.includes("/metrics");
+      });
+    };
+
+    const spanProcessor = createSpanProcessor();
+
     // Initialize OpenTelemetry SDK
     sdk = new NodeSDK({
       resource: resource,
-      ...(traceExporter && { traceExporter }),
+      ...(spanProcessor && { spanProcessors: [spanProcessor] }),
       ...(metricReader && { metricReader }),
       // Configure auto-instrumentations
       instrumentations: [
