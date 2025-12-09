@@ -123,11 +123,14 @@ export function initializeTracing() {
       })
       : undefined;
 
-    // Configure metric exporter
-    const metricExporter = tempo.url
+    // Configure metric exporter - use dedicated Prometheus/Mimir endpoint
+    const prometheusConfig = observabilityConfig.prometheus.remoteWrite;
+    const metricExporter = prometheusConfig.enabled && prometheusConfig.url
       ? new OTLPMetricExporter({
-        url: tempo.url.replace("/v1/traces", "/v1/metrics"), // Tempo metrics endpoint
-        headers: tempo.headers as Record<string, string>,
+        url: prometheusConfig.url,
+        headers: prometheusConfig.username && prometheusConfig.password
+          ? { Authorization: `Basic ${Buffer.from(`${prometheusConfig.username}:${prometheusConfig.password}`).toString("base64")}` }
+          : {},
         timeoutMillis: 30000,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         compression: "gzip" as any,

@@ -131,3 +131,21 @@ export type {
     // Sentry integration
     ISentry,
 } from "./IWorker.js";
+
+// =============================================================================
+// HTTP Types (Shared with Frontend)
+// =============================================================================
+
+export {
+    // Status codes
+    HTTP_STATUS_CODES,
+    isHttpStatusCode,
+} from "./http/index.js";
+
+export type {
+    HttpStatusCode,
+    IApiResponse,
+    IApiError,
+    IValidationErrorDetail,
+    ApiResponseType,
+} from "./http/index.js";

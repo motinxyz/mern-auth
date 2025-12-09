@@ -504,6 +504,9 @@ importers:
 
   packages/utils:
     dependencies:
+      '@auth/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@opentelemetry/api':
         specifier: ^1.0.0
         version: 1.9.0
