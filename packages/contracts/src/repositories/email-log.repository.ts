@@ -4,9 +4,9 @@
  * Email-specific repository operations.
  */
 
-import type { IRepository } from "../IRepository.js";
+import type { IRepository } from "./repository.interface.js";
 import type { IEmailLog } from "../entities/email-log.js";
-import type { EmailStatus } from "../common.js";
+import type { EmailStatus } from "../common/index.js";
 
 /**
  * Email log repository interface.

@@ -5,7 +5,7 @@
  * Handles job submission with retry and backoff configurations.
  */
 
-import type { IHealthResult } from "./common.js";
+import type { IHealthResult } from "../common/index.js";
 
 // =============================================================================
 // Job Options

@@ -4,7 +4,7 @@
  * Tracks sent emails and their delivery status.
  */
 
-import type { EmailStatus, BounceType } from "../common.js";
+import type { EmailStatus, BounceType } from "../common/index.js";
 
 /**
  * Email log document interface.

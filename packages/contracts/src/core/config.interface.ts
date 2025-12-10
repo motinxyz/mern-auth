@@ -56,7 +56,7 @@ export interface IConfig {
     readonly dbPoolSize: number;
     /** Minimum connection pool size */
     readonly dbMinPoolSize: number;
-    /** Maximum time a connection can be idle (milliseconds) */
+    /** Maximum connection pool size (alias for dbPoolSize) */
     readonly dbMaxIdleTimeMs: number;
     /** Wait queue timeout for connection (milliseconds) */
     readonly dbWaitQueueTimeoutMs: number;

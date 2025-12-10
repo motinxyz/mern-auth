@@ -5,11 +5,12 @@
  * provider failover, and circuit breaker patterns.
  */
 
-import type { ILogger } from "./ILogger.js";
-import type { IConfig } from "./IConfig.js";
-import type { IEmailLogRepository } from "./repositories/email-log.repository.js";
-import type { IEmailProvider, MailOptions, EmailSendResult } from "./IEmailProvider.js";
-import type { CircuitBreakerState, EmailTemplate } from "./common.js";
+import type { ILogger } from "../core/logger.interface.js";
+import type { IConfig } from "../core/config.interface.js";
+import type { IEmailLogRepository } from "../repositories/email-log.repository.js";
+import type { IEmailProvider, MailOptions, EmailSendResult } from "./email-provider.interface.js";
+import type { CircuitBreakerState } from "../common/index.js";
+import type { EmailTemplate } from "./email-templates.js";
 
 // =============================================================================
 // Email Service Configuration

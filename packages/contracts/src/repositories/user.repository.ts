@@ -4,7 +4,7 @@
  * User-specific repository operations.
  */
 
-import type { IRepository, FindOptions } from "../IRepository.js";
+import type { IRepository, FindOptions } from "./repository.interface.js";
 import type { IUser } from "../entities/user.js";
 
 /**

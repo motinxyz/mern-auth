@@ -249,7 +249,7 @@ export function initializeTracing() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ignoreLayersType: ["middleware" as any],
             // Ignore health check routes entirely - match by layer name
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             ignoreLayers: [/healthz/, /readyz/],
             // spanNameHook is the correct hook for setting span names
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

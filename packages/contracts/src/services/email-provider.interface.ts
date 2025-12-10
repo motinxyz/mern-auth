@@ -5,7 +5,7 @@
  * Providers implement this interface for consistent email operations.
  */
 
-import type { IHealthResult, BounceType } from "./common.js";
+import type { IHealthResult, BounceType } from "../common/index.js";
 
 // =============================================================================
 // Email Options

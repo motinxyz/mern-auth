@@ -4,7 +4,7 @@
  * Audit-specific repository operations.
  */
 
-import type { IRepository, FindOptions } from "../IRepository.js";
+import type { IRepository, FindOptions } from "./repository.interface.js";
 import type { IAuditLog } from "../entities/audit-log.js";
 
 /**
