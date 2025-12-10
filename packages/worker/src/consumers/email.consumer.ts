@@ -113,8 +113,8 @@ class EmailConsumer extends BaseConsumer {
     });
 
     try {
-      jobLogger.debug(
-        { email: data.user.email },
+      jobLogger.info(
+        { userId: data.user.id },
         WORKER_MESSAGES.EMAIL_SENDING_VERIFICATION
       );
 

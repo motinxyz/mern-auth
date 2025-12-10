@@ -41,6 +41,9 @@ export class VerificationService {
       hashedToken
     );
 
+    // Business event: verification attempt started
+    this.logger.info("Email verification started");
+
     this.logger.debug(
       { key: verifyKey },
       VERIFICATION_MESSAGES.REDIS_KEY_CONSTRUCTED
@@ -56,10 +59,8 @@ export class VerificationService {
       throw new NotFoundError("auth:verify.invalidToken");
     }
 
-    this.logger.debug(
-      { key: verifyKey, data: userDataJSON },
-      VERIFICATION_MESSAGES.TOKEN_FOUND_REDIS
-    );
+    // Token found - log at info level for production visibility
+    this.logger.info("Verification token found, processing");
 
     // Parse user data
     let userData;
@@ -85,6 +86,9 @@ export class VerificationService {
       );
       throw new NotFoundError("auth:verify.userNotFound");
     }
+
+    // Business event: user found for verification
+    this.logger.info({ userId: user._id.toString() }, "User found, verifying email");
 
     // Check if already verified
     if (user.isVerified) {

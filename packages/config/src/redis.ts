@@ -1,19 +1,8 @@
 import { Redis } from "ioredis";
 import { ConfigurationError } from "@auth/utils";
-import type { ILogger } from "@auth/contracts";
+import type { ILogger, IConfig } from "@auth/contracts";
 import { CONFIG_MESSAGES, CONFIG_ERRORS } from "./constants/config.messages.js";
 import { createRedisCircuitBreaker } from "./redis-circuit-breaker.js";
-
-/**
- * AppConfig - Local config interface matching env.ts output
- */
-interface AppConfig {
-  readonly redisUrl: string;
-  readonly env: string;
-  readonly redis: {
-    readonly circuitBreakerTimeout: number;
-  };
-}
 
 /**
  * RedisService - Manages Redis connection lifecycle with circuit breaker
@@ -28,12 +17,12 @@ export interface ExtendedRedis extends Redis {
 }
 
 export class RedisService {
-  private readonly config: AppConfig;
+  private readonly config: IConfig;
   private readonly logger: ILogger;
   private readonly sentry: unknown;
   private connection: ExtendedRedis | null;
 
-  constructor({ config, logger, sentry }: { config: AppConfig; logger: ILogger; sentry?: unknown }) {
+  constructor({ config, logger, sentry }: { config: IConfig; logger: ILogger; sentry?: unknown }) {
     if (config === undefined || config === null) {
       throw new ConfigurationError(CONFIG_ERRORS.MISSING_CONFIG);
     }

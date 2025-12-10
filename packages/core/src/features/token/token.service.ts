@@ -68,8 +68,14 @@ export class TokenService implements ITokenService {
       // Verify the token was stored correctly
       const ttl = await this.redis.ttl(verifyKey);
       this.logger.debug(
-        { token: verificationToken, ttl, redisResponse: result },
+        { ttl, redisResponse: result },
         TOKEN_MESSAGES.TOKEN_STORED_REDIS
+      );
+
+      // Business event: token created successfully
+      this.logger.info(
+        { email: user.email, expiresInSeconds: ttl },
+        "Verification token created"
       );
 
       return verificationToken;
@@ -96,6 +102,13 @@ export class TokenService implements ITokenService {
     }
 
     const parsed = JSON.parse(tokenData) as { userId: string; type?: string };
+
+    // Business event: token verified successfully
+    this.logger.info(
+      { userId: parsed.userId, tokenType: parsed.type ?? "verification" },
+      "Token verified successfully"
+    );
+
     return {
       userId: parsed.userId,
       type: parsed.type ?? "verification",
@@ -113,6 +126,8 @@ export class TokenService implements ITokenService {
 
     const verifyKey = `${this.config.redis.prefixes.verifyEmail}${hashedToken}`;
     await this.redis.del(verifyKey);
-    this.logger.debug({ key: verifyKey }, "Token deleted");
+
+    // Business event: token deleted
+    this.logger.info("Token deleted successfully");
   }
 }

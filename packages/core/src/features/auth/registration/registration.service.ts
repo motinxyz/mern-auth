@@ -96,6 +96,12 @@ export class RegistrationService {
         // Normalize email to prevent duplicate accounts (e.g. dot-variants)
         const normalizedEmail = normalizeEmail(email);
 
+        // Business event: registration started
+        this.logger.info(
+          { emailHash: hashSensitiveData(email), locale },
+          "Registration started"
+        );
+
         const rateLimitKey = createAuthRateLimitKey(
           this.config.redis.prefixes.verifyEmailRateLimit,
           normalizedEmail
@@ -163,6 +169,12 @@ export class RegistrationService {
                     addSpanAttributes({
                       "user.id": newUser._id.toString(),
                     });
+
+                    // Business event: user created
+                    this.logger.info(
+                      { userId: newUser._id.toString() },
+                      "User created successfully"
+                    );
                   }
                 );
               } catch (error) {
@@ -278,6 +290,12 @@ export class RegistrationService {
                 "queue.job_id": job.id ?? `verify-email-${newUser._id}`,
                 "queue.job_type": EMAIL_JOB_TYPES.SEND_VERIFICATION_EMAIL,
               });
+
+              // Business event: email job queued
+              this.logger.info(
+                { userId: newUser._id.toString(), jobId: job.id },
+                "Verification email job queued"
+              );
             } catch (emailJobError) {
               this.logger.error(
                 { emailJobError, userId: newUser._id },

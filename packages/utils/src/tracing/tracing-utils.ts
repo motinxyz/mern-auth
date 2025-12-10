@@ -13,6 +13,12 @@ import {
   type SpanOptions,
 } from "@opentelemetry/api";
 
+// Import TraceContext from contracts (single source of truth)
+import type { TraceContext } from "@auth/contracts";
+
+// Re-export for convenience
+export type { TraceContext };
+
 /**
  * Options for withSpan function
  */
@@ -20,15 +26,6 @@ export interface WithSpanOptions extends SpanOptions {
   readonly tracerName?: string;
   readonly component?: string;
   readonly attributes?: Readonly<Record<string, AttributeValue>>;
-}
-
-/**
- * Trace context for propagation
- */
-export interface TraceContext {
-  readonly traceId: string;
-  readonly spanId: string;
-  readonly traceFlags: number;
 }
 
 /**
