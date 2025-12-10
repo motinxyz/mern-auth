@@ -1,127 +1,119 @@
-import { redisConnection, getLogger } from "@auth/config";
-import type { Request, Response, NextFunction } from "express";
-
-const logger = getLogger();
+import type { IRedisConnection } from "@auth/contracts";
+import { getLogger } from "@auth/config";
+import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { API_MESSAGES } from "../../constants/api.messages.js";
 
+const logger = getLogger();
 const cacheLogger = logger.child({ module: "cache" });
 
 /**
- * API Response Caching Middleware
- *
- * Caches GET request responses in Redis for a specified duration.
- * Useful for read-heavy endpoints that don't change frequently.
- *
- * @returns {Function} Express middleware
- *
- * @example
- * // Cache for 5 minutes
- * router.get('/api/v1/users/:id', cacheMiddleware(300), getUserHandler);
- *
- * // Cache with custom options
- * router.get('/api/v1/posts', cacheMiddleware(60, {
- *   keyPrefix: 'posts:',
- *   shouldCache: (req, res) => res.statusCode === 200
- * }), getPostsHandler);
+ * Cache middleware options
  */
-interface CacheOptions {
+export interface CacheOptions {
   keyPrefix?: string;
   shouldCache?: (req: Request, res: Response) => boolean;
 }
 
-export const cacheMiddleware = (duration: number, options: CacheOptions = {}) => {
-  const {
-    keyPrefix = "cache:",
-    shouldCache = (_req: Request, res: Response) => res.statusCode === 200,
-  } = options;
-
-  return async (req: Request, res: Response, next: NextFunction) => {
-    // Only cache GET requests
-    if (req.method !== "GET") {
-      return next();
-    }
-
-    // Build cache key from URL and query params
-    const cacheKey = `${keyPrefix}${req.originalUrl}`;
-
-    try {
-      // Try to get cached response
-      const cached = await redisConnection.get(cacheKey);
-
-      if (cached !== null) {
-        cacheLogger.debug({ cacheKey }, API_MESSAGES.CACHE_HIT);
-        res.setHeader("X-Cache", "HIT");
-        res.setHeader("X-Cache-Key", cacheKey);
-        return res.json(JSON.parse(cached));
-      }
-
-      cacheLogger.debug({ cacheKey }, API_MESSAGES.CACHE_MISS);
-      res.setHeader("X-Cache", "MISS");
-      res.setHeader("X-Cache-Key", cacheKey);
-
-      // Intercept res.json to cache the response
-      const originalJson = res.json.bind(res);
-      res.json = function (data) {
-        // Only cache if shouldCache returns true
-        if (shouldCache(req, res)) {
-          redisConnection
-            .setex(cacheKey, duration, JSON.stringify(data))
-            .then(() => {
-              cacheLogger.debug(
-                { cacheKey, duration },
-                API_MESSAGES.CACHE_RESPONSE_SAVED
-              );
-            })
-            .catch((error) => {
-              cacheLogger.warn(
-                { cacheKey, error: (error as Error).message },
-                API_MESSAGES.CACHE_SAVE_FAILED
-              );
-            });
-        }
-
-        return originalJson(data);
-      };
-
-      next();
-    } catch (error) {
-      // If Redis fails, continue without caching
-      cacheLogger.warn({ error: (error as Error).message }, API_MESSAGES.CACHE_ERROR);
-      res.setHeader("X-Cache", "ERROR");
-      next();
-    }
-  };
-};
+/**
+ * Cache Middleware Dependencies
+ */
+export interface CacheMiddlewareDeps {
+  redis: IRedisConnection;
+}
 
 /**
- * Invalidate cache for a specific key or pattern
+ * Create cache middleware factory
  *
- * @param {string} pattern - Redis key pattern (supports wildcards)
- * @returns {Promise<number>} Number of keys deleted
+ * Factory function that creates cache middleware with injected Redis dependency.
  *
- * @example
- * // Invalidate specific cache
- * await invalidateCache('cache:/api/v1/users/123');
- *
- * // Invalidate all user caches
- * await invalidateCache('cache:/api/v1/users/*');
+ * @param deps - Injected dependencies (Redis connection)
+ * @returns Function that creates cache middleware for specific duration/options
  */
-export const invalidateCache = async (pattern: string) => {
-  try {
-    const keys = await redisConnection.keys(pattern);
-    if (keys.length === 0) {
-      cacheLogger.debug({ pattern }, API_MESSAGES.CACHE_NO_KEYS_FOUND);
-      return 0;
-    }
+export function createCacheMiddleware(deps: CacheMiddlewareDeps) {
+  const { redis } = deps;
 
-    const deleted = await redisConnection.del(...keys);
-    cacheLogger.info({ pattern, deleted }, API_MESSAGES.CACHE_INVALIDATED);
-    return deleted;
-  } catch (error) {
-    cacheLogger.error(
-      { pattern, error: (error as Error).message },
-      API_MESSAGES.CACHE_INVALIDATE_FAILED
-    );
-    throw error;
-  }
-};
+  return (duration: number, options: CacheOptions = {}): RequestHandler => {
+    const {
+      keyPrefix = "cache:",
+      shouldCache = (_req: Request, res: Response) => res.statusCode === 200,
+    } = options;
+
+    return async (req: Request, res: Response, next: NextFunction) => {
+      if (req.method !== "GET") {
+        return next();
+      }
+
+      const cacheKey = `${keyPrefix}${req.originalUrl}`;
+
+      try {
+        const cached = await redis.get(cacheKey);
+
+        if (cached !== null) {
+          cacheLogger.debug({ cacheKey }, API_MESSAGES.CACHE_HIT);
+          res.setHeader("X-Cache", "HIT");
+          res.setHeader("X-Cache-Key", cacheKey);
+          return res.json(JSON.parse(cached));
+        }
+
+        cacheLogger.debug({ cacheKey }, API_MESSAGES.CACHE_MISS);
+        res.setHeader("X-Cache", "MISS");
+        res.setHeader("X-Cache-Key", cacheKey);
+
+        const originalJson = res.json.bind(res);
+        res.json = function (data) {
+          if (shouldCache(req, res)) {
+            redis
+              .setex(cacheKey, duration, JSON.stringify(data))
+              .then(() => {
+                cacheLogger.debug({ cacheKey, duration }, API_MESSAGES.CACHE_RESPONSE_SAVED);
+              })
+              .catch((error) => {
+                cacheLogger.warn({ cacheKey, error: (error as Error).message }, API_MESSAGES.CACHE_SAVE_FAILED);
+              });
+          }
+          return originalJson(data);
+        };
+
+        next();
+      } catch (error) {
+        cacheLogger.warn({ error: (error as Error).message }, API_MESSAGES.CACHE_ERROR);
+        res.setHeader("X-Cache", "ERROR");
+        next();
+      }
+    };
+  };
+}
+
+/**
+ * Cache Invalidation Dependencies
+ */
+export interface CacheInvalidatorDeps {
+  redis: IRedisConnection;
+}
+
+/**
+ * Create cache invalidation function
+ *
+ * @param deps - Injected dependencies (Redis connection)
+ * @returns Function to invalidate cache by pattern
+ */
+export function createCacheInvalidator(deps: CacheInvalidatorDeps) {
+  const { redis } = deps;
+
+  return async (pattern: string): Promise<number> => {
+    try {
+      const keys = await redis.keys(pattern);
+      if (keys.length === 0) {
+        cacheLogger.debug({ pattern }, API_MESSAGES.CACHE_NO_KEYS_FOUND);
+        return 0;
+      }
+
+      const deleted = await redis.del(...keys);
+      cacheLogger.info({ pattern, deleted }, API_MESSAGES.CACHE_INVALIDATED);
+      return deleted;
+    } catch (error) {
+      cacheLogger.error({ pattern, error: (error as Error).message }, API_MESSAGES.CACHE_INVALIDATE_FAILED);
+      throw error;
+    }
+  };
+}

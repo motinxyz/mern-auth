@@ -1,7 +1,7 @@
 import type { Redis } from "ioredis";
 import QueueProducerService from "./queue-producer.service.js";
 import ProducerService from "./producer.service.js";
-import { getLogger, redisConnection, QUEUE_NAMES, config } from "@auth/config";
+import { getLogger, getRedisConnection, QUEUE_NAMES, config } from "@auth/config";
 import type { ILogger } from "@auth/contracts";
 
 /**
@@ -30,7 +30,7 @@ export interface QueueServices {
  */
 export function createQueueServices(options: CreateQueueServicesOptions = {}): QueueServices {
   const logger = options.logger ?? getLogger();
-  const connection = options.connection ?? redisConnection;
+  const connection = options.connection ?? getRedisConnection();
   const queueName = options.queueName ?? QUEUE_NAMES.EMAIL;
 
   // Create email queue producer

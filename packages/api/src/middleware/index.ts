@@ -14,10 +14,10 @@ export {
 export { configureMiddleware } from "./core/setup.js";
 
 // ============================================================================
-// SECURITY LAYER - Security and protection middleware
+// SECURITY LAYER - Security and protection middleware (Factory functions)
 // ============================================================================
-export { apiLimiter, authLimiter } from "./security/rateLimiter.js";
-export { cacheMiddleware } from "./security/cache.js";
+export { createApiLimiter, createAuthLimiter, type RateLimiterDeps } from "./security/rateLimiter.js";
+export { createCacheMiddleware, createCacheInvalidator, type CacheMiddlewareDeps, type CacheOptions } from "./security/cache.js";
 
 // ============================================================================
 // BUSINESS LAYER - Business logic and validation middleware
@@ -30,3 +30,8 @@ export { featureFlagMiddleware } from "./business/featureFlag.js";
 // RESPONSE LAYER - Response formatting middleware
 // ============================================================================
 export { responseHandler } from "./response/responseHandler.js";
+
+// ============================================================================
+// COMPOSITION ROOT - Factory for all middleware with DI
+// ============================================================================
+export { createMiddleware, type MiddlewareDeps, type CreatedMiddleware } from "./middleware.factory.js";

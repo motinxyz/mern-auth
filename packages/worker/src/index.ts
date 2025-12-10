@@ -8,7 +8,7 @@ import {
   config,
   getLogger,
   initI18n,
-  redisConnection,
+  getRedisConnection,
   QUEUE_NAMES,
 } from "@auth/config";
 import { EmailService, ProviderService, type EmailServiceConfig } from "@auth/email";
@@ -59,10 +59,10 @@ async function main(): Promise<void> {
 
     // Create worker service with DI
     // DatabaseService implements IDatabaseService - no cast needed
-    // redisConnection implements IRedisConnection - typed via contract
+    // Get Redis connection via factory
     const workerService = new WorkerService({
       logger,
-      redisConnection: redisConnection as IRedisConnection,
+      redisConnection: getRedisConnection() as IRedisConnection,
       databaseService,
       initServices: [
         async () => { await emailService.initialize(); },

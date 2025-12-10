@@ -1,21 +1,31 @@
-import { getDatabaseService } from "@auth/app-bootstrap";
-import { redisConnection, getLogger } from "@auth/config";
 import type { Request, Response } from "express";
-import type { IDatabaseService } from "@auth/contracts";
-
-const logger = getLogger();
+import type { IDatabaseService, IRedisConnection } from "@auth/contracts";
+import { getLogger } from "@auth/config";
 import { HTTP_STATUS_CODES } from "@auth/utils";
 
+const logger = getLogger();
 const healthLogger = logger.child({ module: "health" });
 
-
-export class HealthController {
+/**
+ * Health Controller Dependencies
+ */
+export interface HealthControllerDeps {
+  redis: IRedisConnection;
   databaseService: IDatabaseService;
-  redisConnection: typeof redisConnection;
+}
 
-  constructor() {
-    this.databaseService = getDatabaseService();
-    this.redisConnection = redisConnection;
+/**
+ * Health Controller
+ *
+ * Handles health check endpoints with injected dependencies.
+ */
+export class HealthController {
+  private readonly redis: IRedisConnection;
+  private readonly databaseService: IDatabaseService;
+
+  constructor(deps: HealthControllerDeps) {
+    this.redis = deps.redis;
+    this.databaseService = deps.databaseService;
   }
 
   /**
@@ -24,10 +34,9 @@ export class HealthController {
    */
   checkHealth = async (_req: Request, res: Response) => {
     try {
-      // Perform actual ping to verify connectivity
       const [dbPing, redisPing] = await Promise.allSettled([
         this.databaseService.ping(),
-        this.redisConnection.ping(),
+        this.redis.ping(),
       ]);
 
       const services = {
@@ -36,16 +45,12 @@ export class HealthController {
           readyState: this.databaseService.getConnectionState().readyState,
         },
         redis: {
-          status:
-            redisPing.status === "fulfilled" && redisPing.value === "PONG"
-              ? "UP"
-              : "DOWN",
-          connectionStatus: this.redisConnection.status,
+          status: redisPing.status === "fulfilled" && redisPing.value === "PONG" ? "UP" : "DOWN",
+          connectionStatus: this.redis.status,
         },
       };
 
-      const allHealthy =
-        services.mongodb.status === "UP" && services.redis.status === "UP";
+      const allHealthy = services.mongodb.status === "UP" && services.redis.status === "UP";
 
       healthLogger.debug({ services, allHealthy }, "Health check performed");
 
@@ -57,10 +62,7 @@ export class HealthController {
         });
       }
 
-      return res.status(HTTP_STATUS_CODES.OK).json({
-        status: "READY",
-        services,
-      });
+      return res.status(HTTP_STATUS_CODES.OK).json({ status: "READY", services });
     } catch (error) {
       healthLogger.error({ error: (error as Error).message }, "Health check error");
       return res.status(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR).json({
@@ -71,4 +73,9 @@ export class HealthController {
   };
 }
 
-export const healthController = new HealthController();
+/**
+ * Create Health Controller factory
+ */
+export function createHealthController(deps: HealthControllerDeps): HealthController {
+  return new HealthController(deps);
+}

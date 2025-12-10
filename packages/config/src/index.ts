@@ -1,20 +1,28 @@
-// Import dependencies first
-import { getLogger } from "./logger.js";
-import { RedisService } from "./redis.js";
-import config from "./env.js";
+/**
+ * @auth/config - Configuration Package Entry Point
+ *
+ * This module provides centralized configuration and utilities for all packages.
+ * Uses lazy initialization patterns to avoid side-effects on import.
+ */
 
-// Export configuration and utilities
+// Export configuration
 export { default as config } from "./env.js";
-export { getLogger } from "./logger.js";
-export { i18nInstance, i18nMiddleware, initI18n, t } from "./i18n.js";
-export { RedisService, type ExtendedRedis } from "./redis.js";
-export * from "./constants/queue.js";
-export { FeatureFlagService } from "./feature-flags.js";
-export * from "./observability/index.js";
 
-// Instantiate and export Redis connection
-// Note: Uses getLogger() internally, but doesn't export logger singleton
-// All consumers should use getLogger() for flexibility
-const logger = getLogger();
-const redisService = new RedisService({ config, logger });
-export const redisConnection = redisService.connect();
+// Export logger
+export { getLogger } from "./logger.js";
+
+// Export i18n utilities
+export { i18nInstance, i18nMiddleware, initI18n, t } from "./i18n.js";
+
+// Export Redis service and factory
+export { RedisService, type ExtendedRedis } from "./redis.js";
+export { getRedisConnection, resetRedisConnection } from "./redis.factory.js";
+
+// Export queue constants
+export * from "./constants/queue.js";
+
+// Export feature flags
+export { FeatureFlagService } from "./feature-flags.js";
+
+// Export observability utilities
+export * from "./observability/index.js";

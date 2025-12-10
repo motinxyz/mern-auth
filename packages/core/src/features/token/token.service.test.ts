@@ -121,7 +121,6 @@ describe("Token Service", () => {
 
       expect(mockDebug).toHaveBeenCalledWith(
         {
-          token: token,
           ttl: expect.any(Number),
           redisResponse: "OK",
         },

@@ -1,49 +1,72 @@
 import rateLimit from "express-rate-limit";
+import type { RequestHandler } from "express";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const { RedisStore } = require("rate-limit-redis");
-import { config, t, redisConnection } from "@auth/config";
+import type { IRedisConnection } from "@auth/contracts";
+import { config, t } from "@auth/config";
 import type { Request, Response } from "express";
 
-// Basic rate limiting middleware for all API requests
-export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  store: new RedisStore({
+/**
+ * Rate Limiter Dependencies
+ */
+export interface RateLimiterDeps {
+  redis: IRedisConnection;
+}
 
-    sendCommand: (...args: string[]) => redisConnection.call(...(args as [string, ...string[]])),
-    prefix: "rl:api:",
-  }),
-  message: (_req: Request, res: Response) => {
-    const retryAfter = res.getHeader("Retry-After");
-    const retryAfterMinutes = Math.ceil(Number(retryAfter) / 60);
-    return t("rateLimit:apiTooManyRequests", { retryAfterMinutes });
-  },
-});
+/**
+ * Create a Redis store for rate limiting
+ */
+function createRedisStore(redis: IRedisConnection, prefix: string) {
+  return new RedisStore({
+    sendCommand: (...args: string[]) => redis.call(...(args as [string, ...string[]])),
+    prefix,
+  });
+}
 
-// Stricter rate limiting for authentication routes
-// Stricter rate limiting for authentication routes
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  store: new RedisStore({
+/**
+ * Create API rate limiter middleware
+ *
+ * @param deps - Injected dependencies (Redis connection)
+ * @returns Express rate limiter middleware
+ */
+export function createApiLimiter(deps: RateLimiterDeps): RequestHandler {
+  const { redis } = deps;
 
-    sendCommand: (...args: string[]) => redisConnection.call(...(args as [string, ...string[]])),
-    prefix: "rl:auth:",
-  }),
-  message: (_req: Request, res: Response) => {
-    const retryAfter = res.getHeader("Retry-After");
-    const retryAfterMinutes = Math.ceil(Number(retryAfter) / 60);
-    return t("rateLimit:authTooManyAttempts", { retryAfterMinutes });
-  },
-  // `skip` is the recommended way to disable rate limiting.
-  skip: () => {
-    const isDev = config.isDevelopment;
-    // if (isDev) logger.debug("Auth rate limit skipped for development.");
-    return isDev;
-  },
-});
+  return rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: createRedisStore(redis, "rl:api:"),
+    message: (_req: Request, res: Response) => {
+      const retryAfter = res.getHeader("Retry-After");
+      const retryAfterMinutes = Math.ceil(Number(retryAfter) / 60);
+      return t("rateLimit:apiTooManyRequests", { retryAfterMinutes });
+    },
+  });
+}
+
+/**
+ * Create Auth rate limiter middleware
+ *
+ * @param deps - Injected dependencies (Redis connection)
+ * @returns Express rate limiter middleware
+ */
+export function createAuthLimiter(deps: RateLimiterDeps): RequestHandler {
+  const { redis } = deps;
+
+  return rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: createRedisStore(redis, "rl:auth:"),
+    message: (_req: Request, res: Response) => {
+      const retryAfter = res.getHeader("Retry-After");
+      const retryAfterMinutes = Math.ceil(Number(retryAfter) / 60);
+      return t("rateLimit:authTooManyAttempts", { retryAfterMinutes });
+    },
+    skip: () => config.isDevelopment,
+  });
+}

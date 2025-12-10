@@ -1,5 +1,6 @@
 // Export all bootstrap functionality
 export {
+    getRedisService,
     getDatabaseService,
     getEmailService,
     getQueueServices,

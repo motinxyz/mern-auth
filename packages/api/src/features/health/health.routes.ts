@@ -1,15 +1,26 @@
 import { Router } from "express";
-import { healthController } from "./health.controller.js";
-
-const router = Router();
+import type { HealthController } from "./health.controller.js";
 
 /**
- * Detailed health check endpoint (Readiness Probe)
- * GET /api/health
+ * Create health routes factory
  *
- * Checks MongoDB and Redis connectivity with actual ping
- * Returns 200 if all services are healthy, 503 otherwise
+ * Factory function that creates health routes with injected controller.
+ * Follows Gold Standard DI pattern.
+ *
+ * @param healthController - Injected HealthController instance
+ * @returns Express Router with health routes
  */
-router.get("/", healthController.checkHealth);
+export function createHealthRoutes(healthController: HealthController): Router {
+    const router = Router();
 
-export default router;
+    /**
+     * Detailed health check endpoint (Readiness Probe)
+     * GET /api/health
+     *
+     * Checks MongoDB and Redis connectivity with actual ping
+     * Returns 200 if all services are healthy, 503 otherwise
+     */
+    router.get("/", healthController.checkHealth);
+
+    return router;
+}

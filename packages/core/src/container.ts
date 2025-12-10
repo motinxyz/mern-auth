@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { User } from "@auth/database";
-import { redisConnection, config, getLogger } from "@auth/config";
+import { getRedisConnection, config, getLogger } from "@auth/config";
 import { getQueueServices } from "@auth/queues";
 
 const logger = getLogger();
@@ -25,7 +25,7 @@ import { VerificationController } from "./features/auth/verification/verificatio
  */
 
 // Initialize adapters
-const redisAdapter = new RedisCacheAdapter(redisConnection);
+const redisAdapter = new RedisCacheAdapter(getRedisConnection());
 
 // Instantiate services with explicit dependencies
 const tokenService = new TokenService({

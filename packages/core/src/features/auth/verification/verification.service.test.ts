@@ -6,37 +6,41 @@ import { VERIFICATION_STATUS } from "@auth/core/constants/auth.constants";
 import crypto from "node:crypto";
 
 // Mock Redis and config
-vi.mock("@auth/config", () => ({
-  getLogger: vi.fn(() => ({
-    child: vi.fn(() => ({
-      info: vi.fn(),
-      debug: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    })),
-  })),
-  redisConnection: {
+vi.mock("@auth/config", () => {
+  const mockRedisConnection = {
     get: vi.fn(),
     set: vi.fn(),
     del: vi.fn(),
-  },
-  logger: {
-    child: vi.fn(() => ({
-      info: vi.fn(),
-      debug: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
+  };
+  return {
+    getLogger: vi.fn(() => ({
+      child: vi.fn(() => ({
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      })),
     })),
-  },
-  t: vi.fn((key) => key),
-  config: {
-    redis: {
-      prefixes: {
-        verifyEmail: "verify-email:",
+    getRedisConnection: vi.fn(() => mockRedisConnection),
+    redisConnection: mockRedisConnection,
+    logger: {
+      child: vi.fn(() => ({
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      })),
+    },
+    t: vi.fn((key) => key),
+    config: {
+      redis: {
+        prefixes: {
+          verifyEmail: "verify-email:",
+        },
       },
     },
-  },
-}));
+  };
+});
 
 // Mock database
 vi.mock("@auth/database", async (importOriginal) => {
@@ -91,7 +95,7 @@ describe("Verification Service", () => {
         .update(token)
         .digest("hex");
       const userData = { userId: "123" };
-      const user = { id: "123", isVerified: false, save: vi.fn() };
+      const user = { _id: { toString: () => "123" }, isVerified: false, save: vi.fn() };
 
       mockRedisConnection.get.mockResolvedValue(JSON.stringify(userData));
       mockRedisConnection.del.mockResolvedValue(1);
@@ -115,7 +119,7 @@ describe("Verification Service", () => {
         .update(token)
         .digest("hex");
       const userData = { userId: "123" };
-      const user = { id: "123", isVerified: true };
+      const user = { _id: { toString: () => "123" }, isVerified: true };
 
       mockRedisConnection.get.mockResolvedValue(JSON.stringify(userData));
       mockRedisConnection.del.mockResolvedValue(1);

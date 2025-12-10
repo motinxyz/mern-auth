@@ -92,6 +92,34 @@ export interface IRedisConnection {
     quit(): Promise<"OK">;
 
     /**
+     * Set a value with expiry in seconds.
+     *
+     * @param key - Redis key
+     * @param seconds - TTL in seconds
+     * @param value - Value to store
+     * @returns 'OK' on success
+     */
+    setex(key: string, seconds: number, value: string | Buffer | number): Promise<"OK">;
+
+    /**
+     * Get TTL of a key in seconds.
+     *
+     * @param key - Redis key
+     * @returns TTL in seconds, -1 if no TTL, -2 if key doesn't exist
+     */
+    ttl(key: string): Promise<number>;
+
+    /**
+     * Send a raw Redis command.
+     * Used by rate-limit-redis and other libraries.
+     *
+     * @param command - Redis command
+     * @param args - Command arguments
+     * @returns Command result
+     */
+    call(command: string, ...args: (string | number | Buffer)[]): Promise<unknown>;
+
+    /**
      * Subscribe to connection events.
      *
      * @param event - Event name (e.g., 'connect', 'error', 'ready')

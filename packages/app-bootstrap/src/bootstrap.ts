@@ -1,7 +1,7 @@
 import type { Application } from "express";
 import type { Server } from "http";
 import type { IDatabaseService, IEmailService } from "@auth/contracts";
-import { config, getLogger } from "@auth/config";
+import { config, getLogger, getRedisConnection, type ExtendedRedis } from "@auth/config";
 import { initI18n } from "@auth/config";
 import { DatabaseConnectionError, RedisConnectionError, withSpan, addSpanAttributes } from "@auth/utils";
 import { BOOTSTRAP_MESSAGES } from "./constants/bootstrap.messages.js";
@@ -14,8 +14,22 @@ import type { InitializedServices, ServiceDefinition, BootstrapHealth } from "./
 const logger = getLogger();
 
 // Typed singleton holders - internal only, not exported
+let redisServiceInstance: ExtendedRedis | null = null;
 let databaseServiceInstance: IDatabaseService | null = null;
 let emailServiceInstance: IEmailService | null = null;
+
+/**
+ * Get or create Redis connection singleton
+ *
+ * Returns the Redis connection (ExtendedRedis with circuit breaker).
+ * This is the centralized access point for Redis in the composition root.
+ */
+export function getRedisService(): ExtendedRedis {
+  if (redisServiceInstance === null) {
+    redisServiceInstance = getRedisConnection();
+  }
+  return redisServiceInstance;
+}
 
 /**
  * Get or create DatabaseService singleton

@@ -10,37 +10,35 @@ import { swaggerUi, swaggerSpec, swaggerUiOptions } from "./swagger/index.js";
 import { metricsMiddleware } from "./metrics/index.js";
 
 // core imports
-import { errorHandler, configureMiddleware } from "./middleware/index.js";
+import { errorHandler, configureMiddleware, createMiddleware } from "./middleware/index.js";
 import { NotFoundError } from "@auth/utils";
 import {
   i18nInstance,
   i18nMiddleware,
   config,
 } from "@auth/config";
+import { getRedisService, getDatabaseService } from "@auth/app-bootstrap";
 import type { Request, Response, NextFunction } from "express";
-import { apiLimiter } from "./middleware/index.js";
 import {
   createTimeoutMiddleware,
   timeoutErrorHandler,
+  apiVersionMiddleware,
 } from "./middleware/index.js";
-import { apiVersionMiddleware } from "./middleware/index.js";
-
-import router from "./router.js";
+import { createRouter } from "./router.js";
 import { webhookRoutes } from "./features/webhooks/index.js";
 
 // creates express router
 const app = express();
 
-// Trust first proxy (Render, Railway, etc.) - MUST be set before rate limiting
-// See: https://expressjs.com/en/guide/behind-proxies.html
+// Trust first proxy (Render, Railway, etc.)
 if (config.isProduction) {
   app.set("trust proxy", 1);
 }
 
-// Apply request timeout (30 seconds) - MUST be early in middleware chain
+// Apply request timeout (30 seconds)
 app.use(...createTimeoutMiddleware(30000));
 
-// Apply i18n middleware before any other middleware that might need it.
+// Apply i18n middleware
 if (config.isTest === true) {
   app.use((req: Request, _res: Response, next: NextFunction) => {
     req.t = ((key: string) => key) as typeof req.t;
@@ -50,8 +48,6 @@ if (config.isTest === true) {
   app.use(i18nMiddleware.handle(i18nInstance));
 }
 
-// Sentry request/tracing is handled automatically by v8 SDK
-
 // Setup core middleware (logging, body-parsing, etc.)
 configureMiddleware(app);
 
@@ -59,72 +55,62 @@ configureMiddleware(app);
 import { sentryUserMiddleware } from "./middleware/sentry.middleware.js";
 app.use(sentryUserMiddleware);
 
-// Add compression middleware for response compression
+// Add compression middleware
 app.use(
   compression({
     filter: (req, res) => {
       if (req.headers["x-no-compression"] !== undefined) return false;
       return compression.filter(req, res);
     },
-    level: 6, // Balance between speed and compression ratio
+    level: 6,
   })
 );
 
-// Add metrics middleware to track HTTP requests
+// Add metrics middleware
 app.use(metricsMiddleware);
 
+// ============================================================================
+// COMPOSITION ROOT - Create all dependencies with DI
+// ============================================================================
+const redis = getRedisService();
+const databaseService = getDatabaseService();
+const middleware = createMiddleware({ redis, databaseService });
+const router = createRouter({
+  authLimiter: middleware.authLimiter,
+  healthRoutes: middleware.healthRoutes,
+});
+
 // Health check endpoints (for load balancers/Kubernetes)
-import {
-  livenessHandler,
-  readinessHandler,
-} from "./features/health/health.handlers.js";
+app.get("/healthz", middleware.livenessHandler);
+app.get("/readyz", middleware.readinessHandler);
 
-// Liveness probe - Is the process running?
-app.get("/healthz", livenessHandler);
-
-// Readiness probe - Are dependencies ready to serve traffic?
-app.get("/readyz", readinessHandler);
-
-// Webhooks mounted at root to avoid body-parsing middleware interference
+// Webhooks mounted at root
 app.use("/webhooks", webhookRoutes);
 
 // Apply API versioning middleware
-app.use(
-  "/api",
-  apiVersionMiddleware({
-    currentVersion: "v1",
-    // When v2 is ready, uncomment these:
-    // deprecatedVersion: 'v1',
-    // sunsetDate: 'Sat, 31 Dec 2025 23:59:59 GMT',
-    // successorVersion: 'v2'
-  })
-);
+app.use("/api", apiVersionMiddleware({ currentVersion: "v1" }));
 
-// Apply global API rate limiter to all /api routes
-app.use("/api", apiLimiter);
+// Apply global API rate limiter
+app.use("/api", middleware.apiLimiter);
 
-// Mount Main Router
+// Mount Main Router (includes /api/health and /api/v1/auth)
 app.use("/api", router);
 
 // Swagger UI
-app.use(
-  "/api-docs",
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, swaggerUiOptions)
-);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
-// Handle 404 - Not Found routes
+// Handle 404
 app.use((_req: Request, _res: Response, next: NextFunction) => {
   next(new NotFoundError());
 });
 
-// Timeout error handler (MUST be before Sentry and global error handler)
+// Timeout error handler
 app.use(timeoutErrorHandler);
 
-// Sentry error handler (must be before other error handlers)
+// Sentry error handler
 Sentry.setupExpressErrorHandler(app);
 
-// Global error handler (must be the last middleware)
+// Global error handler (must be last)
 app.use(errorHandler);
 
 export default app;

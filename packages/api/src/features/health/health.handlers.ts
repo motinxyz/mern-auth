@@ -6,84 +6,83 @@
  * - /readyz   - Readiness probe (are dependencies ready to serve traffic?)
  */
 
+import type { IRedisConnection } from "@auth/contracts";
 import { HTTP_STATUS_CODES, withSpan, addSpanAttributes } from "@auth/utils";
-import { getLogger, redisConnection } from "@auth/config";
+import { getLogger } from "@auth/config";
 import { checkBootstrapHealth } from "@auth/app-bootstrap";
-import type { Request, Response } from "express";
+import type { Request, Response, RequestHandler } from "express";
 
 const logger = getLogger().child({ module: "health" });
 
 /**
- * Check Redis health
- * @returns {Promise<{healthy: boolean, latencyMs?: number, error?: string}>}
+ * Health Handlers Dependencies
  */
-async function checkRedis() {
-  const start = Date.now();
-  try {
-    await redisConnection.ping();
-    return {
-      healthy: true,
-      latencyMs: Date.now() - start,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.warn({ err: error }, "Redis health check failed");
-    return {
-      healthy: false,
-      error: message,
-    };
-  }
+export interface HealthHandlersDeps {
+  redis: IRedisConnection;
 }
 
 /**
  * Liveness probe handler - Is the process running?
- * Used by load balancers to check if the process should be restarted.
  */
 export function livenessHandler(_req: Request, res: Response) {
   res.status(HTTP_STATUS_CODES.OK).json({ status: "OK" });
 }
 
 /**
- * Readiness probe handler - Are dependencies ready to serve traffic?
- * Used by load balancers to determine if traffic should be routed to this instance.
+ * Create readiness handler factory
+ *
+ * @param deps - Injected dependencies
+ * @returns Express request handler
  */
-export async function readinessHandler(_req: Request, res: Response) {
-  await withSpan("api.health.readiness", async () => {
-    const startTime = Date.now();
+export function createReadinessHandler(deps: HealthHandlersDeps): RequestHandler {
+  const { redis } = deps;
 
-    // Check all dependencies in parallel
-    // Uses centralized bootstrap health check for DB and Email
-    const [redisHealth, bootstrapHealth] = await Promise.all([
-      checkRedis(),
-      checkBootstrapHealth(),
-    ]);
-
-    const isReady =
-      redisHealth.healthy && bootstrapHealth.healthy;
-
-    const response = {
-      status: isReady ? "READY" : "NOT_READY",
-      timestamp: new Date().toISOString(),
-      totalCheckMs: Date.now() - startTime,
-      checks: {
-        redis: redisHealth,
-        database: bootstrapHealth.database,
-        email: bootstrapHealth.email,
-        queues: bootstrapHealth.queues,
-      },
-    };
-
-    addSpanAttributes({
-      "health.status": response.status,
-      "health.ready": isReady,
-      "health.latency_ms": response.totalCheckMs,
-    });
-
-    // Log if not ready (for debugging)
-    if (!isReady) {
-      logger.warn(response, "Readiness check failed");
+  async function checkRedis() {
+    const start = Date.now();
+    try {
+      await redis.ping();
+      return { healthy: true, latencyMs: Date.now() - start };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.warn({ err: error }, "Redis health check failed");
+      return { healthy: false, error: message };
     }
+  }
 
-    res.status(isReady ? HTTP_STATUS_CODES.OK : 503).json(response);
-  });
+  return async (_req: Request, res: Response) => {
+    await withSpan("api.health.readiness", async () => {
+      const startTime = Date.now();
+
+      const [redisHealth, bootstrapHealth] = await Promise.all([
+        checkRedis(),
+        checkBootstrapHealth(),
+      ]);
+
+      const isReady = redisHealth.healthy && bootstrapHealth.healthy;
+
+      const response = {
+        status: isReady ? "READY" : "NOT_READY",
+        timestamp: new Date().toISOString(),
+        totalCheckMs: Date.now() - startTime,
+        checks: {
+          redis: redisHealth,
+          database: bootstrapHealth.database,
+          email: bootstrapHealth.email,
+          queues: bootstrapHealth.queues,
+        },
+      };
+
+      addSpanAttributes({
+        "health.status": response.status,
+        "health.ready": isReady,
+        "health.latency_ms": response.totalCheckMs,
+      });
+
+      if (!isReady) {
+        logger.warn(response, "Readiness check failed");
+      }
+
+      res.status(isReady ? HTTP_STATUS_CODES.OK : 503).json(response);
+    });
+  };
 }
