@@ -1,7 +1,17 @@
+export const urlRegex = /^(https?|ftp|redis|rediss):\/\/[^\s/$.?#].*$/i;
+
+export const Environments = {
+  DEVELOPMENT: "development",
+  PRODUCTION: "production",
+  TEST: "test",
+} as const;
+
+export type Environments = typeof Environments[keyof typeof Environments];
+
 export const DEFAULTS = {
-  NODE_ENV: "development",
+  NODE_ENV: Environments.DEVELOPMENT,
   PORT: 3001,
-  CLIENT_URL: "http://localhost:3000",
+  CLIENT_URL: "http://localhost:3001",
   VERIFICATION_TOKEN_EXPIRES_IN: 300, // 5 minutes
   LOG_LEVEL: "info",
   DB_NAME: "MernAuth",
@@ -34,10 +44,3 @@ export const DEFAULTS = {
   SENTRY_DEV_ENABLED: "false",
 };
 
-export const urlRegex = /^(https?|ftp|redis|rediss):\/\/[^\s/$.?#].*$/i;
-
-export const Environments = {
-  DEVELOPMENT: "development",
-  PRODUCTION: "production",
-  TEST: "test",
-};

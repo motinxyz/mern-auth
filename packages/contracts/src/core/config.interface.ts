@@ -169,7 +169,7 @@ export interface IConfig {
                 /** Loki API key */
                 readonly apiKey: string | undefined;
                 /** Loki bearer token (alternative auth) */
-                readonly bearerToken: string | undefined;
+                // readonly bearerToken: string | undefined;
             };
             /** Tempo (traces) configuration */
             readonly tempo: {

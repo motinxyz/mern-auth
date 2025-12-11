@@ -18,7 +18,7 @@ export const observabilityConfig = {
     url: config.observability.grafana.loki.url,
     user: config.observability.grafana.loki.user,
     apiKey: config.observability.grafana.loki.apiKey,
-    bearerToken: config.observability.grafana.loki.bearerToken,
+    // bearerToken: config.observability.grafana.loki.bearerToken,
     labels: {
       app: config.observability.serviceName,
       environment: config.env,

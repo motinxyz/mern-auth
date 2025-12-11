@@ -1,7 +1,7 @@
 /**
  * Observability Module
  *
- * Production-grade hybrid observability stack:
+ * Hybrid observability stack:
  * - Logs: Pino → Grafana Cloud Loki
  * - Metrics: Prometheus → Grafana Cloud
  * - Traces: OpenTelemetry → Grafana Cloud Tempo

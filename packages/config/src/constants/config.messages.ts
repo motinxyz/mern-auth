@@ -72,6 +72,16 @@ export const CONFIG_ERRORS = {
   FF_GET_ALL_FAILED: "Failed to get all flags",
   FF_PERCENTAGE_INVALID: "Percentage must be between 0 and 100",
 
+  // Validation
+  MONGO_URI_REQUIRED: "MONGO_URI is required",
+  MONGO_URI_INVALID_FORMAT:
+    "MONGO_URI must start with mongodb:// or mongodb+srv://",
+  CLIENT_URL_INVALID: "CLIENT_URL must be a valid URL",
+  REDIS_URL_INVALID: "REDIS_URL must be a valid URL",
+  EMAIL_FROM_INVALID:
+    "EMAIL_FROM must be a valid email or 'Name <email@example.com>' format",
+
   // General
   INVALID_CONFIGURATION: "Invalid configuration provided",
+  MONOREPO_ROOT_NOT_FOUND: "Could not find monorepo root.",
 };

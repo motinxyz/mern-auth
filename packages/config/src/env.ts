@@ -2,8 +2,10 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
+import { CONFIG_ERRORS } from "./constants/config.messages.js";
 import { EnvironmentError } from "@auth/utils";
 import { configSchema } from "./env.schema.js";
+import type { Environments } from "./env.constants.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,7 +19,7 @@ function findMonorepoRoot(startDir: string) {
     }
     dir = path.dirname(dir);
   }
-  throw new EnvironmentError("Could not find monorepo root.", ["pnpm-workspace.yaml"]);
+  throw new EnvironmentError(CONFIG_ERRORS.MONOREPO_ROOT_NOT_FOUND, ["pnpm-workspace.yaml"]);
 }
 
 const root = findMonorepoRoot(__dirname);
@@ -59,7 +61,7 @@ try {
 }
 
 const finalConfig = {
-  env: envVars.NODE_ENV as "development" | "production" | "test",
+  env: envVars.NODE_ENV as Environments,
   isDevelopment: envVars.NODE_ENV === "development",
   isProduction: envVars.NODE_ENV === "production",
   isTest: envVars.NODE_ENV === "test",
@@ -136,8 +138,8 @@ const finalConfig = {
       loki: {
         url: envVars.GRAFANA_LOKI_URL,
         user: envVars.GRAFANA_LOKI_USER,
-        apiKey: envVars.GRAFANA_LOKI_API_KEY ?? envVars.GRAFANA_LOKI_API,
-        bearerToken: envVars.GRAFANA_LOKI_BEARER_TOKEN,
+        apiKey: envVars.GRAFANA_LOKI_API_KEY ?? envVars.GRAFANA_LOKI_API_KEY,
+        // bearerToken: envVars.GRAFANA_LOKI_BEARER_TOKEN,
       },
       tempo: {
         url: envVars.GRAFANA_TEMPO_URL,

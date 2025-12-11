@@ -4,6 +4,7 @@
  */
 import { z } from "zod";
 import { DEFAULTS, urlRegex, Environments } from "./env.constants.js";
+import { CONFIG_ERRORS } from "./constants/config.messages.js";
 
 /**
  * Configuration schema for environment variable validation
@@ -19,23 +20,23 @@ export const configSchema = z.object({
     PORT: z.coerce.number().default(DEFAULTS.PORT),
     MONGO_URI: z
         .string()
-        .min(1, { message: "MONGO_URI is required" })
+        .min(1, { message: CONFIG_ERRORS.MONGO_URI_REQUIRED })
         .refine(
             (val) => val.startsWith("mongodb://") || val.startsWith("mongodb+srv://"),
-            { message: "MONGO_URI must start with mongodb:// or mongodb+srv://" }
+            { message: CONFIG_ERRORS.MONGO_URI_INVALID_FORMAT }
         ),
     DB_NAME: z.string().min(1).default(DEFAULTS.DB_NAME),
     CLIENT_URL: z
         .string()
         .default(DEFAULTS.CLIENT_URL)
         .refine((val) => urlRegex.test(val), {
-            message: "CLIENT_URL must be a valid URL",
+            message: CONFIG_ERRORS.CLIENT_URL_INVALID,
         }),
     REDIS_URL: z
         .string()
         .trim()
         .refine((val) => urlRegex.test(val), {
-            message: "REDIS_URL must be a valid URL",
+            message: CONFIG_ERRORS.REDIS_URL_INVALID,
         }),
 
     RESEND_API_KEY: z.string().optional(),
@@ -58,7 +59,7 @@ export const configSchema = z.object({
             },
             {
                 message:
-                    "EMAIL_FROM must be a valid email or 'Name <email@example.com>' format",
+                    CONFIG_ERRORS.EMAIL_FROM_INVALID,
             }
         )
         .optional(),
@@ -109,12 +110,12 @@ export const configSchema = z.object({
     DISABLE_STALLED_JOB_CHECK: z.string().default("false"),
 
     // Observability
-    OBSERVABILITY_ENABLED: z.string().default("false"),
-    OTEL_SERVICE_NAME: z.string().default("auth-api"),
+    OBSERVABILITY_ENABLED: z.string().default("true"),
+    OTEL_SERVICE_NAME: z.string().default("devs-daily"),
     OTEL_SERVICE_VERSION: z.string().default("1.0.0"),
-    OTEL_ENABLED: z.string().default("false"),
-    METRICS_ENABLED: z.string().default("false"),
-    TRACING_ENABLED: z.string().default("false"),
+    OTEL_ENABLED: z.string().default("true"),
+    METRICS_ENABLED: z.string().default("true"),
+    TRACING_ENABLED: z.string().default("true"),
 
     // System
     HOSTNAME: z.string().default(DEFAULTS.HOSTNAME),
@@ -127,7 +128,7 @@ export const configSchema = z.object({
     GRAFANA_LOKI_URL: z.string().optional(),
     GRAFANA_LOKI_USER: z.string().optional(),
     GRAFANA_LOKI_API_KEY: z.string().optional(),
-    GRAFANA_LOKI_BEARER_TOKEN: z.string().optional(),
+    // GRAFANA_LOKI_BEARER_TOKEN: z.string().optional(),
 
     GRAFANA_TEMPO_URL: z.string().optional(),
     GRAFANA_TEMPO_USER: z.string().optional(),
@@ -136,7 +137,7 @@ export const configSchema = z.object({
     GRAFANA_PROMETHEUS_URL: z.string().optional(),
     GRAFANA_PROMETHEUS_USER: z.string().optional(),
     GRAFANA_PROMETHEUS_API_KEY: z.string().optional(),
-    GRAFANA_LOKI_API: z.string().optional(), // Fallback for API_KEY
+    // GRAFANA_LOKI_API: z.string().optional(), // Fallback for API_KEY
 });
 
 /**
