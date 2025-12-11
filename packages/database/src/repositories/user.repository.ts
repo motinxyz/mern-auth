@@ -1,5 +1,5 @@
 import BaseRepository from "./base.repository.js";
-import { withSpan } from "@auth/utils";
+import { withSpan } from "@auth/observability";
 import type { Model } from "mongoose";
 import type { UserDocument } from "../models/user.model.js";
 import type { IUser, FindOptions, PaginationResult } from "@auth/contracts";

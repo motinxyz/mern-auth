@@ -3,8 +3,6 @@ import {
   createCircuitBreaker,
   CircuitBreakerError,
   ConfigurationError,
-  withSpan,
-  addSpanAttributes,
   hashSensitiveData,
 } from "@auth/utils";
 import type { ILogger, IEmailLogRepository } from "@auth/contracts";
@@ -13,6 +11,8 @@ import {
   emailSendTotal,
   emailSendDuration,
   emailCircuitBreakerState,
+  withSpan,
+  addSpanAttributes,
 } from "@auth/observability";
 import { EMAIL_MESSAGES, EMAIL_ERRORS } from "./constants/email.messages.js";
 import { compileTemplate, initializeTemplates } from "./template-engine.js";

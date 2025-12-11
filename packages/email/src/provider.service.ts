@@ -1,9 +1,11 @@
 import {
   EmailDispatchError,
   ConfigurationError,
+} from "@auth/utils";
+import {
   withSpan,
   addSpanAttributes,
-} from "@auth/utils";
+} from "@auth/observability";
 import type { ILogger } from "@auth/contracts";
 import { EMAIL_MESSAGES, EMAIL_ERRORS } from "./constants/email.messages.js";
 import ResendProvider from "./providers/resend.provider.js";

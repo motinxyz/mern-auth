@@ -37,10 +37,6 @@
       "types": "./dist/validation/index.d.ts",
       "import": "./dist/validation/index.js"
     },
-    "./tracing": {
-      "types": "./dist/tracing/index.d.ts",
-      "import": "./dist/tracing/index.js"
-    },
     "./constants": {
       "types": "./dist/constants/index.d.ts",
       "import": "./dist/constants/index.js"
@@ -65,9 +61,6 @@
   "devDependencies": {
     "@types/node": "^24.10.1",
     "@types/opossum": "^8.1.9"
-  },
-  "peerDependencies": {
-    "@opentelemetry/api": "^1.0.0"
   },
   "engines": {
     "node": ">=20.0.0"

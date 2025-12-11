@@ -45,8 +45,21 @@ export {
     emailCircuitBreakerState,
 } from "./metrics.js";
 
+// Tracing Utilities
+export {
+    withSpan,
+    addSpanAttributes,
+    recordError,
+    getTraceContext,
+    createSpanLink,
+    addSpanEvent,
+    type WithSpanOptions,
+    type TraceContext,
+} from "./utils/tracing.js";
+
 // Logging
 export {
     getObservabilityLogger,
     getLoggerWithTrace,
 } from "./logger.js";
+

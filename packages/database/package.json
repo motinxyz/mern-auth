@@ -18,6 +18,7 @@
   "dependencies": {
     "@auth/contracts": "workspace:*",
     "@auth/config": "workspace:*",
+    "@auth/observability": "workspace:*",
     "@auth/utils": "workspace:*",
     "bcrypt": "^6.0.0",
     "mongoose": "^9.0.1"

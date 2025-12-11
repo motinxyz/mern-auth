@@ -1,5 +1,5 @@
 import BaseRepository from "./base.repository.js";
-import { withSpan } from "@auth/utils";
+import { withSpan } from "@auth/observability";
 import type { ILogger, IAuditLog, FindOptions } from "@auth/contracts";
 import type { Model } from "mongoose";
 import type { AuditLogDocument } from "../models/audit-log.model.js";

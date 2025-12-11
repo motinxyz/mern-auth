@@ -7,6 +7,13 @@
 
 import { config } from "@auth/config";
 
+try {
+    // eslint-disable-next-line no-console
+    console.log("Observability Config Loaded. Config keys:", Object.keys(config));
+} catch (e) {
+    console.error("Error logging config keys", e);
+}
+
 interface TempoHeaders {
     Authorization?: string;
 }
@@ -46,51 +53,64 @@ interface ObservabilityConfig {
     };
 }
 
+const observabilitySettings = config?.observability ?? {
+    enabled: false,
+    grafana: {
+        loki: { url: undefined, user: undefined, apiKey: undefined },
+        prometheus: { url: undefined, user: undefined, apiKey: undefined },
+        tempo: { url: undefined, user: undefined, apiKey: undefined },
+    },
+    metricsEnabled: false,
+    otelEnabled: false,
+    serviceName: "unknown",
+    serviceVersion: "0.0.0",
+};
+
 export const observabilityConfig: ObservabilityConfig = {
-    enabled: config.observability.enabled,
+    enabled: observabilitySettings.enabled,
 
     // Loki (Logs)
     loki: {
-        enabled: config.observability.grafana.loki.url !== undefined && config.observability.grafana.loki.url !== "",
-        url: config.observability.grafana.loki.url,
-        user: config.observability.grafana.loki.user,
-        apiKey: config.observability.grafana.loki.apiKey,
+        enabled: observabilitySettings.grafana.loki.url !== undefined && observabilitySettings.grafana.loki.url !== "",
+        url: observabilitySettings.grafana.loki.url,
+        user: observabilitySettings.grafana.loki.user,
+        apiKey: observabilitySettings.grafana.loki.apiKey,
         labels: {
-            app: config.observability.serviceName,
-            environment: config.env,
-            version: config.observability.serviceVersion,
+            app: observabilitySettings.serviceName,
+            environment: config?.env ?? "development",
+            version: observabilitySettings.serviceVersion,
         },
     },
 
     // Prometheus (Metrics)
     prometheus: {
-        enabled: config.observability.metricsEnabled,
+        enabled: observabilitySettings.metricsEnabled,
         remoteWrite: {
-            enabled: config.observability.grafana.prometheus.url !== undefined && config.observability.grafana.prometheus.url !== "",
-            url: config.observability.grafana.prometheus.url,
-            username: config.observability.grafana.prometheus.user,
-            password: config.observability.grafana.prometheus.apiKey,
+            enabled: observabilitySettings.grafana.prometheus.url !== undefined && observabilitySettings.grafana.prometheus.url !== "",
+            url: observabilitySettings.grafana.prometheus.url,
+            username: observabilitySettings.grafana.prometheus.user,
+            password: observabilitySettings.grafana.prometheus.apiKey,
         },
     },
 
     // OpenTelemetry (Traces)
     tracing: {
-        enabled: config.observability.otelEnabled,
-        serviceName: config.observability.serviceName,
-        serviceVersion: config.observability.serviceVersion,
-        environment: config.env,
-        hostname: config.hostname,
+        enabled: observabilitySettings.otelEnabled,
+        serviceName: observabilitySettings.serviceName,
+        serviceVersion: observabilitySettings.serviceVersion,
+        environment: config?.env ?? "development",
+        hostname: config?.hostname ?? "localhost",
         tempo: {
             url: ((): string => {
-                const tempoUrl = config.observability.grafana.tempo.url;
+                const tempoUrl = observabilitySettings.grafana.tempo.url;
                 if (typeof tempoUrl === "string" && tempoUrl.startsWith("http")) {
                     return tempoUrl;
                 }
                 return `https://${tempoUrl ?? ""}`;
             })(),
             headers: ((): TempoHeaders => {
-                const user = config.observability.grafana.tempo.user;
-                const apiKey = config.observability.grafana.tempo.apiKey;
+                const user = observabilitySettings.grafana.tempo.user;
+                const apiKey = observabilitySettings.grafana.tempo.apiKey;
                 if (user !== undefined && user !== "" && apiKey !== undefined && apiKey !== "") {
                     return {
                         Authorization: `Basic ${Buffer.from(`${user}:${apiKey}`).toString("base64")}`,

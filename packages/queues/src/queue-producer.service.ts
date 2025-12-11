@@ -8,9 +8,8 @@ import {
   ValidationError,
   CircuitBreakerError,
   createCircuitBreaker,
-  withSpan,
-  addSpanAttributes,
 } from "@auth/utils";
+import { withSpan, addSpanAttributes } from "@auth/observability";
 import type { ILogger } from "@auth/contracts";
 import { metrics } from "@opentelemetry/api";
 import { QUEUE_MESSAGES, QUEUE_ERRORS } from "./constants/queue.messages.js";

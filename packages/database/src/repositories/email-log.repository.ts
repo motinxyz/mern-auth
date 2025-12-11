@@ -1,5 +1,5 @@
 import BaseRepository from "./base.repository.js";
-import { withSpan } from "@auth/utils";
+import { withSpan } from "@auth/observability";
 import type { Model } from "mongoose";
 import type { EmailLogDocument, EmailLogModel } from "../models/email-log.model.js";
 import type { IEmailLog } from "@auth/contracts";

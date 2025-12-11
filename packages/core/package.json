@@ -32,6 +32,7 @@
     "@auth/contracts": "workspace:*",
     "@auth/database": "workspace:*",
     "@auth/email": "workspace:*",
+    "@auth/observability": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/utils": "workspace:*",
     "@sentry/node": "^10.29.0",

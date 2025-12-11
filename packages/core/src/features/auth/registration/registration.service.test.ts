@@ -53,6 +53,16 @@ vi.mock("@auth/config", () => ({
   },
 }));
 
+vi.mock("@auth/observability", () => ({
+  withSpan: vi.fn((...args) => {
+    const fn = args.find((arg) => typeof arg === "function");
+    if (fn) return fn();
+    return Promise.resolve();
+  }),
+  addSpanAttributes: vi.fn(),
+  getTraceContext: vi.fn().mockReturnValue({ traceId: "test-trace-id", spanId: "test-span-id" }),
+}));
+
 // Mock mongoose
 vi.mock("mongoose", async () => {
   const actualMongoose = (await vi.importActual("mongoose")) as any;

@@ -2,6 +2,8 @@ import {
   createSpanLink,
   withSpan,
   addSpanAttributes,
+} from "@auth/observability";
+import {
   hashSensitiveData,
 } from "@auth/utils";
 import type { ILogger, IJob, JobResult, JobData, TraceContext } from "@auth/contracts";

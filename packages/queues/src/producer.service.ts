@@ -1,5 +1,6 @@
 import type { JobsOptions } from "bullmq";
-import { ConfigurationError, withSpan, addSpanAttributes } from "@auth/utils";
+import { ConfigurationError } from "@auth/utils";
+import { withSpan, addSpanAttributes } from "@auth/observability";
 import type { ILogger, QueueJob, JobOptions, QueueHealth } from "@auth/contracts";
 import type QueueProducerService from "./queue-producer.service.js";
 import { QUEUE_MESSAGES, QUEUE_ERRORS } from "./constants/queue.messages.js";

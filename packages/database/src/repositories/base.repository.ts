@@ -1,4 +1,5 @@
-import { ConfigurationError, withSpan } from "@auth/utils";
+import { ConfigurationError } from "@auth/utils";
+import { withSpan } from "@auth/observability";
 import { DB_ERRORS } from "../constants/database.messages.js";
 import mongoose from "mongoose";
 import type { FindOptions } from "@auth/contracts";

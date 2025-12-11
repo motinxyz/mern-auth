@@ -61,6 +61,6 @@ export * from "./helpers/index.js";
 export * from "./validation/index.js";
 
 // =============================================================================
-// Tracing Utilities
+// Validation Schemas
 // =============================================================================
-export * from "./tracing/index.js";
+export * from "./validation/index.js";

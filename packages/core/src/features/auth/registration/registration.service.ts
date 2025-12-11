@@ -7,11 +7,13 @@ import {
   ServiceUnavailableError,
   HttpError,
   HTTP_STATUS_CODES,
+  hashSensitiveData,
+} from "@auth/utils";
+import {
   withSpan,
   addSpanAttributes,
-  hashSensitiveData,
   getTraceContext,
-} from "@auth/utils";
+} from "@auth/observability";
 import type {
   ILogger,
   IConfig,

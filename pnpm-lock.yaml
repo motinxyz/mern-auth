@@ -256,6 +256,9 @@ importers:
       '@auth/email':
         specifier: workspace:*
         version: link:../email
+      '@auth/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@auth/queues':
         specifier: workspace:*
         version: link:../queues
@@ -332,6 +335,9 @@ importers:
       '@auth/email':
         specifier: workspace:*
         version: link:../email
+      '@auth/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@auth/queues':
         specifier: workspace:*
         version: link:../queues
@@ -360,6 +366,9 @@ importers:
       '@auth/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@auth/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@auth/utils':
         specifier: workspace:*
         version: link:../utils
@@ -504,6 +513,9 @@ importers:
       '@auth/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@auth/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@auth/utils':
         specifier: workspace:*
         version: link:../utils
@@ -529,9 +541,6 @@ importers:
       '@auth/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@opentelemetry/api':
-        specifier: ^1.0.0
-        version: 1.9.0
       opossum:
         specifier: ^9.0.0
         version: 9.0.0

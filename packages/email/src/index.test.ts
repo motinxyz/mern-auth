@@ -50,6 +50,12 @@ vi.mock("@auth/observability", () => ({
   emailCircuitBreakerState: {
     add: vi.fn(),
   },
+  withSpan: vi.fn((...args) => {
+    const fn = args.find((arg) => typeof arg === "function");
+    if (fn) return fn();
+    return Promise.resolve();
+  }),
+  addSpanAttributes: vi.fn(),
 }));
 
 describe("Email Service", () => {
