@@ -12,7 +12,7 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 import {
   initializeTracing,
   initializeMetrics,
-} from "@auth/config/observability";
+} from "@auth/observability";
 
 // Initialize tracing (must be first!)
 initializeTracing();

@@ -24,5 +24,3 @@ export * from "./constants/queue.js";
 // Export feature flags
 export { FeatureFlagService } from "./feature-flags.js";
 
-// Export observability utilities
-export * from "./observability/index.js";

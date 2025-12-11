@@ -38,14 +38,18 @@ vi.mock("@auth/config", () => ({
     error: vi.fn(),
     debug: vi.fn(),
   })),
-  // Mock metrics
+}));
+
+vi.mock("@auth/observability", () => ({
   emailSendTotal: {
     add: vi.fn(),
   },
   emailSendDuration: {
     record: vi.fn(),
   },
-  updateEmailMetrics: vi.fn(),
+  emailCircuitBreakerState: {
+    add: vi.fn(),
+  },
 }));
 
 describe("Email Service", () => {

@@ -5,6 +5,15 @@
  * Starts workers with registered processors
  */
 import {
+  initializeTracing,
+  initializeMetrics,
+} from "@auth/observability";
+
+// Initialize tracing (must be first!)
+initializeTracing();
+initializeMetrics();
+
+import {
   config,
   getLogger,
   initI18n,

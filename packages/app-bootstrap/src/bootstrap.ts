@@ -145,6 +145,7 @@ export async function initializeCommonServices(): Promise<InitializedServices> {
 
     results.forEach((result, index) => {
       if (result.status === "rejected") {
+        // eslint-disable-next-line security/detect-object-injection
         const service = services[index];
         const serviceName = service?.name ?? "unknown";
         const error = result.reason;

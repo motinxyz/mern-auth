@@ -10,9 +10,10 @@
  */
 
 import pino from "pino";
+import { Environments } from "../env.constants.js";
 
 // Must use process.env directly to avoid circular dependency with config module
-const isDevelopment = process.env.NODE_ENV !== "production";
+const isDevelopment = process.env.NODE_ENV !== Environments.PRODUCTION;
 
 /**
  * Create the startup logger with pretty printing in development

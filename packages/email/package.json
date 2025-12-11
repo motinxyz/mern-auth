@@ -20,6 +20,7 @@
     "@auth/config": "workspace:*",
     "@auth/contracts": "workspace:*",
     "@auth/database": "workspace:*",
+    "@auth/observability": "workspace:*",
     "@auth/utils": "workspace:*",
     "handlebars": "^4.7.8",
     "mailersend": "^2.6.0",
