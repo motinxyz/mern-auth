@@ -7,12 +7,12 @@
 
 import { config } from "@auth/config";
 
-try {
-    // eslint-disable-next-line no-console
-    console.log("Observability Config Loaded. Config keys:", Object.keys(config));
-} catch (e) {
-    console.error("Error logging config keys", e);
-}
+// try {
+//     // eslint-disable-next-line no-console
+//     console.log("Observability Config Loaded. Config keys:", Object.keys(config));
+// } catch (e) {
+//     console.error("Error logging config keys", e);
+// }
 
 interface TempoHeaders {
     Authorization?: string;

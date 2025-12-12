@@ -31,3 +31,6 @@ Thumbs.db
 # Analysis
 GEMINI_ANALYSIS**
 packages/api/logs/app.log
+
+# Docs
+docs

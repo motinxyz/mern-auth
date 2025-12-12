@@ -12,81 +12,27 @@
  */
 
 import pino, { type Logger, type LoggerOptions } from "pino";
+import { REDACT_PATHS } from "./constants.js";
+import { getLokiConfig, getLogConfig } from "./utils.js";
+import type { CreateLoggerOptions } from "./types/index.js";
 
-// Force IPv4 preference for all network connections
-// Fixes ETIMEDOUT errors when shipping to Grafana Cloud from environments that prefer IPv6
-import dns from "node:dns";
-try {
-    dns.setDefaultResultOrder("ipv4first");
-} catch {
-    // Ignore if node version doesn't support this
-}
+export type { CreateLoggerOptions } from "./types/index.js";
 
 /**
- * Logger configuration options
- */
-export interface CreateLoggerOptions {
-    /** Log level (default: from LOG_LEVEL env or "info") */
-    level?: string;
-    /** Service name for structured logs */
-    serviceName?: string;
-    /** Additional base fields */
-    base?: Record<string, unknown>;
-    /** Mixin function for adding dynamic fields */
-    mixin?: () => Record<string, unknown>;
-}
-
-/**
- * Loki configuration from environment
- */
-interface LokiConfig {
-    url: string;
-    user: string;
-    apiKey: string;
-}
-
-/**
- * Get Loki configuration from environment
- */
-function getLokiConfig(): LokiConfig | null {
-    const url = process.env.GRAFANA_LOKI_URL;
-    const user = process.env.GRAFANA_LOKI_USER;
-    const apiKey = process.env.GRAFANA_LOKI_API_KEY;
-
-    if (url && user && apiKey) {
-        return { url, user, apiKey };
-    }
-    return null;
-}
-
-/**
- * Paths to redact from logs
- */
-const REDACT_PATHS = [
-    "password",
-    "token",
-    "secret",
-    "apiKey",
-    "authorization",
-    "cookie",
-    "*.password",
-    "*.token",
-    "*.secret",
-];
-
-/**
- * Create a production-grade Pino logger
+ * Create a Pino logger
  *
  * - Development: Pretty-printed console output + file logging
- * - Production: JSON output or Loki transport if configured
+ * - Production: JSON output or Loki transport
  *
  * @param options - Optional configuration
  * @returns Configured Pino logger
  */
 export function createLogger(options: CreateLoggerOptions = {}): Logger {
-    const isDevelopment = process.env.NODE_ENV !== "production";
-    const level = options.level ?? process.env.LOG_LEVEL ?? "info";
-    const serviceName = options.serviceName ?? process.env.OTEL_SERVICE_NAME ?? "auth-api";
+    const config = getLogConfig();
+
+    // Default values
+    const level = options.level ?? config.level ?? "info";
+    const serviceName = options.serviceName ?? config.serviceName;
 
     const baseConfig: LoggerOptions = {
         level,
@@ -106,7 +52,7 @@ export function createLogger(options: CreateLoggerOptions = {}): Logger {
     };
 
     // Development: Pretty printing + File logging
-    if (isDevelopment) {
+    if (config.isDevelopment) {
         const devConfig: LoggerOptions = { ...baseConfig };
         // Transport doesn't support formatters in main config
         delete devConfig.formatters;
@@ -154,7 +100,7 @@ export function createLogger(options: CreateLoggerOptions = {}): Logger {
                     },
                     labels: {
                         app: serviceName,
-                        environment: process.env.NODE_ENV ?? "production",
+                        environment: config.environment,
                     },
                     replaceTimestamp: true,
                     silenceErrors: false,

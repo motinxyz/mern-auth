@@ -37,7 +37,7 @@ export interface ILogger {
      */
     info(obj: object | string, msg?: string, ...args: unknown[]): void;
 
-    /**
+    /**[']
      * Log at WARN level.
      * Use for potentially problematic situations.
      *
