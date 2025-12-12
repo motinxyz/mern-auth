@@ -4,6 +4,7 @@ import type { Request, Response, NextFunction } from "express";
 
 // const _logger = getLogger();
 import { ValidationError } from "@auth/utils";
+import { addSpanAttributes } from "@auth/observability";
 
 /**
  * Middleware factory to validate requests against a Zod schema.
@@ -43,6 +44,17 @@ export const validate = (schema: ZodSchema) => async (req: Request, _res: Respon
           context, // Pass the context for i18n interpolation
         };
       });
+
+      // Enrich the active span with validation failure details
+      addSpanAttributes({
+        "validation.failed": true,
+        "validation.error_count": extractedErrors.length,
+        "validation.fields": extractedErrors.map(e => e.field).join(", "),
+        // Store the first error message for quick debugging in trace list
+        "error.message": `Validation Failed: ${extractedErrors.map(e => e.field).join(", ")}`,
+        "error.type": "ValidationError",
+      });
+
       // Pass the structured error to the global error handler
       return next(new ValidationError(extractedErrors, "validation:failed"));
     }
