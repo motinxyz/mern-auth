@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { HttpError, ValidationError, HTTP_STATUS_CODES } from "@auth/utils";
 
 // Mock dependencies
-vi.mock("@auth/config", () => ({
+vi.mock("@auth/app-bootstrap", () => ({
   getLogger: vi.fn(() => ({
     child: vi.fn(() => ({
       error: vi.fn(),
@@ -40,8 +40,8 @@ describe("Error Handler Middleware", () => {
     vi.clearAllMocks(); // Clear mocks at the beginning
     vi.resetModules(); // Reset module registry to ensure a fresh import
 
-    // Use vi.doMock to re-mock @auth/config after vi.resetModules()
-    await vi.doMock("@auth/config", () => ({
+    // Use vi.doMock to re-mock @auth/app-bootstrap after vi.resetModules()
+    await vi.doMock("@auth/app-bootstrap", () => ({
       getLogger: vi.fn(() => ({
         child: vi.fn(() => ({
           error: (mockErrorFn = vi.fn()), // Assign the mock function to mockErrorFn

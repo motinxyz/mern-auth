@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mongoose from "mongoose";
 import Migration from "../models/migration.model.js";
-import { getLogger } from "@auth/config";
+import { createLogger } from "@auth/logger";
 import type { ILogger } from "@auth/contracts";
 
 interface MigrationModule {
@@ -11,7 +11,7 @@ interface MigrationModule {
   down(db: mongoose.mongo.Db, session: mongoose.ClientSession, logger: ILogger): Promise<void>;
 }
 
-const logger = getLogger();
+const logger = createLogger({ serviceName: "database:migrations" });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

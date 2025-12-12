@@ -1,5 +1,5 @@
 import timeout from "connect-timeout";
-import { getLogger } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
 import type { Request, Response, NextFunction } from "express";
 import { HTTP_STATUS_CODES } from "@auth/utils";
 

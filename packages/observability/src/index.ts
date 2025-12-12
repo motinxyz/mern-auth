@@ -10,11 +10,14 @@
  *
  * Usage:
  * ```typescript
- * import { initializeTracing, initializeMetrics } from "@auth/observability";
+ * import { initializeTracing, initializeMetrics, createObservabilityLogger } from "@auth/observability";
  *
  * // Initialize at the very start of your app
  * initializeTracing();
  * initializeMetrics();
+ *
+ * // Create logger with trace context
+ * const logger = createObservabilityLogger();
  * ```
  */
 
@@ -57,9 +60,13 @@ export {
     type TraceContext,
 } from "./utils/tracing.js";
 
-// Logging
+// Logging - with trace context
 export {
+    createObservabilityLogger,
     getObservabilityLogger,
     getLoggerWithTrace,
+    type Logger,
+    type CreateLoggerOptions,
 } from "./logger.js";
+
 

@@ -27,7 +27,7 @@ import {
   RATE_LIMIT_DURATIONS,
   REDIS_RATE_LIMIT_VALUE,
 } from "../../../constants/auth.constants.js";
-import { EMAIL_JOB_TYPES } from "@auth/config";
+import { EMAIL_JOB_TYPES } from "@auth/queues";
 import {
   REGISTRATION_MESSAGES,
 } from "../../../constants/core.messages.js";

@@ -13,13 +13,11 @@ import {
 initializeTracing();
 initializeMetrics();
 
-import {
-  config,
-  getLogger,
-  initI18n,
-  getRedisConnection,
-  QUEUE_NAMES,
-} from "@auth/config";
+import { config } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
+import { initI18n } from "@auth/i18n";
+import { getRedisService } from "@auth/app-bootstrap";
+import { QUEUE_NAMES } from "@auth/queues";
 import { EmailService, ProviderService, type EmailServiceConfig } from "@auth/email";
 import DatabaseService from "@auth/database";
 import type { IRedisConnection } from "@auth/contracts";
@@ -71,7 +69,7 @@ async function main(): Promise<void> {
     // Get Redis connection via factory
     const workerService = new WorkerService({
       logger,
-      redisConnection: getRedisConnection() as IRedisConnection,
+      redisConnection: getRedisService() as IRedisConnection,
       databaseService,
       initServices: [
         async () => { await emailService.initialize(); },

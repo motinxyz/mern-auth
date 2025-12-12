@@ -1,0 +1,32 @@
+{
+    "name": "@auth/redis",
+    "version": "1.0.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+        }
+    },
+    "type": "module",
+    "scripts": {
+        "lint": "eslint .",
+        "build": "tsc",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@auth/contracts": "workspace:*",
+        "@auth/utils": "workspace:*",
+        "ioredis": "^5.8.2",
+        "opossum": "^9.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^22.15.23",
+        "@types/opossum": "^8.0.0"
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    }
+}

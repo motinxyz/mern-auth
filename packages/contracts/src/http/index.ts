@@ -17,5 +17,6 @@ export type { IValidationErrorDetail } from "./validation-error-detail.js";
 
 // API response interfaces
 export type { IApiResponse } from "./api-response.interface.js";
+export type { IAuthenticatedUser } from "./authenticated-user.interface.js";
 export type { IApiError } from "./api-error.interface.js";
 export type { ApiResponseType } from "./api-response-type.js";

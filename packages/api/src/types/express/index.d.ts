@@ -1,4 +1,4 @@
-import { ILogger } from "@auth/contracts";
+import { ILogger, IAuthenticatedUser } from "@auth/contracts";
 
 declare global {
     namespace Express {
@@ -16,16 +16,8 @@ declare global {
 
             /**
              * Authenticated user (if present)
-             * Supports both _id (MongoDB) and id (Standard) patterns
              */
-            user?: {
-                id?: string;
-                _id?: string;
-                email?: string;
-                name?: string;
-                role?: string;
-                [key: string]: unknown;
-            };
+            user?: IAuthenticatedUser;
 
             /**
              * Request-scoped logger (child logger with request ID)

@@ -1,5 +1,6 @@
 import DatabaseService from "@auth/database";
-import { config, getLogger } from "@auth/config";
+import { config } from "@auth/config";
+import { getLogger } from "../bootstrap.js";
 import type { IDatabaseService } from "@auth/contracts";
 
 /**

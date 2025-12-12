@@ -4,7 +4,8 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const { RedisStore } = require("rate-limit-redis");
 import type { IRedisConnection } from "@auth/contracts";
-import { config, t } from "@auth/config";
+import { config } from "@auth/config";
+import { t } from "@auth/i18n";
 import type { Request, Response } from "express";
 
 /**

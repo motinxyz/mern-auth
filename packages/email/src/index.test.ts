@@ -24,9 +24,6 @@ vi.mock("opossum", () => {
 });
 
 vi.mock("@auth/config", () => ({
-  i18nInstance: {
-    getFixedT: vi.fn().mockResolvedValue((key) => key),
-  },
   config: {
     emailFrom: "test@example.com",
     env: "test",
@@ -38,6 +35,12 @@ vi.mock("@auth/config", () => ({
     error: vi.fn(),
     debug: vi.fn(),
   })),
+}));
+
+vi.mock("@auth/i18n", () => ({
+  i18nInstance: {
+    getFixedT: vi.fn().mockResolvedValue((key: string) => key),
+  },
 }));
 
 vi.mock("@auth/observability", () => ({

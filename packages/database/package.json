@@ -18,6 +18,8 @@
   "dependencies": {
     "@auth/contracts": "workspace:*",
     "@auth/config": "workspace:*",
+    "@auth/i18n": "workspace:*",
+    "@auth/logger": "workspace:*",
     "@auth/observability": "workspace:*",
     "@auth/utils": "workspace:*",
     "bcrypt": "^6.0.0",

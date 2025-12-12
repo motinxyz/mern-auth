@@ -1,4 +1,5 @@
-import { getLogger, config } from "@auth/config";
+import { config } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
 
 const logger = getLogger();
 import { registrationController, verificationController } from "@auth/core";

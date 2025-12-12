@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import ProducerService from "./producer.service.js";
 
+vi.mock("@auth/config", () => ({
+  config: {
+    env: "test",
+    redisUrl: "redis://localhost:6379",
+  },
+}));
+
 describe("ProducerService", () => {
   let service;
   let mockQueueService;

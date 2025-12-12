@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/strict-boolean-expressions */
 import pinoHttp, { stdSerializers } from "pino-http";
 import { v4 as uuidv4 } from "uuid";
-import { config, getLogger } from "@auth/config";
+import { config } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
 import { trace } from "@opentelemetry/api";
 
 const logger = getLogger();

@@ -1,5 +1,5 @@
 import type { IRedisConnection } from "@auth/contracts";
-import { getLogger } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { API_MESSAGES } from "../../constants/api.messages.js";
 

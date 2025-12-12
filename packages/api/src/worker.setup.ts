@@ -1,4 +1,5 @@
-import { getRedisConnection, QUEUE_NAMES, WORKER_CONFIG } from "@auth/config";
+import { QUEUE_NAMES, WORKER_CONFIG } from "@auth/queues";
+import { getRedisService } from "@auth/app-bootstrap";
 import WorkerService from "@auth/worker";
 import { createEmailJobConsumer } from "@auth/worker/consumers/email";
 import { API_MESSAGES } from "./constants/api.messages.js";
@@ -36,7 +37,7 @@ export async function startWorker({
   // Get Redis connection via factory pattern
   const workerService = new WorkerService({
     logger,
-    redisConnection: getRedisConnection() as unknown as IRedisConnection,
+    redisConnection: getRedisService() as unknown as IRedisConnection,
     databaseService,
     initServices: [], // Services are already initialized in @auth/config
     sentry,

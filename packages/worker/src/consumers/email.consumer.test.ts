@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createEmailJobConsumer } from "./email.consumer.js";
-import { EMAIL_JOB_TYPES } from "@auth/config";
+import { EMAIL_JOB_TYPES } from "@auth/queues";
 import { EmailDispatchError } from "@auth/utils";
 
 // Mock dependencies

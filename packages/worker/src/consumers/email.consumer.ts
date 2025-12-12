@@ -4,7 +4,7 @@ import {
   EmailDispatchError,
   ConfigurationError,
 } from "@auth/utils";
-import { EMAIL_JOB_TYPES } from "@auth/config";
+import { EMAIL_JOB_TYPES } from "@auth/queues";
 import {
   WORKER_MESSAGES,
   WORKER_ERRORS,

@@ -1,5 +1,5 @@
 import type { ICacheService } from "@auth/contracts";
-import type { ExtendedRedis } from "@auth/config";
+import type { ExtendedRedis } from "@auth/redis";
 
 /**
  * RedisCacheAdapter

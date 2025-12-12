@@ -1,5 +1,5 @@
 import { HTTP_STATUS_CODES, ApiResponse } from "@auth/utils";
-import { t as systemT } from "@auth/config";
+import { t as systemT } from "@auth/i18n";
 import type { RegistrationService } from "./registration.service.js";
 import { RegistrationDto } from "./registration.dto.js";
 

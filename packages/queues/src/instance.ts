@@ -1,15 +1,22 @@
 import type { Redis } from "ioredis";
 import QueueProducerService from "./queue-producer.service.js";
 import ProducerService from "./producer.service.js";
-import { getLogger, getRedisConnection, QUEUE_NAMES, config } from "@auth/config";
+import { QUEUE_NAMES } from "./constants.js";
+import { config } from "@auth/config";
 import type { ILogger } from "@auth/contracts";
 
 /**
  * Queue Services Factory Options
+ *
+ * All options are REQUIRED - no lazy getters or globals.
+ * This follows DI best practices.
  */
-interface CreateQueueServicesOptions {
-  readonly connection?: Redis;
-  readonly logger?: ILogger;
+export interface CreateQueueServicesOptions {
+  /** Redis connection - REQUIRED */
+  readonly connection: Redis;
+  /** Logger instance - REQUIRED */
+  readonly logger: ILogger;
+  /** Queue name override (optional, defaults to EMAIL) */
   readonly queueName?: string;
 }
 
@@ -24,13 +31,13 @@ export interface QueueServices {
 /**
  * Queue Services Factory
  *
- * Creates and configures queue producer services with proper DI.
+ * Creates and configures queue producer services with explicit DI.
+ * No global state, no lazy getters - pure dependency injection.
  *
- * @param options - Optional overrides for connection, logger, queueName
+ * @param options - Required connection and logger
  */
-export function createQueueServices(options: CreateQueueServicesOptions = {}): QueueServices {
-  const logger = options.logger ?? getLogger();
-  const connection = options.connection ?? getRedisConnection();
+export function createQueueServices(options: CreateQueueServicesOptions): QueueServices {
+  const { connection, logger } = options;
   const queueName = options.queueName ?? QUEUE_NAMES.EMAIL;
 
   // Create email queue producer
@@ -53,24 +60,38 @@ export function createQueueServices(options: CreateQueueServicesOptions = {}): Q
   };
 }
 
-// Lazy singleton
-let queueServices: QueueServices | null = null;
+// Lazy singleton for backward compatibility during migration
+let queueServicesInstance: QueueServices | null = null;
 
 /**
- * Get or create Queue Services singletons
+ * Initialize Queue Services singleton
  *
- * Note: Prefer createQueueServices() for new code (better testability)
+ * Must be called once from composition root before getQueueServices().
+ * This is a migration helper - prefer createQueueServices() for new code.
+ */
+export function initQueueServices(options: CreateQueueServicesOptions): QueueServices {
+  queueServicesInstance = createQueueServices(options);
+  return queueServicesInstance;
+}
+
+/**
+ * Get Queue Services singleton
+ *
+ * @throws Error if initQueueServices() was not called first
  */
 export function getQueueServices(): QueueServices {
-  if (!queueServices) {
-    queueServices = createQueueServices();
+  if (!queueServicesInstance) {
+    throw new Error(
+      "Queue services not initialized. Call initQueueServices() from @auth/app-bootstrap before using getQueueServices()."
+    );
   }
-  return queueServices;
+  return queueServicesInstance;
 }
 
 /**
  * Reset singleton (for testing only)
  */
 export function resetQueueServices(): void {
-  queueServices = null;
+  queueServicesInstance = null;
 }
+

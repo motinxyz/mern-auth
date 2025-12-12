@@ -12,11 +12,8 @@ import { metricsMiddleware } from "./metrics/index.js";
 // core imports
 import { errorHandler, configureMiddleware, createMiddleware } from "./middleware/index.js";
 import { NotFoundError } from "@auth/utils";
-import {
-  i18nInstance,
-  i18nMiddleware,
-  config,
-} from "@auth/config";
+import { config } from "@auth/config";
+import { i18nInstance, i18nMiddleware } from "@auth/i18n";
 import { getRedisService, getDatabaseService } from "@auth/app-bootstrap";
 import type { Request, Response, NextFunction } from "express";
 import {

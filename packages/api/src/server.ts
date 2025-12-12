@@ -23,7 +23,8 @@ initializeMetrics();
 // Now import the rest
 import app from "./app.js";
 import { bootstrapApplication, getDatabaseService, getEmailService } from "@auth/app-bootstrap";
-import { getLogger, config } from "@auth/config";
+import { config } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
 import { initSentry } from "./middleware/core/sentry.js";
 import { API_MESSAGES } from "./constants/api.messages.js";
 import { startWorker } from "./worker.setup.js";

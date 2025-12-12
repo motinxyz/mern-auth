@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { getEmailService } from "@auth/app-bootstrap";
-import { getLogger } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
 import { validate } from "../../middleware/index.js";
 
 const logger = getLogger();

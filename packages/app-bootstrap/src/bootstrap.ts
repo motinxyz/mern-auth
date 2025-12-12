@@ -1,23 +1,42 @@
 import type { Application } from "express";
 import type { Server } from "http";
-import type { IDatabaseService, IEmailService } from "@auth/contracts";
-import { config, getLogger, getRedisConnection, type ExtendedRedis } from "@auth/config";
-import { initI18n } from "@auth/config";
+import type { IDatabaseService, IEmailService, ILogger } from "@auth/contracts";
+import { config } from "@auth/config";
+import { initI18n } from "@auth/i18n";
+import { RedisService, type ExtendedRedis } from "@auth/redis";
 import { DatabaseConnectionError, RedisConnectionError } from "@auth/utils";
-import { withSpan, addSpanAttributes } from "@auth/observability";
+import { withSpan, addSpanAttributes, createObservabilityLogger, type Logger } from "@auth/observability";
 import { BOOTSTRAP_MESSAGES } from "./constants/bootstrap.messages.js";
 import { createDatabaseService } from "./services/database.service.factory.js";
 import { createEmailService } from "./services/email.service.factory.js";
-import { getQueueServices as getQueueServicesFromPackage, type QueueServices } from "@auth/queues";
+import {
+  initQueueServices,
+  getQueueServices as getQueueServicesFromPackage,
+  type QueueServices,
+} from "@auth/queues";
 import { getOriginalError } from "./types/errors.js";
 import type { InitializedServices, ServiceDefinition, BootstrapHealth } from "./types/index.js";
 
-const logger = getLogger();
+// Re-export ExtendedRedis type for consumers
+export type { ExtendedRedis } from "@auth/redis";
+
+// Re-export logger for consumers - single source of truth
+export { type Logger } from "@auth/observability";
+
+// Create logger singleton at composition root
+const logger: Logger = createObservabilityLogger();
+
+// Export logger for DI into other modules
+export function getLogger(): ILogger {
+  return logger;
+}
 
 // Typed singleton holders - internal only, not exported
+let redisServiceClass: RedisService | null = null;
 let redisServiceInstance: ExtendedRedis | null = null;
 let databaseServiceInstance: IDatabaseService | null = null;
 let emailServiceInstance: IEmailService | null = null;
+let queueServicesInitialized = false;
 
 /**
  * Get or create Redis connection singleton
@@ -27,17 +46,31 @@ let emailServiceInstance: IEmailService | null = null;
  */
 export function getRedisService(): ExtendedRedis {
   if (redisServiceInstance === null) {
-    redisServiceInstance = getRedisConnection();
+    redisServiceClass = new RedisService({
+      config: {
+        url: config.redisUrl,
+        env: config.env,
+        circuitBreakerTimeout: config.redis.circuitBreakerTimeout,
+      },
+      logger,
+    });
+    redisServiceInstance = redisServiceClass.connect();
   }
   return redisServiceInstance;
 }
 
 /**
- * Get or create DatabaseService singleton
- *
- * Returns a fully typed IDatabaseService instance.
- * Creates lazily on first access.
+ * Initialize Queue Services (must be called after Redis is ready)
  */
+function ensureQueueServicesInitialized(): void {
+  if (!queueServicesInitialized) {
+    initQueueServices({
+      connection: getRedisService(),
+      logger,
+    });
+    queueServicesInitialized = true;
+  }
+}
 export function getDatabaseService(): IDatabaseService {
   if (databaseServiceInstance === null) {
     databaseServiceInstance = createDatabaseService();
@@ -63,8 +96,10 @@ export function getEmailService(): IEmailService {
  * Get or create Queue Services singletons
  *
  * Returns typed queue services from the queues package.
+ * Ensures queue services are initialized with Redis and logger.
  */
 export function getQueueServices(): QueueServices {
+  ensureQueueServicesInitialized();
   return getQueueServicesFromPackage();
 }
 

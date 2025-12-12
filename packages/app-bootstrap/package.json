@@ -22,8 +22,10 @@
     "@auth/contracts": "workspace:*",
     "@auth/database": "workspace:*",
     "@auth/email": "workspace:*",
+    "@auth/i18n": "workspace:*",
     "@auth/observability": "workspace:*",
     "@auth/queues": "workspace:*",
+    "@auth/redis": "workspace:*",
     "@auth/utils": "workspace:*"
   },
   "devDependencies": {

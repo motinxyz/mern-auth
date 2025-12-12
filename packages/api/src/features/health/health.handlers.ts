@@ -9,7 +9,7 @@
 import type { IRedisConnection } from "@auth/contracts";
 import { HTTP_STATUS_CODES } from "@auth/utils";
 import { withSpan, addSpanAttributes } from "@auth/observability";
-import { getLogger } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
 import { checkBootstrapHealth } from "@auth/app-bootstrap";
 import type { Request, Response, RequestHandler } from "express";
 

@@ -136,4 +136,5 @@ export type {
     IApiError,
     IValidationErrorDetail,
     ApiResponseType,
+    IAuthenticatedUser,
 } from "./http/index.js";

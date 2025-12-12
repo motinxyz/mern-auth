@@ -132,50 +132,63 @@ This is the **most important package**. It defines the "Agreements" (TypeScript 
 ### 2. The "Brain": @auth/config
 **Path:** `packages/config`
 The central nervous system for settings.
-*   **Lazy Factories:** `getRedisConnection()` creates Redis connection only when first called
 *   **Schema Validation:** `env.schema.ts` validates all environment variables with Zod
-*   **No Side Effects:** Importing config doesn't create connections - you must call factory functions
+*   **Pure Config:** No longer contains logger or application logic. Just environment variables.
 
-### 3. The "Glue": @auth/app-bootstrap
+### 3. The "Voice": @auth/logger
+**Path:** `packages/logger`
+**NEW: Zero-dependency logging package.**
+*   **Purpose:** Provides the low-level Pino logger instance.
+*   **Position:** Bottom of the dependency tree. Can be imported by anyone without causing circular dependencies.
+*   **Factory:** Exports `createLogger()` which reads `LOG_LEVEL` directly from `process.env`.
+
+### 4. The "Eyes": @auth/observability
+**Path:** `packages/observability`
+*   **Purpose:** Wraps `@auth/logger` and adds OpenTelemetry magic (Tracing context).
+*   **Pattern:** Exports `createObservabilityLogger()` which is instantiated ONCE in `app-bootstrap`.
+*   **No Circular Deps:** Strictly imports from `@auth/logger`, never from `@auth/config`.
+
+### 5. The "Glue": @auth/app-bootstrap
 **Path:** `packages/app-bootstrap`
-**NEW: This is now the central singleton provider.**
-*   **Purpose:** Provides lazy singletons for all infrastructure services
+**The Central Singleton Provider.**
+*   **Purpose:** Provides lazy singletons for all infrastructure services.
 *   **Key Exports:**
-    - `getRedisService()` - Redis connection singleton
-    - `getDatabaseService()` - MongoDB connection singleton
-    - `getEmailService()` - Email service singleton
-    - `getQueueServices()` - Queue producer singletons
+    - `getLogger()` - The ONE global logger instance (injected everywhere).
+    - `getRedisService()` - Redis connection singleton.
+    - `getDatabaseService()` - MongoDB connection singleton.
+    - `getEmailService()` - Email service singleton.
+    - `getQueueServices()` - Queue producer singletons.
 
-### 4. The "Memory": @auth/database
+### 6. The "Memory": @auth/database
 **Path:** `packages/database`
 *   **Tech:** MongoDB + Mongoose.
 *   **Pattern:** Uses the **Repository Pattern**. Instead of writing raw DB queries in your logic, you call `userRepository.create()`.
 
-### 5. The "Logic": @auth/core
+### 7. The "Logic": @auth/core
 **Path:** `packages/core`
 Where the business rules live.
 *   **Services:** (e.g., `RegistrationService`) The logic. "Check rate limit -> Save User -> Queue Email".
 *   **Controllers:** (e.g., `RegistrationController`) The HTTP handler. "Read body -> Call Service -> Return JSON".
-*   **Constructor Injection:** All dependencies passed in constructor.
+*   **Constructor Injection:** All dependencies (Logger, Redis, Config) passed in constructor.
 
-### 6. The "Gateway": @auth/api
+### 8. The "Gateway": @auth/api
 **Path:** `packages/api`
 The HTTP Server (Express).
-*   **Composition Root:** `app.ts` is where all dependencies are wired
-*   **Middleware Factory:** `middleware.factory.ts` creates all middleware with injected dependencies
-*   **Router Factory:** `createRouter()` accepts middleware dependencies
+*   **Composition Root:** `app.ts` is where all dependencies are wired.
+*   **Middleware Factory:** `middleware.factory.ts` creates all middleware with injected dependencies.
+*   **Router Factory:** `createRouter()` accepts middleware dependencies.
 
 #### Key Files:
-- `app.ts` - Composition root, wires all dependencies
-- `middleware/middleware.factory.ts` - Creates all middleware instances
-- `router.ts` - Factory that creates API routes
+- `app.ts` - Composition root, wires all dependencies.
+- `middleware/middleware.factory.ts` - Creates all middleware instances.
+- `router.ts` - Factory that creates API routes.
 
-### 7. The "Messenger": @auth/email
+### 9. The "Messenger": @auth/email
 **Path:** `packages/email`
 *   **Resilience:** Uses a **Circuit Breaker**. If the email provider crashes, it temporarily stops trying to send emails.
 *   **Failover:** Tries **Resend** first. If that fails, it automatically switches to **MailerSend**.
 
-### 8. The "Muscle": @auth/worker
+### 10. The "Muscle": @auth/worker
 **Path:** `packages/worker`
 The background process.
 *   **Why?** Sending an email takes 1-2 seconds. We don't want the user to wait.
@@ -186,32 +199,35 @@ The background process.
 ## Key Concepts & Terms
 
 ### Factory Functions (Gold Standard DI)
-Every middleware, controller, and service is created via factory functions:
+Every middleware, controller, and service is created via factory functions or classes with constructor injection:
 
 ```typescript
-// Factory accepts dependencies
-export function createApiLimiter(deps: { redis: IRedisConnection }): RequestHandler {
-  const { redis } = deps;
-  return rateLimit({
-    store: createRedisStore(redis, "rl:api:"),
-    // ...
-  });
+// Service accepts dependencies via constructor
+export class RegistrationService {
+  constructor(private deps: {
+    logger: ILogger; // Injected!
+    redis: IRedisConnection; // Injected!
+    config: IConfig; // Injected!
+  }) {}
 }
 
-// Used in composition root
-const apiLimiter = createApiLimiter({ redis });
-app.use("/api", apiLimiter);
+// Used in Composition Root (container.ts or app.ts)
+const logger = getLogger(); // From bootstrap
+const redis = getRedisService(); // From bootstrap
+
+const service = new RegistrationService({ logger, redis, config });
 ```
 
 ### Why Factories? (Benefits)
-1. **Testability:** Pass mock Redis in tests, no `vi.mock()` needed
-2. **Explicit Dependencies:** Just read the function signature to see what it needs
-3. **No Hidden State:** No globals or singletons imported randomly
-4. **Swap Implementations:** Easy to change Redis to another cache
+1. **Testability:** Pass mock Logger and Redis in tests, no `vi.mock()` needed.
+2. **Explicit Dependencies:** Just read the `constructor` to see what it needs.
+3. **No Hidden State:** No globals or singletons imported randomly.
+4. **Swap Implementations:** Easy to change Redis to another cache.
 
 ### Observability (OpenTelemetry)
 We don't just "log" text. We create **Traces**.
 A Trace is like a timeline bar chart showing exactly where time was spent.
+Our `ILogger` implementation automatically injects `traceId` and `spanId` into every log message, allowing you to correlate logs with traces in Grafana.
 
 ### Zod Validation
 We never trust user input. **Zod** is a library that forces data to match a shape.
@@ -239,11 +255,11 @@ We never trust user input. **Zod** is a library that forces data to match a shap
 ## Summary
 
 You are looking at a codebase designed to scale to millions of users. It:
-- **Separates concerns** (Logic vs. Database vs. HTTP)
-- **Uses Gold Standard DI** (Factory functions, composition root)
-- **Handles failures gracefully** (Circuit Breakers)
-- **Tells you exactly what it's doing** (Traces)
+- **Separates concerns** (Logic vs. Database vs. HTTP).
+- **Uses Gold Standard DI** (Factory functions, composition root).
+- **Handles failures gracefully** (Circuit Breakers).
+- **Tells you exactly what it's doing** (Traces & Structured Logging).
 
-The key insight: **All dependencies flow from the composition root (`app.ts`) downward. No file imports singletons directly - everything is injected.**
+The key insight: **All dependencies flow from the composition root (`app.ts` or `bootstrap.ts`) downward. No file imports singletons directly - everything is injected.**
 
 Mastering this structure means you can work on any complex enterprise system in the world.

@@ -1,5 +1,7 @@
 import { getDatabaseService } from "@auth/app-bootstrap";
-import { config, t, getLogger } from "@auth/config";
+import { config } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
+import { t } from "@auth/i18n";
 import { handleBounce, ResendProvider, MailerSendProvider } from "@auth/email";
 import type { Request, Response } from "express";
 import type { ILogger } from "@auth/contracts";

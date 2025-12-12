@@ -11,9 +11,11 @@
 
 import DatabaseService from "../index.js";
 import migrationRunner from "./runner.js";
-import { config, getLogger, t } from "@auth/config";
+import { config } from "@auth/config";
+import { createLogger } from "@auth/logger";
+import { t } from "@auth/i18n";
 
-const logger = getLogger();
+const logger = createLogger({ serviceName: "database:migrations" });
 
 const command = process.argv[2] ?? "status";
 

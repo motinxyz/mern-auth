@@ -1,4 +1,4 @@
-import { getLogger } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
 import type { Request, Response, NextFunction } from "express";
 
 const logger = getLogger();

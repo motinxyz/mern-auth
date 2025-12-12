@@ -1,5 +1,6 @@
 import { EmailService, ProviderService, type EmailServiceConfig } from "@auth/email";
-import { config, getLogger } from "@auth/config";
+import { config } from "@auth/config";
+import { getLogger } from "../bootstrap.js";
 import { ConfigurationError } from "@auth/utils";
 import type { IDatabaseService, IEmailService } from "@auth/contracts";
 

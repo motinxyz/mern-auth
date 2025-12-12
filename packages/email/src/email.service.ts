@@ -6,7 +6,7 @@ import {
   hashSensitiveData,
 } from "@auth/utils";
 import type { ILogger, IEmailLogRepository } from "@auth/contracts";
-import { i18nInstance } from "@auth/config";
+import { i18nInstance } from "@auth/i18n";
 import {
   emailSendTotal,
   emailSendDuration,

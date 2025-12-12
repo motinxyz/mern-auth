@@ -1,5 +1,5 @@
 import { HTTP_STATUS_CODES, ApiResponse } from "@auth/utils";
-import { t as systemT } from "@auth/config";
+import { t as systemT } from "@auth/i18n";
 import type { VerificationService } from "./verification.service.js";
 import type { VerificationDto } from "./verification.dto.js";
 

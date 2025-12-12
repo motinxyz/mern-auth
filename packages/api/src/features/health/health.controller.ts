@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import type { IDatabaseService, IRedisConnection } from "@auth/contracts";
-import { getLogger } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
 import { HTTP_STATUS_CODES } from "@auth/utils";
 
 const logger = getLogger();

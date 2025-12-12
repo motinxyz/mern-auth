@@ -1,4 +1,4 @@
-import { getLogger } from "@auth/config";
+import { getLogger } from "@auth/app-bootstrap";
 
 const logger = getLogger();
 import {

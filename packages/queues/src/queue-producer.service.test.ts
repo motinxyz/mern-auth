@@ -2,6 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import QueueProducerService from "./queue-producer.service.js";
 import { Queue } from "bullmq";
 
+vi.mock("@auth/config", () => ({
+  config: {
+    env: "test",
+    redisUrl: "redis://localhost:6379",
+  },
+}));
+
 // Mock BullMQ
 vi.mock("bullmq", () => {
   const MockQueue = vi.fn();
