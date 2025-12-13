@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { User } from "@auth/database";
 import { VerificationService } from "./verification.service.js";
 import { NotFoundError } from "@auth/utils";
-import { VERIFICATION_STATUS } from "@auth/core/constants/auth.constants";
+import { VERIFICATION_STATUS } from "../../../constants/auth.constants.js";
 import crypto from "node:crypto";
 
 // Mock Redis and config
