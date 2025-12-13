@@ -1,25 +1,35 @@
 {
   "name": "@auth/queues",
   "version": "1.0.0",
-  "main": "src/index.js",
   "type": "module",
-  "scripts": {
-    "test": "vitest run --coverage"
-  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "default": "./src/index.js"
-    },
-    "./producers": "./src/producers/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "vitest run --coverage",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/config": "workspace:*",
     "@auth/contracts": "workspace:*",
+    "@auth/observability": "workspace:*",
     "@auth/utils": "workspace:*",
+    "@opentelemetry/api": "^1.9.0",
     "bullmq": "^5.65.1",
     "ioredis": "^5.8.2",
-    "nodemailer": "^7.0.11",
-    "opossum": "^9.0.0"
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

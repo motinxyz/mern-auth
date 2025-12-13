@@ -1,0 +1,37 @@
+/**
+ * Middleware Barrel Export
+ * Organized by layer for clarity and maintainability
+ */
+
+// ============================================================================
+// CORE LAYER - Framework-level middleware (applied globally)
+// ============================================================================
+export { errorHandler } from "./core/errorHandler.js";
+export {
+  createTimeoutMiddleware,
+  timeoutErrorHandler,
+} from "./core/timeout.js";
+export { configureMiddleware } from "./core/setup.js";
+
+// ============================================================================
+// SECURITY LAYER - Security and protection middleware (Factory functions)
+// ============================================================================
+export { createApiLimiter, createAuthLimiter, type RateLimiterDeps } from "./security/rateLimiter.js";
+export { createCacheMiddleware, createCacheInvalidator, type CacheMiddlewareDeps, type CacheOptions } from "./security/cache.js";
+
+// ============================================================================
+// BUSINESS LAYER - Business logic and validation middleware
+// ============================================================================
+export { validate } from "./business/validate.js";
+export { apiVersionMiddleware } from "./business/apiVersion.js";
+export { featureFlagMiddleware } from "./business/featureFlag.js";
+
+// ============================================================================
+// RESPONSE LAYER - Response formatting middleware
+// ============================================================================
+export { responseHandler } from "./response/responseHandler.js";
+
+// ============================================================================
+// COMPOSITION ROOT - Factory for all middleware with DI
+// ============================================================================
+export { createMiddleware, type MiddlewareDeps, type CreatedMiddleware } from "./middleware.factory.js";

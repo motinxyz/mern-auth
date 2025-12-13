@@ -1,0 +1,35 @@
+{
+    "name": "@auth/i18n",
+    "version": "1.0.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+        },
+        "./locales/*": {
+            "import": "./dist/locales/*"
+        }
+    },
+    "type": "module",
+    "scripts": {
+        "lint": "eslint .",
+        "build": "tsc && cp -r src/locales dist/",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@auth/logger": "workspace:*",
+        "i18next": "^25.7.2",
+        "i18next-fs-backend": "^2.6.1",
+        "i18next-http-middleware": "^3.9.0"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.6",
+        "@types/node": "^22.15.23"
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    }
+}

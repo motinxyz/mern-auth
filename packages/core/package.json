@@ -1,25 +1,42 @@
 {
   "name": "@auth/core",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "default": "./src/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
-    "./constants/auth.constants": "./src/constants/auth.constants.js",
-    "./constants/token.constants": "./src/constants/token.constants.js"
+    "./constants/auth.constants": {
+      "types": "./dist/constants/auth.constants.d.ts",
+      "import": "./dist/constants/auth.constants.js"
+    },
+    "./constants/token.constants": {
+      "types": "./dist/constants/token.constants.d.ts",
+      "import": "./dist/constants/token.constants.js"
+    }
   },
   "scripts": {
-    "test": "vitest run --coverage"
+    "test": "vitest run --coverage",
+    "lint": "eslint .",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@auth/app-bootstrap": "workspace:*",
     "@auth/config": "workspace:*",
     "@auth/contracts": "workspace:*",
     "@auth/database": "workspace:*",
     "@auth/email": "workspace:*",
+    "@auth/i18n": "workspace:*",
+    "@auth/observability": "workspace:*",
     "@auth/queues": "workspace:*",
+    "@auth/redis": "workspace:*",
     "@auth/utils": "workspace:*",
     "@sentry/node": "^10.29.0",
     "awilix": "^12.0.5",

@@ -4,19 +4,21 @@
   "type": "module",
   "scripts": {
     "dev": "turbo dev",
-    "dev:api": "pnpm --filter @auth/api dev",
+    "dev:api": "turbo dev --filter @auth/api",
     "dev:worker": "pnpm --filter @auth/worker dev",
     "dev:web": "pnpm --filter @auth/web dev",
     "test": "pnpm --filter @auth/api test && pnpm --filter @auth/core test && pnpm --filter @auth/email test && pnpm --filter @auth/queues test && pnpm --filter @auth/utils test && pnpm --filter @auth/worker test",
     "lint": "turbo run lint",
     "build": "turbo run build",
-    "agent:start": "docker compose -f docker-compose.grafana.yml up -d",
-    "agent:stop": "docker compose -f docker-compose.grafana.yml down",
-    "agent:logs": "docker compose -f docker-compose.grafana.yml logs -f grafana-agent",
-    "agent:restart": "pnpm agent:stop && pnpm agent:start"
+    "typecheck": "turbo run typecheck",
+    "kill": "pkill -9 -f 'tsx.*server.ts' && pkill -9 -f 'turbo dev'"
   },
   "devDependencies": {
+    "@auth/eslint-config": "workspace:*",
     "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@typescript-eslint/eslint-plugin": "^8.49.0",
+    "@typescript-eslint/parser": "^8.49.0",
     "@vitest/coverage-v8": "^4.0.15",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
@@ -26,7 +28,10 @@
     "eslint-plugin-security": "^3.0.1",
     "globals": "^16.5.0",
     "prettier": "^3.7.4",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
     "turbo": "^2.6.3",
+    "typescript": "^5.9.3",
     "vitest": "^4.0.15"
   },
   "packageManager": "pnpm@10.19.0",

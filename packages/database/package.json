@@ -2,18 +2,35 @@
   "name": "@auth/database",
   "version": "1.0.0",
   "type": "module",
-  "main": "src/index.js",
-  "types": "src/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@auth/contracts": "workspace:*",
     "@auth/config": "workspace:*",
+    "@auth/i18n": "workspace:*",
+    "@auth/logger": "workspace:*",
+    "@auth/observability": "workspace:*",
     "@auth/utils": "workspace:*",
     "bcrypt": "^6.0.0",
     "mongoose": "^9.0.1"
   },
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0"
+    "@types/bcrypt": "^6.0.0",
+    "@types/mongoose": "^5.11.97",
+    "@types/node": "^24.10.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

@@ -1,22 +1,36 @@
 {
   "name": "@auth/email",
   "version": "1.0.0",
-  "main": "src/index.js",
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "vitest run --coverage",
+    "build": "tsc && cp -r src/templates dist/",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@auth/config": "workspace:*",
     "@auth/contracts": "workspace:*",
     "@auth/database": "workspace:*",
+    "@auth/i18n": "workspace:*",
+    "@auth/observability": "workspace:*",
     "@auth/utils": "workspace:*",
     "handlebars": "^4.7.8",
-    "mailersend": "^2.2.0",
-    "opossum": "^9.0.0",
+    "mailersend": "^2.6.0",
     "resend": "^6.5.2"
   },
   "devDependencies": {
     "vitest": "^4.0.15"
   },
-  "scripts": {
-    "test": "vitest run --coverage"
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

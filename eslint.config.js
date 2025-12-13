@@ -1,23 +1,14 @@
-function getWorkspacePackagePaths() {
-  return [
-    "./packages/api",
-    "./packages/config",
-    "./packages/core",
-    "./packages/database",
-    "./packages/email",
-    "./packages/queues",
-    "./packages/utils",
-    "./packages/worker",
-  ];
-}
-
-import globals from "globals";
-import eslintPlugin from "@eslint/js";
-import prettierConfig from "eslint-config-prettier";
-import securityPlugin from "eslint-plugin-security";
+import sharedConfig from "@auth/eslint-config";
 import importPlugin from "eslint-plugin-import";
 
 export default [
+  ...sharedConfig,
+  {
+    plugins: { import: importPlugin },
+  },
+  {
+    ignores: ["**/dist/**", "**/node_modules/**", "**/.turbo/**"],
+  },
   {
     settings: {
       "import/resolver": {
@@ -38,54 +29,35 @@ export default [
     },
   },
   {
-    languageOptions: {
-      ecmaVersion: "latest",
-      sourceType: "module",
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-      },
-    },
-  },
-  eslintPlugin.configs.recommended,
-  prettierConfig,
-  securityPlugin.configs.recommended,
-  {
-    plugins: { import: importPlugin },
-    rules: {
-      "no-unused-vars": [
-        "error",
-        {
-          argsIgnorePattern: "^",
-          varsIgnorePattern: "^",
-          caughtErrorsIgnorePattern: "^",
-        },
-      ],
-      "import/no-unresolved": "off", // Temporarily disable this rule
-      "import/no-unused-modules": [
-        "warn",
-        {
-          unusedExports: true,
-          src: ["src/**/*.js"],
-        },
-      ],
-    },
-  },
-  {
     rules: {
       "import/no-extraneous-dependencies": [
         "error",
         {
-          // Correctly resolve dependencies in a pnpm monorepo
-          packageDir: ["./", ...getWorkspacePackagePaths()],
+          packageDir: [
+            "./",
+            "./packages/api",
+            "./packages/config",
+            "./packages/core",
+            "./packages/database",
+            "./packages/email",
+            "./packages/queues",
+            "./packages/utils",
+            "./packages/worker",
+          ],
         },
       ],
     },
   },
   {
-    files: ["**/*.test.js", "**/vitest.config.js"],
+    files: [
+      "**/*.test.js",
+      "**/*.test.ts",
+      "**/vitest.config.js",
+      "**/vitest.config.ts",
+    ],
     rules: {
       "import/no-extraneous-dependencies": "off",
+      "@typescript-eslint/no-extraneous-class": "off",
     },
   },
 ];

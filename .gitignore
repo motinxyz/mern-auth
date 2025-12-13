@@ -1,12 +1,34 @@
+# Dependencies
 node_modules
+
+# Build outputs
+dist/
 .turbo
+*.tsbuildinfo
 
-GEMINI_ANALYSIS**
+# Coverage
 **/coverage
-# docs
 
+# Logs
 packages/api/logs/
-*.log
+**.log
 
+# Environment
 .env
 .env.test
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Analysis
+GEMINI_ANALYSIS**
+packages/api/logs/app.log
