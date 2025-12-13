@@ -58,7 +58,7 @@ export class WebhooksController {
       const eventJson = JSON.parse(payload);
       const bounceData = provider.parseWebhookEvent(eventJson) as ParsedWebhookEvent | null;
 
-      if (!bounceData) {
+      if (bounceData === null || bounceData === undefined) {
         return res
           .status(200)
           .json({ success: true, message: "Event ignored" });

@@ -40,7 +40,7 @@ class AuditLogRepository extends BaseRepository<AuditLogDocument, IAuditLog> {
       const lean = saved.toObject();
       const mapped = this.mapDocument(lean);
 
-      if (!mapped) {
+      if (mapped === null || mapped === undefined) {
         throw new Error("Failed to map created audit log");
       }
 

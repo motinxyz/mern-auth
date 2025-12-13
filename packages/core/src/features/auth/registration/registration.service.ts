@@ -163,7 +163,7 @@ export class RegistrationService {
 
                     const result = await this.User.create([userData], { session });
                     const createdUser = result[0];
-                    if (!createdUser) {
+                    if (createdUser === undefined || createdUser === null) {
                       throw new Error("Failed to create user document");
                     }
                     newUser = createdUser;

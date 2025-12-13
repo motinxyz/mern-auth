@@ -83,7 +83,7 @@ class DatabaseConnectionManager {
 
         const uri = this.config.dbURI;
 
-        if (!uri) {
+        if (uri === undefined || uri === null || uri === "") {
           throw new ConfigurationError("Missing Database Connection String");
         }
 

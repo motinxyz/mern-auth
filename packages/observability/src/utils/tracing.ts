@@ -149,7 +149,7 @@ export function getTraceContext(): TraceContext | null {
 export function createSpanLink(
     traceContext: TraceContext | null | undefined
 ): { context: TraceContext } | null {
-    if (!traceContext || !traceContext.traceId) return null;
+    if (traceContext === null || traceContext === undefined || !traceContext.traceId) return null;
 
     return {
         context: {

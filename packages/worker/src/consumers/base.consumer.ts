@@ -58,7 +58,7 @@ class BaseConsumer {
 
     // Create span links with proper type
     const links: Array<{ context: TraceContext }> = [];
-    if (traceContext !== undefined && traceContext.traceId && traceContext.spanId) {
+    if (traceContext !== undefined && typeof traceContext.traceId === "string" && typeof traceContext.spanId === "string") {
       const link = createSpanLink({
         traceId: traceContext.traceId,
         spanId: traceContext.spanId,
