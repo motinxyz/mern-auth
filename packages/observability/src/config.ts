@@ -51,6 +51,12 @@ interface ObservabilityConfig {
             headers: TempoHeaders;
         };
     };
+    sentry: {
+        enabled: boolean;
+        dsn: string | undefined;
+        environment: string;
+        release: string;
+    };
 }
 
 const observabilitySettings = config?.observability ?? {
@@ -120,6 +126,14 @@ export const observabilityConfig: ObservabilityConfig = {
             })(),
         },
     },
+
+    // Sentry config
+    sentry: {
+        enabled: config.sentryDsn !== undefined && (config.env === "production" || config.sentryDevEnabled),
+        dsn: config.sentryDsn,
+        environment: config.env,
+        release: observabilitySettings.serviceVersion,
+    },
 };
 
 export function isObservabilityEnabled(): boolean {
@@ -136,4 +150,8 @@ export function isMetricsEnabled(): boolean {
 
 export function isTracingEnabled(): boolean {
     return observabilityConfig.tracing.enabled;
+}
+
+export function isSentryEnabled(): boolean {
+    return observabilityConfig.sentry.enabled;
 }

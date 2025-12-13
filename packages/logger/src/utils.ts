@@ -21,7 +21,7 @@ export function getLokiConfig(): LokiConfig | null {
     const user = process.env.GRAFANA_LOKI_USER;
     const apiKey = process.env.GRAFANA_LOKI_API_KEY;
 
-    if (url && user && apiKey) {
+    if (url !== undefined && user !== undefined && apiKey !== undefined && url !== "" && user !== "" && apiKey !== "") {
         return { url, user, apiKey };
     }
     return null;

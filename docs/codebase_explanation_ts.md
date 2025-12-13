@@ -229,6 +229,12 @@ We don't just "log" text. We create **Traces**.
 A Trace is like a timeline bar chart showing exactly where time was spent.
 Our `ILogger` implementation automatically injects `traceId` and `spanId` into every log message, allowing you to correlate logs with traces in Grafana.
 
+### Error Tracking (Sentry)
+New in version 2.0. We automatically capture backend crashes (500 errors) and send them to **Sentry**.
+- **Auto-Capture:** Global Error Handler catches all exceptions.
+- **Smart Filter:** Ignores 400 errors (Bad Input) to save noise/money.
+- **Context:** Attaches User ID + Request URL to every crash report.
+
 ### Zod Validation
 We never trust user input. **Zod** is a library that forces data to match a shape.
 `z.string().email()` ensures the variable is *actually* an email before our code touches it.

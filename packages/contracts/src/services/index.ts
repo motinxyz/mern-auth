@@ -34,7 +34,7 @@ export type {
     VerificationEmailOptions,
     EmailServiceResult,
     CircuitBreakerHealth,
-} from "./email.service.js";
+} from "../email/index.js";
 
 // Queue
 export type {

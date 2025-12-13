@@ -1,13 +1,3 @@
-/**
- * OpenTelemetry Tracing with Grafana Cloud Tempo Integration
- *
- * Features:
- * - Automatic instrumentation (Express, MongoDB, Redis, etc.)
- * - Distributed tracing
- * - Export to Grafana Cloud Tempo
- * - Graceful degradation
- */
-
 /* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
@@ -15,17 +5,22 @@ const require = createRequire(import.meta.url);
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
-import {
-    PeriodicExportingMetricReader,
-} from "@opentelemetry/sdk-metrics";
+import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
+import { BatchSpanProcessor, type SpanProcessor, type ReadableSpan } from "@opentelemetry/sdk-trace-base";
+import { createModuleLogger } from "../startup-logger.js";
+import { observabilityConfig, isTracingEnabled } from "../config.js";
+import { FilteringSpanProcessor } from "./processor.js";
 import {
-    BatchSpanProcessor,
-    type SpanProcessor,
-    type ReadableSpan,
-} from "@opentelemetry/sdk-trace-base";
-import type { Context } from "@opentelemetry/api";
-import { createModuleLogger } from "./startup-logger.js";
+    ignoreIncomingRequestHook,
+    requestHook,
+    startOutgoingSpanHook,
+    applyCustomAttributesOnSpan,
+    expressSpanNameHook,
+    expressRequestHook,
+    mongoResponseHook,
+    redisResponseHook,
+} from "./hooks.js";
 
 // Use require for CommonJS modules to avoid ESM interop issues
 const { resourceFromAttributes } = require("@opentelemetry/resources");
@@ -34,46 +29,8 @@ const {
     SEMRESATTRS_SERVICE_VERSION,
     SEMRESATTRS_DEPLOYMENT_ENVIRONMENT,
 } = require("@opentelemetry/semantic-conventions");
-import { observabilityConfig, isTracingEnabled } from "./config.js";
-import type { IncomingMessage } from "http";
-import type { Span } from "@opentelemetry/api";
 
 const log = createModuleLogger("tracing");
-
-/**
- * Custom SpanProcessor that filters out unwanted spans before export.
- * Wraps another processor (e.g., BatchSpanProcessor) and only forwards spans
- * that pass the filter.
- */
-class FilteringSpanProcessor implements SpanProcessor {
-    private readonly processor: SpanProcessor;
-    private readonly shouldExclude: (span: ReadableSpan) => boolean;
-
-    constructor(processor: SpanProcessor, shouldExclude: (span: ReadableSpan) => boolean) {
-        this.processor = processor;
-        this.shouldExclude = shouldExclude;
-    }
-
-    onStart(span: Span, context: Context): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.processor.onStart(span as any, context);
-    }
-
-    onEnd(span: ReadableSpan): void {
-        // Only forward spans that pass the filter
-        if (!this.shouldExclude(span)) {
-            this.processor.onEnd(span);
-        }
-    }
-
-    shutdown(): Promise<void> {
-        return this.processor.shutdown();
-    }
-
-    forceFlush(): Promise<void> {
-        return this.processor.forceFlush();
-    }
-}
 
 let sdk: NodeSDK | null = null;
 
@@ -191,55 +148,10 @@ export function initializeTracing() {
                     // ========================================
                     "@opentelemetry/instrumentation-http": {
                         enabled: true,
-                        ignoreIncomingRequestHook: (req: IncomingMessage) => {
-                            // Don't trace health checks and metrics endpoints
-                            const url = req.url || "";
-                            return url.startsWith("/healthz") || url.startsWith("/readyz") || url.includes("/metrics");
-                        },
-                        // Hook for incoming requests (server-side)
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        requestHook: (span: Span, request: any) => {
-                            // Add request details
-                            span.setAttribute("http.url", request.url || "");
-                            span.setAttribute(
-                                "http.host",
-                                request.headers?.host || "unknown"
-                            );
-                        },
-                        // Hook for outgoing requests (client-side) - for external API calls
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        startOutgoingSpanHook: (request: any) => {
-                            // Parse URL to get host for span name
-                            const method = request.method || "GET";
-
-                            // Try to extract hostname for better span names
-                            let host = request.hostname || request.host || "";
-                            if (host) {
-                                // Remove port if present
-                                host = host.split(":")[0];
-                                return { name: `HTTP ${method} ${host}` };
-                            }
-                            return { name: `HTTP ${method}` };
-                        },
-                        // This hook runs after response is complete - route info is available
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        applyCustomAttributesOnSpan: (span: Span, request: any, _response: any) => {
-                            // For incoming requests: Update HTTP span name with Express route
-                            const route = request.route?.path;
-                            const baseUrl = request.baseUrl || "";
-                            const method = request.method || "GET";
-
-                            if (route) {
-                                // Full route path for nested routers
-                                const fullRoute = baseUrl + route;
-                                span.updateName(`${method} ${fullRoute}`);
-                                span.setAttribute("http.route", fullRoute);
-                            } else if (request.originalUrl) {
-                                // Fallback to original URL (without query params)
-                                const path = request.originalUrl.split("?")[0];
-                                span.updateName(`${method} ${path}`);
-                            }
-                        },
+                        ignoreIncomingRequestHook,
+                        requestHook,
+                        startOutgoingSpanHook, // eslint-disable-line @typescript-eslint/no-explicit-any
+                        applyCustomAttributesOnSpan, // eslint-disable-line @typescript-eslint/no-explicit-any
                     },
                     "@opentelemetry/instrumentation-express": {
                         enabled: true,
@@ -247,65 +159,24 @@ export function initializeTracing() {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         ignoreLayersType: ["middleware" as any],
                         // Ignore health check routes entirely - match by layer name
-
                         ignoreLayers: [/healthz/, /readyz/],
-                        // spanNameHook is the correct hook for setting span names
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        spanNameHook: (info: any, _defaultName: any) => {
-                            const req = info.request;
-                            const route = info.route || req.route?.path;
-                            const method = req.method || "UNKNOWN";
-
-                            // Use route if available, otherwise fall back to URL path
-                            if (route) {
-                                return `${method} ${route}`;
-                            }
-                            // Use baseUrl + path for nested routers
-                            const path = req.baseUrl
-                                ? `${req.baseUrl}${req.path || ""}`
-                                : req.originalUrl || req.url;
-                            return `${method} ${path}`;
-                        },
-                        // requestHook for adding attributes (not span name)
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        requestHook: (span: any, info: any) => {
-                            const req = info.request;
-                            span.setAttribute("http.target", req.originalUrl || req.url);
-                            span.setAttribute("express.type", info.layerType || "middleware");
-                            if (info.route) {
-                                span.setAttribute("http.route", info.route);
-                            }
-                        },
+                        spanNameHook: expressSpanNameHook, // eslint-disable-line @typescript-eslint/no-explicit-any
+                        requestHook: expressRequestHook, // eslint-disable-line @typescript-eslint/no-explicit-any
                     },
                     "@opentelemetry/instrumentation-mongodb": {
                         enabled: true,
                         enhancedDatabaseReporting: true, // Include query details
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        responseHook: (span: any, result: any) => {
-                            // Add operation result info
-                            if (result.operationName) {
-                                span.updateName(`MongoDB ${result.operationName}`);
-                            }
-                        },
+                        responseHook: mongoResponseHook,
                     },
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     ["@opentelemetry/instrumentation-redis-4" as any]: {
                         enabled: true,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        responseHook: (span: any, cmdName: any, _cmdArgs: any, _response: any) => {
-                            // Add Redis command info to span name
-                            span.updateName(`Redis ${cmdName}`);
-                            span.setAttribute("redis.command", cmdName);
-                        },
+                        responseHook: redisResponseHook,
                     },
                     // ioredis instrumentation
                     "@opentelemetry/instrumentation-ioredis": {
                         enabled: true,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        responseHook: (span: any, cmdName: any, _cmdArgs: any, _response: any) => {
-                            span.updateName(`Redis ${cmdName}`);
-                            span.setAttribute("redis.command", cmdName);
-                        },
+                        responseHook: redisResponseHook,
                     },
                 }),
             ],

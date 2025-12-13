@@ -21,32 +21,18 @@
  * ```
  */
 
-// Configuration
-export {
-    observabilityConfig,
-    isObservabilityEnabled,
-    isLokiEnabled,
-    isMetricsEnabled,
-    isTracingEnabled,
-} from "./config.js";
+// Core Configuration
+export * from "./config.js";
+export * from "./logger.js";
 
-// Tracing
-export {
-    initializeTracing,
-    shutdownTracing,
-    getTracingSDK,
-} from "./tracing.js";
+// Tracing (OpenTelemetry)
+export * from "./tracing/index.js";
 
-// Metrics
-export {
-    initializeMetrics,
-    getMetricsRegistry,
-    stopMetrics,
-    emailSendTotal,
-    emailSendDuration,
-    emailBounceTotal,
-    emailCircuitBreakerState,
-} from "./metrics.js";
+// Metrics (Prometheus)
+export * from "./metrics/index.js";
+
+// Error Tracking (Sentry)
+export * from "./sentry/index.js";
 
 // Tracing Utilities
 export {

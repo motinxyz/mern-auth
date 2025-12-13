@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@auth/utils": "workspace:*",
+    "@auth/i18n": "workspace:*",
     "@sentry/react": "^10.29.0",
     "@tailwindcss/vite": "^4.1.17",
     "axios": "^1.13.2",

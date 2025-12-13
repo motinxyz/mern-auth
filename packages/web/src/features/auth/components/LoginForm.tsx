@@ -2,7 +2,7 @@ import { useActionState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { authService } from "../services/auth.service";
-import { loginUserSchema } from "@auth/utils";
+import { loginUserSchema } from "@auth/utils/validation";
 import {
   LockIcon,
   AlertCircleIcon,

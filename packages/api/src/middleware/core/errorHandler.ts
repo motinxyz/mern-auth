@@ -1,6 +1,8 @@
 import { getLogger } from "@auth/app-bootstrap";
+import { captureException } from "@auth/observability";
 
 const logger = getLogger();
+// ... imports ...
 import {
   HTTP_STATUS_CODES,
   HttpError,
@@ -10,6 +12,7 @@ import {
 } from "@auth/utils";
 
 const errorHandlerLogger = logger.child({ module: "errorHandler" });
+
 interface MongooseValidationError extends Error {
   errors: Record<string, {
     path: string;
@@ -124,6 +127,18 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   };
 
   if (isServerError) {
+    // Capture critical errors to Sentry
+    captureException(apiError, {
+      extra: {
+        requestUrl: req.originalUrl,
+        method: req.method,
+        body: req.body, // Be careful with PII here - Config should handle sanitization
+        requestId: req.headers["x-request-id"],
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/strict-boolean-expressions
+      user: (req as any).user ? { id: (req as any).user.id } : undefined,
+    });
+
     // Use req.log if available (pino-http), otherwise fallback to global logger
     const loggerInstance = req.log ?? errorHandlerLogger;
     loggerInstance.error(logData, logMessage);

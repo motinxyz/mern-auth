@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { registerUserSchema, loginUserSchema } from "@auth/utils";
+import { registerUserSchema, loginUserSchema } from "@auth/utils/validation";
 import apiClient from "../../../shared/services/api/client";
 import { API_ENDPOINTS } from "../../../shared/services/api/endpoints";
 import { storage } from "../../../shared/services/storage.service";

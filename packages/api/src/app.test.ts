@@ -68,6 +68,7 @@ vi.mock("@auth/queues", () => ({
       addJob: vi.fn().mockResolvedValue({ id: "mock-job-id" }),
     },
   })),
+  initQueueServices: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("express-rate-limit", () => ({

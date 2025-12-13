@@ -3,7 +3,8 @@
  */
 
 // Base repository interface
-export type { IRepository, FindOptions, SortDirection } from "./repository.interface.js";
+export type { IRepository } from "./repository.interface.js";
+export type { FindOptions, SortDirection } from "./query-options.interface.js";
 
 // Entity-specific repositories
 export type { IUserRepository, PaginationResult } from "./user.repository.js";

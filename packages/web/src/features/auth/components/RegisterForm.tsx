@@ -2,7 +2,8 @@ import { useActionState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { authService } from "../services/auth.service";
-import { registerUserSchema, VALIDATION_RULES } from "@auth/utils";
+import { registerUserSchema } from "@auth/utils/validation";
+import { VALIDATION_RULES } from "@auth/utils/constants";
 import {
   UserPlusIcon,
   AlertCircleIcon,

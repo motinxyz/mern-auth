@@ -31,6 +31,11 @@ vi.mock("@auth/utils", async () => {
   };
 });
 
+vi.mock("@auth/observability", () => ({
+  captureException: vi.fn(),
+  isSentryEnabled: vi.fn().mockReturnValue(false),
+}));
+
 describe("Error Handler Middleware", () => {
   let req: any, res: any, next: any;
   let errorHandler: any; // Declare errorHandler here with let
@@ -57,6 +62,7 @@ describe("Error Handler Middleware", () => {
     req = {
       t: vi.fn((key) => key),
       body: {},
+      headers: {},
     };
     res = {
       status: vi.fn(() => res),

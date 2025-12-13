@@ -540,6 +540,12 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: ^1.38.0
         version: 1.38.0
+      '@sentry/node':
+        specifier: ^10.29.0
+        version: 10.29.0
+      '@sentry/profiling-node':
+        specifier: ^10.29.0
+        version: 10.29.0
     devDependencies:
       '@types/node':
         specifier: ^22.15.23
@@ -619,6 +625,9 @@ importers:
 
   packages/web:
     dependencies:
+      '@auth/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@auth/utils':
         specifier: workspace:*
         version: link:../utils

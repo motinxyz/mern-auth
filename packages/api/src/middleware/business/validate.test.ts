@@ -12,6 +12,11 @@ vi.mock("@auth/config", () => ({
     })),
   })),
   t: vi.fn((key) => key),
+  config: {},
+}));
+
+vi.mock("@auth/observability", () => ({
+  addSpanAttributes: vi.fn(),
 }));
 
 vi.mock("@auth/utils", async () => {
