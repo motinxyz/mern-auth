@@ -1,6 +1,6 @@
 # The "Gold Standard" Monorepo: A Beginner's Guide
 
-Welcome to the backend monorepo! If you feel like everything is new and overwhelming, don't worry. This guide is written specifically for you. We're going to break down this "Gold Standard" production-grade application from top to bottom, explaining **what** everything is and **why** it's there.
+Welcome to the monorepo! If you feel like everything is new and overwhelming, don't worry. This guide is written specifically for you. We're going to break down this "Gold Standard" production-grade application from top to bottom, explaining **what** everything is and **why** it's there.
 
 ## The Big Picture: Why this way?
 
@@ -9,7 +9,7 @@ Most tutorials show you "Toy Code" - putting everything in one file (like `index
 This project uses a **Monorepo** structure (multiple "packages" in one git repository), **Clean Architecture**, and **Gold Standard Dependency Injection**.
 
 ### The "Restaurant" Analogy
-Think of the entire backend as a professional restaurant:
+Think of the entire system as a professional restaurant:
 
 1.  **Restaurant Opening Ceremony (@auth/app-bootstrap)**: The manager checks all equipment, turns on lights, tests the stove. All dependencies are wired together here.
 2.  **Waiters (@auth/api)**: They take the customer's order (HTTP Request) and bring it to the kitchen. They don't cook, they just communicate.
@@ -34,6 +34,7 @@ graph TB
     subgraph "Entry Points"
         API["@auth/api<br/>(Express App)"]
         Worker["@auth/worker<br/>(Background Job)"]
+        Web["@auth/web<br/>(React App)"]
     end
 
     subgraph "Core Logic"
@@ -51,12 +52,14 @@ graph TB
         Contracts["@auth/contracts<br/>(Interfaces)"]
         Utils["@auth/utils<br/>(Helpers)"]
         Config["@auth/config<br/>(Settings)"]
+        FeatureFlags["@auth/feature-flags<br/>(Toggles)"]
     end
 
     Bootstrap --> Redis
     Bootstrap --> Database
     Bootstrap --> Email
     Bootstrap --> Queues
+    Bootstrap --> FeatureFlags
     
     API --> MiddlewareFactory
     MiddlewareFactory --> Redis
@@ -133,22 +136,29 @@ This is the **most important package**. It defines the "Agreements" (TypeScript 
 **Path:** `packages/config`
 The central nervous system for settings.
 *   **Schema Validation:** `env.schema.ts` validates all environment variables with Zod
-*   **Pure Config:** No longer contains logger or application logic. Just environment variables.
+*   **Pure Config:** NO logger, NO feature flags, NO app logic. Just environment variables.
 
-### 3. The "Voice": @auth/logger
+### 3. The "Conductor": @auth/feature-flags (NEW)
+**Path:** `packages/feature-flags`
+**Dedicated Feature Flag Service.**
+*   **Purpose:** Manages dynamic feature toggles (Redis-backed).
+*   **SRP:** Extracted from config to separate "Static Config" from "Dynamic Toggles".
+*   **Capabilities:** Global enable/disable, User-specific targeting, Percentage rollouts.
+
+### 4. The "Voice": @auth/logger
 **Path:** `packages/logger`
 **NEW: Zero-dependency logging package.**
 *   **Purpose:** Provides the low-level Pino logger instance.
 *   **Position:** Bottom of the dependency tree. Can be imported by anyone without causing circular dependencies.
 *   **Factory:** Exports `createLogger()` which reads `LOG_LEVEL` directly from `process.env`.
 
-### 4. The "Eyes": @auth/observability
+### 5. The "Eyes": @auth/observability
 **Path:** `packages/observability`
 *   **Purpose:** Wraps `@auth/logger` and adds OpenTelemetry magic (Tracing context).
 *   **Pattern:** Exports `createObservabilityLogger()` which is instantiated ONCE in `app-bootstrap`.
 *   **No Circular Deps:** Strictly imports from `@auth/logger`, never from `@auth/config`.
 
-### 5. The "Glue": @auth/app-bootstrap
+### 6. The "Glue": @auth/app-bootstrap
 **Path:** `packages/app-bootstrap`
 **The Central Singleton Provider.**
 *   **Purpose:** Provides lazy singletons for all infrastructure services.
@@ -158,21 +168,22 @@ The central nervous system for settings.
     - `getDatabaseService()` - MongoDB connection singleton.
     - `getEmailService()` - Email service singleton.
     - `getQueueServices()` - Queue producer singletons.
+    - `getFeatureFlagService()` - Feature flag service singleton.
 
-### 6. The "Memory": @auth/database
+### 7. The "Memory": @auth/database
 **Path:** `packages/database`
 *   **Tech:** MongoDB + Mongoose.
 *   **Pattern:** Uses the **Repository Pattern**. Instead of writing raw DB queries in your logic, you call `userRepository.create()`.
 
-### 7. The "Logic": @auth/core
+### 8. The "Logic": @auth/core
 **Path:** `packages/core`
 Where the business rules live.
 *   **Services:** (e.g., `RegistrationService`) The logic. "Check rate limit -> Save User -> Queue Email".
 *   **Controllers:** (e.g., `RegistrationController`) The HTTP handler. "Read body -> Call Service -> Return JSON".
 *   **Constructor Injection:** All dependencies (Logger, Redis, Config) passed in constructor.
 
-### 8. The "Gateway": @auth/api
-**Path:** `packages/api`
+### 9. The "Gateway": @auth/api
+**Path:** `apps/api`
 The HTTP Server (Express).
 *   **Composition Root:** `app.ts` is where all dependencies are wired.
 *   **Middleware Factory:** `middleware.factory.ts` creates all middleware with injected dependencies.
@@ -183,16 +194,23 @@ The HTTP Server (Express).
 - `middleware/middleware.factory.ts` - Creates all middleware instances.
 - `router.ts` - Factory that creates API routes.
 
-### 9. The "Messenger": @auth/email
+### 10. The "Messenger": @auth/email
 **Path:** `packages/email`
 *   **Resilience:** Uses a **Circuit Breaker**. If the email provider crashes, it temporarily stops trying to send emails.
 *   **Failover:** Tries **Resend** first. If that fails, it automatically switches to **MailerSend**.
 
-### 10. The "Muscle": @auth/worker
-**Path:** `packages/worker`
+### 11. The "Muscle": @auth/worker
+**Path:** `apps/worker`
 The background process.
 *   **Why?** Sending an email takes 1-2 seconds. We don't want the user to wait.
 *   **How?** The API puts a "Job" in a queue (Redis). The Worker picks it up and processes it in the background.
+
+### 12. The "Face": @auth/web
+**Path:** `apps/web`
+The Frontend Application.
+*   **Tech:** React, Vite, TailwindCSS.
+*   **Role:** Consumes the API. It is a separate deployable application living in `apps/`.
+*   **Type Safety:** Shares interfaces directly from `@auth/contracts` for perfect API sync.
 
 ---
 

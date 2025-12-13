@@ -18,7 +18,7 @@ This document details exactly what happens when you run `pnpm dev:api` or deploy
 ## 🔍 Detailed Flow
 
 ### 1. The Entry Point: `server.ts`
-**File:** `packages/api/src/server.ts`
+**File:** `apps/api/src/server.ts`
 
 This is the very first file executed.
 
@@ -57,6 +57,7 @@ It calls `initializeCommonServices()`, which does the following in **PARALLEL** 
 2.  **Database**: Connects to MongoDB (`mongoose.connect`).
 3.  **Email**: Initializes the Email Service (checks Circuit Breaker state).
 4.  **Queues**: Initializes Redis connection for background jobs.
+5.  **Feature Flags**: Initializes Feature Flag Service (Redis connection).
 
 **Resilience Strategy:**
 If one service fails (e.g., Redis is down), the `allSettled` pattern catches it.
@@ -70,14 +71,14 @@ During this process, singletons are created:
 - `getLogger()`: The global logger instance.
 
 ### 5. Starting the HTTP Server
-**File:** `packages/api/src/app.ts`
+**File:** `apps/api/src/app.ts`
 
 Only after services are healthy does Express start listening.
 - **Middleware**: Rate limiters, Helmet (Security), Compression are attached.
 - **Routes**: `@auth/api` defines the paths (`/register`, `/login`).
 
 ### 6. Background Workers
-**File:** `packages/api/src/worker.setup.ts`
+**File:** `apps/api/src/worker.setup.ts`
 
 The server also initializes the **Worker** (in the same process for simplicity, or separate process in prod).
 - Subscribes to Redis queues.

@@ -26,6 +26,7 @@
     "@auth/observability": "workspace:*",
     "@auth/queues": "workspace:*",
     "@auth/redis": "workspace:*",
+    "@auth/feature-flags": "workspace:*",
     "@auth/utils": "workspace:*"
   },
   "devDependencies": {

@@ -9,13 +9,17 @@ import { withSpan, addSpanAttributes, createObservabilityLogger, type Logger } f
 import { BOOTSTRAP_MESSAGES } from "./constants/bootstrap.messages.js";
 import { createDatabaseService } from "./services/database.service.factory.js";
 import { createEmailService } from "./services/email.service.factory.js";
+import { getOriginalError } from "./types/errors.js";
+import type { InitializedServices, ServiceDefinition, BootstrapHealth } from "./types/index.js";
 import {
   initQueueServices,
   getQueueServices as getQueueServicesFromPackage,
   type QueueServices,
 } from "@auth/queues";
-import { getOriginalError } from "./types/errors.js";
-import type { InitializedServices, ServiceDefinition, BootstrapHealth } from "./types/index.js";
+import { FeatureFlagService } from "@auth/feature-flags";
+
+// Re-export FeatureFlagService type
+export { FeatureFlagService } from "@auth/feature-flags";
 
 // Re-export ExtendedRedis type for consumers
 export type { ExtendedRedis } from "@auth/redis";
@@ -37,6 +41,36 @@ let redisServiceInstance: ExtendedRedis | null = null;
 let databaseServiceInstance: IDatabaseService | null = null;
 let emailServiceInstance: IEmailService | null = null;
 let queueServicesInitialized = false;
+let featureFlagServiceInstance: FeatureFlagService | null = null;
+
+// ... (existing code)
+
+/**
+ * Get or create Feature Flag Service singleton
+ *
+ * Returns the FeatureFlagService instance.
+ * Automatically wires up Redis and Logger dependencies.
+ */
+export function getFeatureFlagService(): FeatureFlagService {
+  if (featureFlagServiceInstance === null) {
+    featureFlagServiceInstance = new FeatureFlagService({
+      redis: getRedisService(),
+      logger,
+    });
+  }
+  return featureFlagServiceInstance;
+}
+
+/**
+ * Get or create Queue Services singletons
+ *
+ * Returns typed queue services from the queues package.
+ * Ensures queue services are initialized with Redis and logger.
+ */
+export function getQueueServices(): QueueServices {
+  ensureQueueServicesInitialized();
+  return getQueueServicesFromPackage();
+}
 
 /**
  * Get or create Redis connection singleton
@@ -93,15 +127,6 @@ export function getEmailService(): IEmailService {
 }
 
 /**
- * Get or create Queue Services singletons
- *
- * Returns typed queue services from the queues package.
- * Ensures queue services are initialized with Redis and logger.
- */
-export function getQueueServices(): QueueServices {
-  ensureQueueServicesInitialized();
-  return getQueueServicesFromPackage();
-}
 
 /**
  * Check health of all bootstrap services

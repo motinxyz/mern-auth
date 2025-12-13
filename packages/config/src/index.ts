@@ -14,6 +14,4 @@
 // Export configuration
 export { default as config } from "./env.js";
 
-// Export feature flags
-export { FeatureFlagService } from "./feature-flags.js";
 

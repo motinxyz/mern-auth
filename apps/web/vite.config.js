@@ -14,7 +14,7 @@ export default defineConfig({
             "@features": path.resolve(__dirname, "./src/features"),
             "@shared": path.resolve(__dirname, "./src/shared"),
             "@config": path.resolve(__dirname, "./src/config"),
-            "@auth/config/locales": path.resolve(__dirname, "../config/src/locales"),
+            "@auth/config/locales": path.resolve(__dirname, "../../packages/config/src/locales"),
         },
     },
     build: {
