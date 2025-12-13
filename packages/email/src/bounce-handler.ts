@@ -23,7 +23,7 @@ export async function handleBounce(
     bouncedAt: timestamp ?? new Date(),
   });
 
-  if (!emailLog) {
+  if (emailLog === null || emailLog === undefined) {
     bounceLogger.warn({ messageId }, EMAIL_MESSAGES.BOUNCE_LOG_NOT_FOUND);
     return { success: false, reason: "Email log not found" };
   }
@@ -47,7 +47,7 @@ export async function handleBounce(
 
     // Look up user and mark email as invalid
     const user = await userRepository.findByEmail(email);
-    if (user) {
+    if (user !== null && user !== undefined) {
       // Note: We're reading the user but not updating here because 
       // IUserRepository doesn't have an update method. The caller
       // should handle the user update logic.
@@ -82,7 +82,7 @@ export async function handleBounce(
   // Handle complaints (spam reports)
   if (bounceType === "complaint") {
     const user = await userRepository.findByEmail(email);
-    if (user) {
+    if (user !== null && user !== undefined) {
       bounceLogger.warn(
         { email, userId: user._id },
         EMAIL_MESSAGES.BOUNCE_SPAM_COMPLAINT

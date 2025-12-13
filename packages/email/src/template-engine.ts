@@ -72,11 +72,11 @@ export async function initializeTemplates(options: TemplateInitOptions = {}): Pr
     // Register helpers
     registerHelpers();
 
-    if (logger) {
+    if (logger !== undefined) {
       logger.info(EMAIL_MESSAGES.TEMPLATES_INITIALIZED);
     }
   } catch (error) {
-    if (logger) {
+    if (logger !== undefined) {
       logger.error({ err: error }, EMAIL_ERRORS.TEMPLATES_INIT_FAILED);
     }
     throw error;

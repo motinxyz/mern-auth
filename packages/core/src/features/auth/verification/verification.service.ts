@@ -79,7 +79,7 @@ export class VerificationService {
 
     // Find user
     const user = await this.User.findById(userData.userId);
-    if (!user) {
+    if (user === null || user === undefined) {
       this.logger.error(
         { userId: userData.userId },
         VERIFICATION_MESSAGES.USER_FROM_TOKEN_NOT_FOUND
@@ -91,7 +91,7 @@ export class VerificationService {
     this.logger.info({ userId: user._id.toString() }, "User found, verifying email");
 
     // Check if already verified
-    if (user.isVerified) {
+    if (user.isVerified === true) {
       await this.redis.del(verifyKey);
       this.logger.info(
         { userId: user._id },

@@ -42,12 +42,12 @@ export async function withSpan<T>(
     return tracer.startActiveSpan(name, options, async (span) => {
         try {
             // Add service component for differentiation in Tempo
-            if (options.component != null) {
+            if (options.component !== undefined && options.component !== null) {
                 span.setAttribute("service.component", options.component);
             }
 
             // Add initial attributes if provided
-            if (options.attributes != null) {
+            if (options.attributes !== undefined && options.attributes !== null) {
                 Object.entries(options.attributes).forEach(([key, value]) => {
                     if (value !== undefined) {
                         span.setAttribute(key, value);
@@ -115,7 +115,7 @@ export function recordError(
     }
 
     // Add HTTP status code if available (for API errors)
-    if (error.statusCode != null) {
+    if (error.statusCode !== undefined && error.statusCode !== null) {
         span.setAttribute("http.status_code", error.statusCode);
     }
 
