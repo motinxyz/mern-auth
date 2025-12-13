@@ -26,7 +26,9 @@
 export * from "./tracing/config.js";
 export * from "./sentry/config.js";
 export * from "./metrics/config.js";
-export * from "./logger.js";
+export * from "./metrics/config.js";
+// Export logging barrel (factory + internal)
+export * from "./logging/index.js";
 
 // Tracing (OpenTelemetry)
 export * from "./tracing/index.js";
@@ -56,6 +58,6 @@ export {
     getLoggerWithTrace,
     type Logger,
     type CreateLoggerOptions,
-} from "./logger.js";
+} from "./logging/factory.js";
 
 

@@ -36,6 +36,20 @@ export async function initI18n(): Promise<typeof i18next> {
             await fs.mkdir(localesDir, { recursive: true });
         }
 
+        // Dynamically discover namespaces from the default locale directory
+        // This avoids manual registration of new translation files
+        const defaultLocaleDir = path.join(localesDir, DEFAULT_LOCALE);
+        let namespaces: string[] = [DEFAULT_NAMESPACE];
+
+        try {
+            const files = await fs.readdir(defaultLocaleDir);
+            namespaces = files
+                .filter((file) => file.endsWith(".json") && !file.includes(".missing.json"))
+                .map((file) => path.basename(file, ".json"));
+        } catch (error) {
+            log.warn({ err: error }, "Failed to discover namespaces, falling back to default");
+        }
+
         await i18next
             .use(Backend)
             .use(i18nextMiddleware.LanguageDetector)
@@ -45,8 +59,8 @@ export async function initI18n(): Promise<typeof i18next> {
                     addPath: path.join(localesDir, "{{lng}}/{{ns}}.missing.json"),
                 },
                 fallbackLng: DEFAULT_LOCALE,
-                preload: ["en"],
-                ns: ["system", "auth", "validation", "errors", "email", "queue", "token", "worker"],
+                preload: [DEFAULT_NAMESPACE], // Only preload default, load others on demand
+                ns: namespaces,
                 defaultNS: DEFAULT_NAMESPACE,
                 detection: {
                     order: ["querystring", "cookie", "header"],

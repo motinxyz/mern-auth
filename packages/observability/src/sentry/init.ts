@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/node";
 import { nodeProfilingIntegration } from "@sentry/profiling-node";
 import { isSentryEnabled, sentryConfig } from "./config.js";
-import { observabilityLogger } from "../utils/internal-logger.js";
+import { observabilityLogger } from "../logging/internal.js";
 
 const logger = observabilityLogger;
 

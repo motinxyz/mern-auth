@@ -7,7 +7,7 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { BatchSpanProcessor, type SpanProcessor, type ReadableSpan } from "@opentelemetry/sdk-trace-base";
-import { observabilityLogger } from "../utils/internal-logger.js";
+import { observabilityLogger } from "../logging/internal.js";
 import { isTracingEnabled, tracingConfig } from "./config.js";
 import { metricsConfig } from "../metrics/config.js";
 import { FilteringSpanProcessor } from "./processor.js";

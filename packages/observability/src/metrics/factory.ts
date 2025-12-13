@@ -9,7 +9,7 @@
 
 import { metrics } from "@opentelemetry/api";
 import { isMetricsEnabled } from "./config.js";
-import { observabilityLogger } from "../utils/internal-logger.js";
+import { observabilityLogger } from "../logging/internal.js";
 
 const log = observabilityLogger;
 
