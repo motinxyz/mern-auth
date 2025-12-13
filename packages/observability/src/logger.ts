@@ -42,19 +42,27 @@ export function getObservabilityLogger(options: CreateLoggerOptions = {}): Logge
     return createObservabilityLogger(options);
 }
 
+let sharedLogger: Logger | undefined;
+
 /**
  * Get logger with explicit trace ID
+ *
+ * Uses a shared singleton to avoid creating new Pino instances (expensive).
+ * Returns a lightweight child logger (cheap) with the traceId bound.
  */
 export function getLoggerWithTrace(traceId: string | undefined, options: CreateLoggerOptions = {}): Logger {
-    const logger = createObservabilityLogger(options);
-
-    if (traceId !== undefined && traceId !== "") {
-        return logger.child({ traceId });
+    // 1. Initialize shared singleton once
+    if (!sharedLogger) {
+        sharedLogger = createObservabilityLogger(options);
     }
 
-    return logger;
+    // 2. Return lightweight child logger
+    if (traceId !== undefined && traceId !== "") {
+        return sharedLogger.child({ traceId });
+    }
+
+    return sharedLogger;
 }
 
 // Re-export for convenience
 export { type Logger, type CreateLoggerOptions } from "@auth/logger";
-

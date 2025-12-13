@@ -13,6 +13,5 @@ import { createLogger, type Logger } from "@auth/logger";
  * @returns Child logger with module context
  */
 export function createModuleLogger(module: string): Logger {
-    return createLogger({ serviceName: `auth-api:${module}` });
+    return createLogger({ serviceName: `devs-daily:${module}` });
 }
-
