@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     clearMocks: true, // Clear mock history before each test
     restoreMocks: true, // Restore original module implementations after each test
     isolate: true, // Run each test file in its own isolated environment
