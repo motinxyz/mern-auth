@@ -17,6 +17,9 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "./src/shared"),
       "@config": path.resolve(__dirname, "./src/config"),
       "@auth/config/locales": path.resolve(__dirname, "../../packages/config/src/locales"),
+      "@auth/utils": path.resolve(__dirname, "../../packages/utils/src"),
+      "@auth/contracts": path.resolve(__dirname, "../../packages/contracts/src"),
+      "@auth/i18n": path.resolve(__dirname, "../../packages/i18n/src"),
     },
   },
   build: {

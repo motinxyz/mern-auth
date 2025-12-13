@@ -20,7 +20,14 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@auth/utils/*": ["../../packages/utils/src/*"],
+      "@auth/contracts": ["../../packages/contracts/src/index.ts"],
+      "@auth/contracts/*": ["../../packages/contracts/src/*"],
+      "@auth/i18n/*": ["../../packages/i18n/src/*"]
+    }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
