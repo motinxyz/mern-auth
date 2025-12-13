@@ -52,7 +52,7 @@ let sharedLogger: Logger | undefined;
  */
 export function getLoggerWithTrace(traceId: string | undefined, options: CreateLoggerOptions = {}): Logger {
     // 1. Initialize shared singleton once
-    if (!sharedLogger) {
+    if (sharedLogger === undefined) {
         sharedLogger = createObservabilityLogger(options);
     }
 
