@@ -41,7 +41,7 @@ export class HealthController {
 
       const services = {
         mongodb: {
-          status: dbPing.status === "fulfilled" && dbPing.value ? "UP" : "DOWN",
+          status: dbPing.status === "fulfilled" && Boolean(dbPing.value) ? "UP" : "DOWN",
           readyState: this.databaseService.getConnectionState().readyState,
         },
         redis: {

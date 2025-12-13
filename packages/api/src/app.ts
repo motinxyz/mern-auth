@@ -28,7 +28,7 @@ import { webhookRoutes } from "./features/webhooks/index.js";
 const app = express();
 
 // Trust first proxy (Render, Railway, etc.)
-if (config.isProduction) {
+if (config.isProduction === true) {
   app.set("trust proxy", 1);
 }
 

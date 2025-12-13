@@ -18,7 +18,7 @@ export function createEmailService(databaseService: IDatabaseService): IEmailSer
   const logger = getLogger();
 
   // Validate critical config in production
-  if (config.emailFrom === undefined && config.isProduction) {
+  if (config.emailFrom === undefined && Boolean(config.isProduction)) {
     throw new ConfigurationError(
       "EMAIL_FROM is required in production environment"
     );

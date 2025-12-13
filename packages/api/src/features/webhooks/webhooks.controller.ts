@@ -2,7 +2,7 @@ import { getDatabaseService } from "@auth/app-bootstrap";
 import { config } from "@auth/config";
 import { getLogger } from "@auth/app-bootstrap";
 import { t } from "@auth/i18n";
-import { handleBounce, ResendProvider, MailerSendProvider } from "@auth/email";
+import { handleBounce, ResendProvider, MailerSendProvider, type ParsedWebhookEvent } from "@auth/email";
 import type { Request, Response } from "express";
 import type { ILogger } from "@auth/contracts";
 
@@ -49,19 +49,14 @@ export class WebhooksController {
       // Cast headers to expected type (Express IncomingHttpHeaders -> WebhookHeaders)
       const headers = req.headers as unknown as Readonly<Record<string, string | undefined>>;
 
-      if (!provider.verifyWebhookSignature(payload, headers)) {
+      if (provider.verifyWebhookSignature(payload, headers) === false) {
         this.webhookLogger.error(`Invalid ${provider.name} signature`);
         return res.status(401).json({ error: "Invalid signature" });
       }
 
       // 2. Parse Event
       const eventJson = JSON.parse(payload);
-      const bounceData = provider.parseWebhookEvent(eventJson);
-
-      this.webhookLogger.info(
-        { provider: provider.name, eventType: eventJson.type },
-        "Received webhook"
-      );
+      const bounceData = provider.parseWebhookEvent(eventJson) as ParsedWebhookEvent | null;
 
       if (!bounceData) {
         return res

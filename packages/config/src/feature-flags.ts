@@ -172,7 +172,7 @@ export class FeatureFlagService {
 
       for (const key of keys) {
         // Skip user-specific and rollout keys
-        if (key.includes(":user:") || key.includes(":rollout")) {
+        if (Boolean(key.includes(":user:")) || Boolean(key.includes(":rollout"))) {
           continue;
         }
 

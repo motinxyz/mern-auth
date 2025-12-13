@@ -119,7 +119,7 @@ export async function checkBootstrapHealth(): Promise<BootstrapHealth> {
     const dbState = db.getConnectionState();
 
     const dbHealthy = dbPing === true;
-    const emailHealthy = emailHealth.initialized && emailHealth.state !== "open";
+    const emailHealthy = Boolean(emailHealth.initialized) && emailHealth.state !== "open";
 
     addSpanAttributes({
       "health.database": dbHealthy,

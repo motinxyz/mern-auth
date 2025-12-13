@@ -47,7 +47,7 @@ let workerService: WorkerService | undefined;
 // Start the application by bootstrapping all services and starting the server.
 await bootstrapApplication(app, async () => {
   // Graceful shutdown callback
-  if (workerService) {
+  if (workerService !== undefined) {
     logger.info(API_MESSAGES.WORKER_SHUTDOWN_INIT);
     await workerService.stop();
     logger.info(API_MESSAGES.WORKER_SHUTDOWN_COMPLETE);
@@ -56,13 +56,13 @@ await bootstrapApplication(app, async () => {
 
 // Sentry Adapter - Boundary between specific @sentry/node implementation and our generic ISentry contract
 const sentryAdapter: ISentry = {
-  captureException: (error, context) => {
+  captureException: (error: unknown, context?: Record<string, unknown>) => {
     Sentry.captureException(error, { extra: context });
   },
-  captureMessage: (message, options) => {
+  captureMessage: (message: string, options?: Record<string, unknown>) => {
     Sentry.captureMessage(message, {
       level: options?.level as "info" | "warning" | "error" | "debug" | "fatal" | undefined,
-      extra: options?.extra
+      extra: options?.extra as Record<string, unknown> | undefined
     });
   }
 };
@@ -77,7 +77,7 @@ workerService = await startWorker({
 });
 
 // Log health and metrics periodically (only in production)
-if (config.isProduction && workerService !== undefined) {
+if (config.isProduction === true && workerService !== undefined) {
   const service = workerService;
   // Log worker health every 5 minutes
   setInterval(

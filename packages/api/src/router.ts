@@ -33,7 +33,7 @@ export function createRouter(deps: RouterDeps): IRouter {
     router.use("/health", healthRoutes);
 
     // Test routes - only available in non-production environments
-    if (config.isTest || config.isDevelopment) {
+    if (config.isTest === true || config.isDevelopment === true) {
         router.use("/test-email", testEmailRoutes);
     }
 

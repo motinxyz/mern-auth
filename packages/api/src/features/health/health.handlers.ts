@@ -59,7 +59,7 @@ export function createReadinessHandler(deps: HealthHandlersDeps): RequestHandler
         checkBootstrapHealth(),
       ]);
 
-      const isReady = redisHealth.healthy && bootstrapHealth.healthy;
+      const isReady = Boolean(redisHealth.healthy) && Boolean(bootstrapHealth.healthy);
 
       const response = {
         status: isReady ? "READY" : "NOT_READY",
@@ -79,7 +79,7 @@ export function createReadinessHandler(deps: HealthHandlersDeps): RequestHandler
         "health.latency_ms": response.totalCheckMs,
       });
 
-      if (!isReady) {
+      if (isReady === false) {
         logger.warn(response, "Readiness check failed");
       }
 
