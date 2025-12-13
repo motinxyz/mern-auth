@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
@@ -9,7 +8,9 @@ import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { BatchSpanProcessor, type SpanProcessor, type ReadableSpan } from "@opentelemetry/sdk-trace-base";
 import { createModuleLogger } from "../startup-logger.js";
-import { observabilityConfig, isTracingEnabled } from "../config.js";
+import { observabilityConfig as _observabilityConfig, isTracingEnabled, type ObservabilityConfig } from "../config.js";
+
+const observabilityConfig = _observabilityConfig as unknown as ObservabilityConfig;
 import { FilteringSpanProcessor } from "./processor.js";
 import {
     ignoreIncomingRequestHook,
@@ -68,7 +69,7 @@ export function initializeTracing() {
             "Auth headers status"
         );
 
-        const traceExporter = tempo.url
+        const traceExporter: OTLPTraceExporter | undefined = tempo.url
             ? new OTLPTraceExporter({
                 url: tempo.url,
                 headers: tempo.headers as Record<string, string>,
@@ -81,10 +82,14 @@ export function initializeTracing() {
 
         // Configure metric exporter - use dedicated Prometheus/Mimir endpoint
         const prometheusConfig = observabilityConfig.prometheus.remoteWrite;
-        const metricExporter = prometheusConfig.enabled && prometheusConfig.url
+        const isPrometheusEnabled: boolean = prometheusConfig.enabled ?? false;
+        const prometheusUrl: string = prometheusConfig.url ?? "";
+        const hasPrometheusUrl: boolean = prometheusUrl !== "";
+
+        const metricExporter: OTLPMetricExporter | undefined = isPrometheusEnabled && hasPrometheusUrl
             ? new OTLPMetricExporter({
-                url: prometheusConfig.url,
-                headers: prometheusConfig.username && prometheusConfig.password
+                url: prometheusUrl,
+                headers: (prometheusConfig.username ?? "") !== "" && (prometheusConfig.password ?? "") !== ""
                     ? { Authorization: `Basic ${Buffer.from(`${prometheusConfig.username}:${prometheusConfig.password}`).toString("base64")}` }
                     : {},
                 timeoutMillis: 30000,
@@ -94,18 +99,18 @@ export function initializeTracing() {
             : undefined;
 
         // Configure metric reader
-        const metricReader = metricExporter
+        const metricReader = metricExporter !== undefined
             ? new PeriodicExportingMetricReader({
-                exporter: metricExporter,
+                exporter: metricExporter as OTLPMetricExporter,
                 exportIntervalMillis: 60000, // Export every 60 seconds
             })
             : undefined;
 
         // Configure span processor with healthz filter
         const createSpanProcessor = (): SpanProcessor | undefined => {
-            if (!traceExporter) return undefined;
+            if (traceExporter === undefined) return undefined;
 
-            const batchProcessor = new BatchSpanProcessor(traceExporter, {
+            const batchProcessor = new BatchSpanProcessor(traceExporter as OTLPTraceExporter, {
                 maxQueueSize: 2048,
                 maxExportBatchSize: 512,
             });
@@ -123,8 +128,8 @@ export function initializeTracing() {
         // Initialize OpenTelemetry SDK
         sdk = new NodeSDK({
             resource: resource,
-            ...(spanProcessor && { spanProcessors: [spanProcessor] }),
-            ...(metricReader && { metricReader }),
+            ...(spanProcessor !== undefined ? { spanProcessors: [spanProcessor] } : {}),
+            ...(metricReader !== undefined ? { metricReader } : {}),
             // Configure auto-instrumentations
             instrumentations: [
                 getNodeAutoInstrumentations({
@@ -150,8 +155,8 @@ export function initializeTracing() {
                         enabled: true,
                         ignoreIncomingRequestHook,
                         requestHook,
-                        startOutgoingSpanHook, // eslint-disable-line @typescript-eslint/no-explicit-any
-                        applyCustomAttributesOnSpan, // eslint-disable-line @typescript-eslint/no-explicit-any
+                        startOutgoingSpanHook,
+                        applyCustomAttributesOnSpan,
                     },
                     "@opentelemetry/instrumentation-express": {
                         enabled: true,
@@ -160,8 +165,8 @@ export function initializeTracing() {
                         ignoreLayersType: ["middleware" as any],
                         // Ignore health check routes entirely - match by layer name
                         ignoreLayers: [/healthz/, /readyz/],
-                        spanNameHook: expressSpanNameHook, // eslint-disable-line @typescript-eslint/no-explicit-any
-                        requestHook: expressRequestHook, // eslint-disable-line @typescript-eslint/no-explicit-any
+                        spanNameHook: expressSpanNameHook,
+                        requestHook: expressRequestHook,
                     },
                     "@opentelemetry/instrumentation-mongodb": {
                         enabled: true,
@@ -186,8 +191,7 @@ export function initializeTracing() {
         log.info("OpenTelemetry tracing initialized");
 
         // Graceful shutdown with timeout
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const shutdownHandler = async (signal: any) => {
+        const shutdownHandler = async (signal: string) => {
             log.info({ signal }, "Shutting down OpenTelemetry");
             try {
                 await Promise.race([

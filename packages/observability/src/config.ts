@@ -18,7 +18,7 @@ interface TempoHeaders {
     Authorization?: string;
 }
 
-interface ObservabilityConfig {
+export interface ObservabilityConfig {
     enabled: boolean;
     loki: {
         enabled: boolean;
