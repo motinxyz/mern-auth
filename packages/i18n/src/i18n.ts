@@ -17,8 +17,10 @@ import { createLogger } from "@auth/logger";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DEFAULT_LOCALE = "en";
-const DEFAULT_NAMESPACE = "system";
+import { I18N_DEFAULTS, I18N_MESSAGES } from "./constants.js";
+
+const DEFAULT_LOCALE = I18N_DEFAULTS.LOCALE;
+const DEFAULT_NAMESPACE = I18N_DEFAULTS.NAMESPACE;
 
 const log = createLogger({ serviceName: "i18n" });
 
@@ -47,7 +49,7 @@ export async function initI18n(): Promise<typeof i18next> {
                 .filter((file) => file.endsWith(".json") && !file.includes(".missing.json"))
                 .map((file) => path.basename(file, ".json"));
         } catch (error) {
-            log.warn({ err: error }, "Failed to discover namespaces, falling back to default");
+            log.warn({ err: error }, I18N_MESSAGES.DISCOVERY_FAILURE);
         }
 
         await i18next
@@ -75,11 +77,11 @@ export async function initI18n(): Promise<typeof i18next> {
                 saveMissing: true,
             });
 
-        log.info("i18next initialized");
+        log.info(I18N_MESSAGES.INIT_SUCCESS);
         return i18next;
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        log.error({ err: errorMessage }, "Failed to initialize i18next");
+        log.error({ err: errorMessage }, I18N_MESSAGES.INIT_FAILURE);
         throw error;
     }
 }
