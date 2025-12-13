@@ -37,7 +37,8 @@
   "packageManager": "pnpm@10.19.0",
   "pnpm": {
     "overrides": {
-      "tmp": ">=0.2.4"
+      "tmp": ">=0.2.4",
+      "esbuild": "^0.25.0"
     }
   },
   "dependencies": {
