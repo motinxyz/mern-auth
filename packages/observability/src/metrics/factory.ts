@@ -8,10 +8,10 @@
  */
 
 import { metrics } from "@opentelemetry/api";
-import { isMetricsEnabled } from "../config.js";
-import { createModuleLogger } from "../startup-logger.js";
+import { isMetricsEnabled } from "./config.js";
+import { observabilityLogger } from "../utils/internal-logger.js";
 
-const log = createModuleLogger("metrics");
+const log = observabilityLogger;
 
 export const meter = metrics.getMeter("auth-observability-metrics");
 

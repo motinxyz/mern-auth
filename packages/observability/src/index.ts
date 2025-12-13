@@ -22,7 +22,10 @@
  */
 
 // Core Configuration
-export * from "./config.js";
+// Export domain configs
+export * from "./tracing/config.js";
+export * from "./sentry/config.js";
+export * from "./metrics/config.js";
 export * from "./logger.js";
 
 // Tracing (OpenTelemetry)
@@ -44,7 +47,7 @@ export {
     addSpanEvent,
     type WithSpanOptions,
     type TraceContext,
-} from "./utils/tracing.js";
+} from "./tracing/utils.js";
 
 // Logging - with trace context
 export {

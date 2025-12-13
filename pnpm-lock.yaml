@@ -413,6 +413,9 @@ importers:
       '@auth/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@auth/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@auth/utils':
         specifier: workspace:*
         version: link:../utils

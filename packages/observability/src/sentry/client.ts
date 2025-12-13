@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/node";
-import { isSentryEnabled } from "../config.js";
+import { isSentryEnabled } from "./config.js";
 
 /**
  * Capture an exception to Sentry

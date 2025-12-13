@@ -1,25 +1,25 @@
 import * as Sentry from "@sentry/node";
 import { nodeProfilingIntegration } from "@sentry/profiling-node";
-import { observabilityConfig, isSentryEnabled } from "../config.js";
-import { createModuleLogger } from "../startup-logger.js";
+import { isSentryEnabled, sentryConfig } from "./config.js";
+import { observabilityLogger } from "../utils/internal-logger.js";
 
-const logger = createModuleLogger("sentry");
+const logger = observabilityLogger;
 
 /**
  * Initialize Sentry
  * Configures error tracking and performance monitoring.
  */
 export function initializeSentry(): void {
-    if (!isSentryEnabled() || observabilityConfig.sentry.dsn === undefined || observabilityConfig.sentry.dsn === "") {
+    if (!isSentryEnabled() || sentryConfig.dsn === undefined || sentryConfig.dsn === "") {
         logger.info("Sentry disabled (DSN missing or disabled via env)");
         return;
     }
 
     try {
         Sentry.init({
-            dsn: observabilityConfig.sentry.dsn,
-            environment: observabilityConfig.sentry.environment,
-            release: observabilityConfig.sentry.release,
+            dsn: sentryConfig.dsn,
+            environment: sentryConfig.environment,
+            release: sentryConfig.release,
             integrations: [
                 nodeProfilingIntegration(),
                 // Enable HTTP tracing if OTel is not doing it (Ref: Sentry OTel guide)

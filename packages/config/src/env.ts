@@ -53,11 +53,16 @@ const envConfigPath = path.resolve(
   `packages/config/src/config/${envVars.NODE_ENV}.js`
 );
 
+// Import createLogger from @auth/logger directly
+import { createLogger } from "@auth/logger";
+
 let envConfig: { default?: Record<string, unknown> } = {};
 try {
   envConfig = await import(envConfigPath);
 } catch {
-  // Environment-specific config is optional, silently continue
+  // Environment-specific config is optional
+  const logger = createLogger({ serviceName: "auth-config" });
+  logger.debug("No environment-specific config found, skipping.");
 }
 
 const finalConfig = {

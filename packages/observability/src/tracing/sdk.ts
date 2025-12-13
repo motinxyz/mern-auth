@@ -7,10 +7,9 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { BatchSpanProcessor, type SpanProcessor, type ReadableSpan } from "@opentelemetry/sdk-trace-base";
-import { createModuleLogger } from "../startup-logger.js";
-import { observabilityConfig as _observabilityConfig, isTracingEnabled, type ObservabilityConfig } from "../config.js";
-
-const observabilityConfig = _observabilityConfig as unknown as ObservabilityConfig;
+import { observabilityLogger } from "../utils/internal-logger.js";
+import { isTracingEnabled, tracingConfig } from "./config.js";
+import { metricsConfig } from "../metrics/config.js";
 import { FilteringSpanProcessor } from "./processor.js";
 import {
     ignoreIncomingRequestHook,
@@ -31,7 +30,8 @@ const {
     SEMRESATTRS_DEPLOYMENT_ENVIRONMENT,
 } = require("@opentelemetry/semantic-conventions");
 
-const log = createModuleLogger("tracing");
+// Initialize Logger
+const log = observabilityLogger;
 
 let sdk: NodeSDK | null = null;
 
@@ -46,8 +46,7 @@ export function initializeTracing() {
     }
 
     try {
-        const { serviceName, serviceVersion, environment, tempo } =
-            observabilityConfig.tracing;
+        const { serviceName, serviceVersion, environment, tempo } = tracingConfig;
 
         log.info("Initializing OpenTelemetry tracing");
 
@@ -58,7 +57,7 @@ export function initializeTracing() {
             [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: environment,
             // Additional production-grade attributes
             "service.namespace": "auth",
-            "host.name": observabilityConfig.tracing.hostname || "localhost",
+            "host.name": tracingConfig.hostname || "localhost",
             "process.pid": process.pid,
         });
 
@@ -81,7 +80,7 @@ export function initializeTracing() {
             : undefined;
 
         // Configure metric exporter - use dedicated Prometheus/Mimir endpoint
-        const prometheusConfig = observabilityConfig.prometheus.remoteWrite;
+        const prometheusConfig = metricsConfig.remoteWrite;
         const isPrometheusEnabled: boolean = prometheusConfig.enabled ?? false;
         const prometheusUrl: string = prometheusConfig.url ?? "";
         const hasPrometheusUrl: boolean = prometheusUrl !== "";

@@ -1,10 +1,9 @@
-// packages/config/src/config/development.js
-// packages/config/src/config/development.js
+// packages/config/src/config/development.ts
 // Development-specific configurations
 
 export default {
   logLevel: "debug",
-  // Example: If your client app runs on a different port in development
+  // Example: If client app runs on a different port in development
   // clientUrl: "http://localhost:3000",
   // Example: Development-specific feature flags
   // featureFlags: {

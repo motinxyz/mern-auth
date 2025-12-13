@@ -1,5 +1,4 @@
-// packages/config/src/config/production.js
-// packages/config/src/config/production.js
+// packages/config/src/config/production.ts
 // Production-specific configurations
 
 export default {
@@ -10,7 +9,7 @@ export default {
     stalledInterval: 30000,
   },
   // In a production environment, sensitive variables like database credentials,
-  // API keys, and SMTP passwords should be loaded from a secure secret management system
+  // API keys should be loaded from a secure secret management system
   // (e.g., AWS Secrets Manager, Google Secret Manager, HashiCorp Vault)
   // rather than being hardcoded or stored in .env files directly in the repository.
 
